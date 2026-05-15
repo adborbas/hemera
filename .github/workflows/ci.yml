@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  XCODE_VERSION: '26.2'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Boot simulator
+        run: |
+          RUNTIME=$(xcrun simctl list runtimes iOS -j | python3 -c "import sys,json; runtimes=json.loads(sys.stdin.read())['runtimes']; print(runtimes[-1]['identifier']) if runtimes else sys.exit(1)")
+          DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
+          UDID=$(xcrun simctl create "CI iPhone" "$DEVICE_TYPE" "$RUNTIME")
+          xcrun simctl boot "$UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Install xcbeautify
+        run: brew install xcbeautify
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Hemera.xcodeproj \
+            -scheme Hemera \
+            -destination "id=$SIM_UDID" \
+            -only-testing:HemeraTests \
+            -skip-testing:HemeraUITests \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcbeautify --renderer github-actions
+
+      - name: Test TileGridEngine
+        run: swift test --package-path Packages/TileGridEngine

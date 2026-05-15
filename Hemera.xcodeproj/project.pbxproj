@@ -1,0 +1,697 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		643FF3E52F39232E008DDFD8 /* TileGridEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 643FF3E42F39232E008DDFD8 /* TileGridEngine */; };
+		6449A3EB2ECA584F00D56CD2 /* HAKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6449A3EA2ECA584F00D56CD2 /* HAKit */; };
+		64A1B0032F7B000100C1D1E1 /* HemeraLog in Frameworks */ = {isa = PBXBuildFile; productRef = 64A1B0022F7B000100C1D1E1 /* HemeraLog */; };
+		64B2C0052F9E000100A1E2F1 /* Mortar in Frameworks */ = {isa = PBXBuildFile; productRef = 64B2C0042F9E000100A1E2F1 /* Mortar */; };
+		64F1A0012F5A000100B0C0D1 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 64F1A0032F5A000100B0C0D3 /* KeychainAccess */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		64C9207E2EE0374D004DD20E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6449A3D32EC9CB1B00D56CD2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6449A3DA2EC9CB1B00D56CD2;
+			remoteInfo = Hemera;
+		};
+		64D100022FA0000100E1F1A1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6449A3D32EC9CB1B00D56CD2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6449A3DA2EC9CB1B00D56CD2;
+			remoteInfo = Hemera;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		6449A3DB2EC9CB1B00D56CD2 /* Hemera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hemera.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		64C9207A2EE0374D004DD20E /* HemeraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		64F1A0042F5A000200B0C0D4 /* Exceptions for "Hemera" folder in "Hemera" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6449A3DA2EC9CB1B00D56CD2 /* Hemera */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		6449A3DD2EC9CB1B00D56CD2 /* Hemera */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				64F1A0042F5A000200B0C0D4 /* Exceptions for "Hemera" folder in "Hemera" target */,
+			);
+			path = Hemera;
+			sourceTree = "<group>";
+		};
+		64C9207B2EE0374D004DD20E /* HemeraTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HemeraTests;
+			sourceTree = "<group>";
+		};
+		64D100032FA0000100E1F1A1 /* HemeraUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HemeraUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6449A3D82EC9CB1B00D56CD2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				643FF3E52F39232E008DDFD8 /* TileGridEngine in Frameworks */,
+				64A1B0032F7B000100C1D1E1 /* HemeraLog in Frameworks */,
+				64B2C0052F9E000100A1E2F1 /* Mortar in Frameworks */,
+				6449A3EB2ECA584F00D56CD2 /* HAKit in Frameworks */,
+				64F1A0012F5A000100B0C0D1 /* KeychainAccess in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64C920772EE0374D004DD20E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64D100042FA0000100E1F1A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		643FF3E32F39232E008DDFD8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6449A3D22EC9CB1B00D56CD2 = {
+			isa = PBXGroup;
+			children = (
+				64D1B0022FA0000100D2E3A2 /* Config */,
+				6449A3DD2EC9CB1B00D56CD2 /* Hemera */,
+				64C9207B2EE0374D004DD20E /* HemeraTests */,
+				64D100032FA0000100E1F1A1 /* HemeraUITests */,
+				643FF3E32F39232E008DDFD8 /* Frameworks */,
+				6449A3DC2EC9CB1B00D56CD2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		64D1B0022FA0000100D2E3A2 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		6449A3DC2EC9CB1B00D56CD2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6449A3DB2EC9CB1B00D56CD2 /* Hemera.app */,
+				64C9207A2EE0374D004DD20E /* HemeraTests.xctest */,
+				64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6449A3DA2EC9CB1B00D56CD2 /* Hemera */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6449A3E62EC9CB1C00D56CD2 /* Build configuration list for PBXNativeTarget "Hemera" */;
+			buildPhases = (
+				6449A3D72EC9CB1B00D56CD2 /* Sources */,
+				6449A3D82EC9CB1B00D56CD2 /* Frameworks */,
+				6449A3D92EC9CB1B00D56CD2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6449A3DD2EC9CB1B00D56CD2 /* Hemera */,
+			);
+			name = Hemera;
+			packageProductDependencies = (
+				6449A3EA2ECA584F00D56CD2 /* HAKit */,
+				643FF3E42F39232E008DDFD8 /* TileGridEngine */,
+				64A1B0022F7B000100C1D1E1 /* HemeraLog */,
+				64B2C0042F9E000100A1E2F1 /* Mortar */,
+				64F1A0032F5A000100B0C0D3 /* KeychainAccess */,
+			);
+			productName = Hemera;
+			productReference = 6449A3DB2EC9CB1B00D56CD2 /* Hemera.app */;
+			productType = "com.apple.product-type.application";
+		};
+		64C920792EE0374D004DD20E /* HemeraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 64C920802EE0374D004DD20E /* Build configuration list for PBXNativeTarget "HemeraTests" */;
+			buildPhases = (
+				64C920762EE0374D004DD20E /* Sources */,
+				64C920772EE0374D004DD20E /* Frameworks */,
+				64C920782EE0374D004DD20E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				64C9207F2EE0374D004DD20E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				64C9207B2EE0374D004DD20E /* HemeraTests */,
+			);
+			name = HemeraTests;
+			packageProductDependencies = (
+			);
+			productName = HemeraTests;
+			productReference = 64C9207A2EE0374D004DD20E /* HemeraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		64D100052FA0000100E1F1A1 /* HemeraUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 64D1000B2FA0000100E1F1A1 /* Build configuration list for PBXNativeTarget "HemeraUITests" */;
+			buildPhases = (
+				64D100072FA0000100E1F1A1 /* Sources */,
+				64D100042FA0000100E1F1A1 /* Frameworks */,
+				64D100062FA0000100E1F1A1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				64D100082FA0000100E1F1A1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				64D100032FA0000100E1F1A1 /* HemeraUITests */,
+			);
+			name = HemeraUITests;
+			packageProductDependencies = (
+			);
+			productName = HemeraUITests;
+			productReference = 64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6449A3D32EC9CB1B00D56CD2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					6449A3DA2EC9CB1B00D56CD2 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					64C920792EE0374D004DD20E = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 6449A3DA2EC9CB1B00D56CD2;
+					};
+					64D100052FA0000100E1F1A1 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 6449A3DA2EC9CB1B00D56CD2;
+					};
+				};
+			};
+			buildConfigurationList = 6449A3D62EC9CB1B00D56CD2 /* Build configuration list for PBXProject "Hemera" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 6449A3D22EC9CB1B00D56CD2;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6449A3E92ECA584F00D56CD2 /* XCRemoteSwiftPackageReference "HAKit" */,
+				643FF3E22F392212008DDFD8 /* XCLocalSwiftPackageReference "Packages/TileGridEngine" */,
+				64A1B0012F7B000100C1D1E1 /* XCLocalSwiftPackageReference "Packages/HemeraLog" */,
+				64B2C0032F9E000100A1E2F1 /* XCLocalSwiftPackageReference "Packages/Mortar" */,
+				64F1A0022F5A000100B0C0D2 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6449A3DC2EC9CB1B00D56CD2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6449A3DA2EC9CB1B00D56CD2 /* Hemera */,
+				64C920792EE0374D004DD20E /* HemeraTests */,
+				64D100052FA0000100E1F1A1 /* HemeraUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6449A3D92EC9CB1B00D56CD2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64C920782EE0374D004DD20E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64D100062FA0000100E1F1A1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6449A3D72EC9CB1B00D56CD2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64C920762EE0374D004DD20E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64D100072FA0000100E1F1A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		64C9207F2EE0374D004DD20E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6449A3DA2EC9CB1B00D56CD2 /* Hemera */;
+			targetProxy = 64C9207E2EE0374D004DD20E /* PBXContainerItemProxy */;
+		};
+		64D100082FA0000100E1F1A1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6449A3DA2EC9CB1B00D56CD2 /* Hemera */;
+			targetProxy = 64D100022FA0000100E1F1A1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		6449A3E42EC9CB1C00D56CD2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		6449A3E52EC9CB1C00D56CD2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6449A3E72EC9CB1C00D56CD2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Hemera/Info.plist;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Hemera searches for Home Assistant servers on your local network.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6449A3E82EC9CB1C00D56CD2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Hemera/Info.plist;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Hemera searches for Home Assistant servers on your local network.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		64C920812EE0374D004DD20E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hemera.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hemera";
+			};
+			name = Debug;
+		};
+		64C920822EE0374D004DD20E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hemera.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hemera";
+			};
+			name = Release;
+		};
+		64D100092FA0000100E1F1A1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hemera;
+			};
+			name = Debug;
+		};
+		64D1000A2FA0000100E1F1A1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hemera;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6449A3D62EC9CB1B00D56CD2 /* Build configuration list for PBXProject "Hemera" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6449A3E42EC9CB1C00D56CD2 /* Debug */,
+				6449A3E52EC9CB1C00D56CD2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6449A3E62EC9CB1C00D56CD2 /* Build configuration list for PBXNativeTarget "Hemera" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6449A3E72EC9CB1C00D56CD2 /* Debug */,
+				6449A3E82EC9CB1C00D56CD2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		64C920802EE0374D004DD20E /* Build configuration list for PBXNativeTarget "HemeraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				64C920812EE0374D004DD20E /* Debug */,
+				64C920822EE0374D004DD20E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		64D1000B2FA0000100E1F1A1 /* Build configuration list for PBXNativeTarget "HemeraUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				64D100092FA0000100E1F1A1 /* Debug */,
+				64D1000A2FA0000100E1F1A1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		643FF3E22F392212008DDFD8 /* XCLocalSwiftPackageReference "Packages/TileGridEngine" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/TileGridEngine;
+		};
+		64A1B0012F7B000100C1D1E1 /* XCLocalSwiftPackageReference "Packages/HemeraLog" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/HemeraLog;
+		};
+		64B2C0032F9E000100A1E2F1 /* XCLocalSwiftPackageReference "Packages/Mortar" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Mortar;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6449A3E92ECA584F00D56CD2 /* XCRemoteSwiftPackageReference "HAKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/home-assistant/HAKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.7;
+			};
+		};
+		64F1A0022F5A000100B0C0D2 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		643FF3E42F39232E008DDFD8 /* TileGridEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 643FF3E22F392212008DDFD8 /* XCLocalSwiftPackageReference "Packages/TileGridEngine" */;
+			productName = TileGridEngine;
+		};
+		6449A3EA2ECA584F00D56CD2 /* HAKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6449A3E92ECA584F00D56CD2 /* XCRemoteSwiftPackageReference "HAKit" */;
+			productName = HAKit;
+		};
+		64A1B0022F7B000100C1D1E1 /* HemeraLog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64A1B0012F7B000100C1D1E1 /* XCLocalSwiftPackageReference "Packages/HemeraLog" */;
+			productName = HemeraLog;
+		};
+		64B2C0042F9E000100A1E2F1 /* Mortar */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64B2C0032F9E000100A1E2F1 /* XCLocalSwiftPackageReference "Packages/Mortar" */;
+			productName = Mortar;
+		};
+		64F1A0032F5A000100B0C0D3 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 64F1A0022F5A000100B0C0D2 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 6449A3D32EC9CB1B00D56CD2 /* Project object */;
+}

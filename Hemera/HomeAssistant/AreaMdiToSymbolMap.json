@@ -1,0 +1,143 @@
+[
+    {
+        "sfSymbol": "sofa.fill",
+        "mdiNames": [
+            "sofa", "sofa-outline", "sofa-single", "sofa-single-outline",
+            "television", "tv", "television-classic"
+        ]
+    },
+    {
+        "sfSymbol": "bed.double.fill",
+        "mdiNames": [
+            "bed", "bed-outline", "bed-double", "bed-double-outline",
+            "bed-single", "bed-single-outline", "bedroom-outline", "sleep",
+            "bed-king", "bed-king-outline", "bed-queen", "bed-queen-outline",
+            "bunk-bed", "bunk-bed-outline"
+        ]
+    },
+    {
+        "sfSymbol": "fork.knife",
+        "mdiNames": [
+            "silverware-fork-knife", "stove", "countertop", "countertop-outline",
+            "fridge", "fridge-outline", "microwave", "toaster-oven",
+            "pot-steam", "pot-steam-outline", "pot-mix", "pot-mix-outline",
+            "blender", "blender-outline", "dishwasher"
+        ]
+    },
+    {
+        "sfSymbol": "cup.and.saucer.fill",
+        "mdiNames": [
+            "table-furniture", "silverware", "silverware-variant",
+            "glass-wine", "food-fork-drink", "noodles",
+            "food", "food-variant", "coffee", "coffee-outline"
+        ]
+    },
+    {
+        "sfSymbol": "shower.fill",
+        "mdiNames": [
+            "shower", "shower-head", "bathtub", "bathtub-outline", "hot-tub"
+        ]
+    },
+    {
+        "sfSymbol": "toilet.fill",
+        "mdiNames": ["toilet"]
+    },
+    {
+        "sfSymbol": "leaf.fill",
+        "mdiNames": [
+            "flower", "flower-outline", "flower-tulip", "flower-tulip-outline",
+            "tree", "tree-outline", "grass", "sprinkler", "sprinkler-variant",
+            "watering-can", "watering-can-outline", "leaf",
+            "leaf-circle", "leaf-circle-outline", "pine-tree", "cactus"
+        ]
+    },
+    {
+        "sfSymbol": "car.fill",
+        "mdiNames": [
+            "garage", "garage-open", "garage-open-variant", "garage-variant",
+            "garage-alert", "garage-alert-variant",
+            "car", "car-outline", "car-side"
+        ]
+    },
+    {
+        "sfSymbol": "desktopcomputer",
+        "mdiNames": [
+            "desk", "desk-lamp", "monitor", "monitor-small", "laptop",
+            "briefcase", "briefcase-outline", "desktop-classic", "desktop-tower"
+        ]
+    },
+    {
+        "sfSymbol": "door.left.hand.open",
+        "mdiNames": [
+            "door", "door-open", "door-closed", "door-closed-lock",
+            "coat-rack", "hanger"
+        ]
+    },
+    {
+        "sfSymbol": "washer.fill",
+        "mdiNames": [
+            "washing-machine", "tumble-dryer", "tumble-dryer-outline",
+            "tshirt-crew", "tshirt-crew-outline"
+        ]
+    },
+    {
+        "sfSymbol": "stairs",
+        "mdiNames": [
+            "stairs", "stairs-up", "stairs-down", "stairs-box",
+            "home-floor-negative-1", "home-floor-0", "home-floor-1",
+            "home-floor-2", "home-floor-3",
+            "home-floor-a", "home-floor-b", "home-floor-g", "home-floor-l"
+        ]
+    },
+    {
+        "sfSymbol": "figure.and.child.holdinghands",
+        "mdiNames": [
+            "baby", "baby-face", "baby-face-outline",
+            "baby-carriage", "baby-carriage-off",
+            "toy-brick", "toy-brick-outline", "teddy-bear"
+        ]
+    },
+    {
+        "sfSymbol": "sun.max.fill",
+        "mdiNames": [
+            "balcony", "deck", "umbrella", "umbrella-outline",
+            "patio-heater", "grill", "grill-outline"
+        ]
+    },
+    {
+        "sfSymbol": "figure.pool.swim",
+        "mdiNames": ["pool", "swim"]
+    },
+    {
+        "sfSymbol": "dumbbell.fill",
+        "mdiNames": ["dumbbell", "weight-lifter"]
+    },
+    {
+        "sfSymbol": "archivebox.fill",
+        "mdiNames": [
+            "archive", "archive-outline", "package", "package-variant",
+            "package-variant-closed", "toolbox", "toolbox-outline", "tools"
+        ]
+    },
+    {
+        "sfSymbol": "house.fill",
+        "mdiNames": [
+            "home", "home-outline", "home-variant", "home-variant-outline",
+            "home-city", "home-city-outline"
+        ]
+    },
+    {
+        "sfSymbol": "play.tv.fill",
+        "mdiNames": [
+            "theater", "filmstrip", "filmstrip-box",
+            "movie", "movie-outline", "movie-open", "movie-open-outline",
+            "projector", "speaker", "speaker-multiple"
+        ]
+    },
+    {
+        "sfSymbol": "books.vertical.fill",
+        "mdiNames": [
+            "bookshelf", "book-open-variant", "book-open-page-variant", "library"
+        ]
+    }
+]

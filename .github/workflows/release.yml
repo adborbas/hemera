@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+env:
+  XCODE_VERSION: '26.2'
+
+jobs:
+  build:
+    name: Build Release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      # TODO: Add release build, signing, and distribution steps
+      - name: Build
+        run: echo "Release build placeholder"
+
+  promo-screenshots:
+    name: Promo Screenshots
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      # TODO: The script was written for local use and will need CI-friendly
+      # xcodebuild flags (CODE_SIGN_IDENTITY="", CODE_SIGNING_REQUIRED=NO)
+      # passed through to capture-screenshots.sh before this works on runners.
+      - name: Generate promo screenshots
+        run: ./scripts/generate-promo-screenshots.sh
+
+      - name: Upload promo screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: promo-screenshots
+          path: Screenshots/Promo/

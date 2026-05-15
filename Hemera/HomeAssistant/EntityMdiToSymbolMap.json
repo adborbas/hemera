@@ -1,0 +1,350 @@
+[
+    {
+        "sfSymbol": "lightbulb.fill",
+        "mdiNames": [
+            "lightbulb", "lightbulb-on", "lightbulb-off", "lightbulb-outline",
+            "lightbulb-group", "lightbulb-group-outline",
+            "lightbulb-multiple", "lightbulb-multiple-outline",
+            "led-on", "led-off", "led-outline",
+            "light-flood-down", "light-flood-up",
+            "lamps", "lamps-outline"
+        ]
+    },
+    {
+        "sfSymbol": "chandelier.fill",
+        "mdiNames": [
+            "ceiling-light", "ceiling-light-outline",
+            "ceiling-light-multiple", "ceiling-light-multiple-outline",
+            "chandelier"
+        ]
+    },
+    {
+        "sfSymbol": "lamp.floor.fill",
+        "mdiNames": [
+            "floor-lamp", "floor-lamp-dual", "floor-lamp-dual-outline",
+            "floor-lamp-outline", "floor-lamp-torchiere",
+            "floor-lamp-torchiere-outline", "floor-lamp-torchiere-variant",
+            "floor-lamp-torchiere-variant-outline"
+        ]
+    },
+    {
+        "sfSymbol": "lamp.desk.fill",
+        "mdiNames": [
+            "lamp", "lamp-outline",
+            "desk-lamp", "desk-lamp-on", "desk-lamp-off"
+        ]
+    },
+    {
+        "sfSymbol": "light.strip.2.fill",
+        "mdiNames": [
+            "led-strip", "led-strip-variant", "led-strip-variant-off",
+            "string-lights", "string-lights-off"
+        ]
+    },
+    {
+        "sfSymbol": "light.recessed.fill",
+        "mdiNames": [
+            "spotlight-beam", "track-light", "track-light-off",
+            "wall-sconce", "wall-sconce-flat", "wall-sconce-flat-outline",
+            "wall-sconce-flat-variant", "wall-sconce-flat-variant-outline",
+            "wall-sconce-round", "wall-sconce-round-outline",
+            "wall-sconce-round-variant", "wall-sconce-round-variant-outline",
+            "outdoor-lamp", "vanity-light", "coach-lamp", "coach-lamp-variant"
+        ]
+    },
+    {
+        "sfSymbol": "powerplug.fill",
+        "mdiNames": [
+            "power-plug", "power-plug-outline",
+            "power-plug-off", "power-plug-off-outline",
+            "power-socket", "power-socket-eu", "power-socket-us",
+            "power-socket-au", "power-socket-uk", "power-socket-de",
+            "power-socket-fr", "power-socket-jp"
+        ]
+    },
+    {
+        "sfSymbol": "switch.2",
+        "mdiNames": [
+            "toggle-switch", "toggle-switch-off",
+            "toggle-switch-outline", "toggle-switch-off-outline",
+            "toggle-switch-variant", "toggle-switch-variant-off",
+            "light-switch", "light-switch-off",
+            "electric-switch", "electric-switch-closed"
+        ]
+    },
+    {
+        "sfSymbol": "thermometer.medium",
+        "mdiNames": [
+            "thermostat", "thermostat-auto", "thermostat-cog",
+            "thermometer", "thermometer-lines",
+            "thermometer-high", "thermometer-low",
+            "temperature-celsius", "temperature-fahrenheit"
+        ]
+    },
+    {
+        "sfSymbol": "air.conditioner.horizontal.fill",
+        "mdiNames": [
+            "air-conditioner", "air-filter", "hvac"
+        ]
+    },
+    {
+        "sfSymbol": "heater.vertical.fill",
+        "mdiNames": [
+            "radiator", "radiator-disabled", "radiator-off",
+            "heat-wave", "heating-coil"
+        ]
+    },
+    {
+        "sfSymbol": "fan.fill",
+        "mdiNames": [
+            "fan", "fan-off", "fan-alert", "fan-chevron-down",
+            "fan-chevron-up", "fan-speed-1", "fan-speed-2", "fan-speed-3",
+            "ceiling-fan", "ceiling-fan-light"
+        ]
+    },
+    {
+        "sfSymbol": "snowflake",
+        "mdiNames": [
+            "snowflake", "snowflake-variant", "snowflake-off",
+            "snowflake-alert", "snowflake-melt"
+        ]
+    },
+    {
+        "sfSymbol": "flame.fill",
+        "mdiNames": [
+            "fire", "fire-circle", "fire-alert",
+            "campfire", "candle"
+        ]
+    },
+    {
+        "sfSymbol": "battery.100",
+        "mdiNames": [
+            "battery", "battery-charging", "battery-outline",
+            "battery-alert", "battery-alert-variant",
+            "battery-high", "battery-medium", "battery-low"
+        ]
+    },
+    {
+        "sfSymbol": "bolt.fill",
+        "mdiNames": [
+            "flash", "flash-outline", "flash-off", "flash-off-outline",
+            "lightning-bolt", "lightning-bolt-outline",
+            "lightning-bolt-circle", "flash-triangle", "flash-triangle-outline"
+        ]
+    },
+    {
+        "sfSymbol": "drop.fill",
+        "mdiNames": [
+            "water", "water-outline", "water-percent",
+            "water-alert", "water-off",
+            "water-check", "water-remove",
+            "humidity"
+        ]
+    },
+    {
+        "sfSymbol": "gauge.with.needle.fill",
+        "mdiNames": [
+            "speedometer", "speedometer-medium", "speedometer-slow",
+            "gauge", "gauge-empty", "gauge-full", "gauge-low",
+            "meter-electric", "meter-electric-outline",
+            "meter-gas", "meter-gas-outline"
+        ]
+    },
+    {
+        "sfSymbol": "lock.fill",
+        "mdiNames": [
+            "lock", "lock-outline", "lock-open", "lock-open-outline",
+            "lock-open-variant", "lock-open-variant-outline",
+            "lock-smart", "lock-alert", "lock-alert-outline",
+            "lock-check", "lock-check-outline"
+        ]
+    },
+    {
+        "sfSymbol": "shield.fill",
+        "mdiNames": [
+            "shield", "shield-outline",
+            "shield-home", "shield-home-outline",
+            "shield-lock", "shield-lock-outline",
+            "shield-check", "shield-check-outline",
+            "security"
+        ]
+    },
+    {
+        "sfSymbol": "light.beacon.max.fill",
+        "mdiNames": [
+            "alarm-light", "alarm-light-outline", "alarm-light-off",
+            "alarm-bell", "bell", "bell-outline",
+            "bell-ring", "bell-ring-outline",
+            "bell-alert", "bell-alert-outline"
+        ]
+    },
+    {
+        "sfSymbol": "video.fill",
+        "mdiNames": [
+            "cctv", "cctv-off",
+            "webcam", "webcam-off",
+            "video", "video-outline", "video-off", "video-off-outline"
+        ]
+    },
+    {
+        "sfSymbol": "camera.fill",
+        "mdiNames": [
+            "camera", "camera-outline",
+            "camera-iris", "camera-image"
+        ]
+    },
+    {
+        "sfSymbol": "hifispeaker.fill",
+        "mdiNames": [
+            "speaker", "speaker-multiple",
+            "speaker-wireless", "speaker-bluetooth", "speaker-off"
+        ]
+    },
+    {
+        "sfSymbol": "speaker.wave.2.fill",
+        "mdiNames": [
+            "volume-high", "volume-medium", "volume-low",
+            "volume-off", "volume-mute",
+            "volume-minus", "volume-plus",
+            "volume-variant-off"
+        ]
+    },
+    {
+        "sfSymbol": "music.note",
+        "mdiNames": [
+            "music", "music-note", "music-note-outline",
+            "music-circle", "music-circle-outline",
+            "playlist-music", "playlist-music-outline"
+        ]
+    },
+    {
+        "sfSymbol": "figure.walk",
+        "mdiNames": [
+            "motion-sensor", "motion-sensor-off",
+            "run", "run-fast", "walk"
+        ]
+    },
+    {
+        "sfSymbol": "smoke.fill",
+        "mdiNames": [
+            "smoke-detector", "smoke-detector-variant",
+            "smoke-detector-variant-off", "smoke-detector-alert",
+            "smoke-detector-off"
+        ]
+    },
+    {
+        "sfSymbol": "timer",
+        "mdiNames": [
+            "timer", "timer-outline",
+            "timer-sand", "timer-sand-complete",
+            "timer-cog", "timer-cog-outline"
+        ]
+    },
+    {
+        "sfSymbol": "calendar",
+        "mdiNames": [
+            "calendar", "calendar-today", "calendar-clock",
+            "calendar-check", "calendar-check-outline",
+            "calendar-month", "calendar-month-outline"
+        ]
+    },
+    {
+        "sfSymbol": "gearshape.fill",
+        "mdiNames": [
+            "cog", "cog-outline", "cogs",
+            "wrench", "wrench-outline"
+        ]
+    },
+    {
+        "sfSymbol": "appletvremote.gen3.fill",
+        "mdiNames": [
+            "remote", "remote-tv", "remote-tv-off"
+        ]
+    },
+    {
+        "sfSymbol": "wifi",
+        "mdiNames": [
+            "wifi", "wifi-off",
+            "wifi-strength-1", "wifi-strength-2",
+            "wifi-strength-3", "wifi-strength-4",
+            "signal", "signal-variant"
+        ]
+    },
+    {
+        "sfSymbol": "dot.radiowaves.right",
+        "mdiNames": [
+            "bluetooth", "bluetooth-connect", "bluetooth-off"
+        ]
+    },
+    {
+        "sfSymbol": "info.circle.fill",
+        "mdiNames": [
+            "information", "information-outline", "information-variant",
+            "alert-circle", "alert-circle-outline",
+            "alert", "alert-outline"
+        ]
+    },
+    {
+        "sfSymbol": "scroll.fill",
+        "mdiNames": [
+            "script-text", "script-text-outline"
+        ]
+    },
+    {
+        "sfSymbol": "door.left.hand.closed",
+        "mdiNames": [
+            "door", "door-open", "door-closed",
+            "door-closed-lock",
+            "door-sliding", "door-sliding-lock", "door-sliding-open"
+        ]
+    },
+    {
+        "sfSymbol": "window.vertical.closed",
+        "mdiNames": [
+            "window-closed", "window-closed-variant",
+            "window-open", "window-open-variant"
+        ]
+    },
+    {
+        "sfSymbol": "blinds.horizontal.closed",
+        "mdiNames": [
+            "blinds", "blinds-open",
+            "blinds-horizontal", "blinds-horizontal-closed",
+            "blinds-vertical", "blinds-vertical-closed",
+            "blinds-vertical-open",
+            "window-shutter", "window-shutter-open",
+            "window-shutter-alert", "window-shutter-auto",
+            "window-shutter-cog", "window-shutter-settings"
+        ]
+    },
+    {
+        "sfSymbol": "spigot.fill",
+        "mdiNames": [
+            "valve", "valve-open", "valve-closed",
+            "pipe", "pipe-valve",
+            "pipe-disconnected", "pipe-wrench"
+        ]
+    },
+    {
+        "sfSymbol": "power",
+        "mdiNames": [
+            "power", "power-cycle", "power-off",
+            "power-on", "power-standby"
+        ]
+    },
+    {
+        "sfSymbol": "sun.max.fill",
+        "mdiNames": [
+            "brightness-5", "brightness-6", "brightness-7",
+            "brightness-auto",
+            "white-balance-sunny", "weather-sunny"
+        ]
+    },
+    {
+        "sfSymbol": "ev.charger.fill",
+        "mdiNames": [
+            "ev-station", "ev-plug-type1", "ev-plug-type2",
+            "car-electric", "car-electric-outline"
+        ]
+    }
+]

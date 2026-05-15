@@ -1,0 +1,24 @@
+{
+  "originHash" : "c83c8a950ca90f0654555e5d0e3a4c180cf6a63d81267438d937b21ceb83e747",
+  "pins" : [
+    {
+      "identity" : "appscreenshotkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/shitamori1272/AppScreenshotKit.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "5ade2af2ed7e778a811a7b41c6e8c0f2bbe9d480"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
+        "version" : "601.0.1"
+      }
+    }
+  ],
+  "version" : 3
+}

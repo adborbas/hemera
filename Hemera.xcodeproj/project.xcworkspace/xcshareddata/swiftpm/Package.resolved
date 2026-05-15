@@ -1,0 +1,33 @@
+{
+  "originHash" : "b1cd9418a9441afe5cab0983db1065feccbb201b540459ecb27b1c218e8a5ce5",
+  "pins" : [
+    {
+      "identity" : "hakit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/home-assistant/HAKit",
+      "state" : {
+        "revision" : "0ae8abb6ab7590adc8b0b215c99e97f7d4371c69",
+        "version" : "0.4.7"
+      }
+    },
+    {
+      "identity" : "keychainaccess",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kishikawakatsumi/KeychainAccess.git",
+      "state" : {
+        "revision" : "84e546727d66f1adc5439debad16270d0fdd04e7",
+        "version" : "4.2.2"
+      }
+    },
+    {
+      "identity" : "starscream",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bgoncal/Starscream",
+      "state" : {
+        "revision" : "7e3d24425c20649105cb4bdd612b6bab66f73ade",
+        "version" : "4.0.8"
+      }
+    }
+  ],
+  "version" : 3
+}

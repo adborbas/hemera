@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "xcodebuild build *",
+      "xcodebuild test *",
+      "xcodebuild -showBuildSettings *",
+      "xcodebuild -list *",
+      "swift test *",
+      "swift package *",
+      "xcrun simctl *",
+      "open Hemera.xcodeproj"
+    ],
+    "deny": [
+      "git push *",
+      "git push",
+      "rm -rf *",
+      "sudo *",
+      "curl *",
+      "wget *",
+      "npm *",
+      "brew *",
+      "pip *",
+      "xcodebuild archive *",
+      "xcodebuild -exportArchive *",
+      "xcrun altool *",
+      "xcrun notarytool *"
+    ]
+  }
+}
