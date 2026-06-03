@@ -8,34 +8,46 @@ public struct WiggleModifier: ViewModifier {
     @State private var started = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Peak rotation for this tile, varied per seed (1.5°-2.5°).
-    private var angleBase: Double {
-        1.5 + Double(seed % 3) * 0.5
-    }
+    /// Peak rotation, identical for every tile so they all sweep the same
+    /// distance.
+    private static let angleBase = 2.0
 
-    /// Current rotation. Zero until the staggered start fires, then oscillates
-    /// between -angleBase and +angleBase as `animating` toggles.
+    /// Duration of a single sweep, identical for every tile so they all wiggle
+    /// at the same frequency.
+    private static let wiggleDuration = 0.14
+
+    /// Current rotation. Zero until the start fires, then oscillates between
+    /// -angleBase and +angleBase as `animating` toggles.
+    ///
+    /// Gated on `started` (not `isWiggling`) so that on exit the return to zero
+    /// lands in the same transaction as `animating` flipping false — the
+    /// ease-out then replaces the running `repeatForever`. Gating on the
+    /// external `isWiggling` would zero the rotation a render too early, leaving
+    /// the repeat with no delta to cancel against.
     private var rotation: Double {
-        guard isWiggling, started else { return 0 }
-        return animating ? angleBase : -angleBase
+        guard started else { return 0 }
+        return animating ? Self.angleBase : -Self.angleBase
     }
 
     /// Repeating wiggle while running; a gentle ease-out once `started` clears
     /// so the tile settles back to upright instead of snapping.
+    ///
+    /// Tiles share frequency and amplitude but start at a per-seed point in the
+    /// cycle (`phaseOffset`), so they move in lockstep yet out of phase rather
+    /// than all tilting the same way at the same instant.
     private var rotationAnimation: Animation {
         started
-            ? .easeInOut(duration: wiggleDuration).repeatForever(autoreverses: true)
+            ? .easeInOut(duration: Self.wiggleDuration)
+                .repeatForever(autoreverses: true)
+                .delay(phaseOffset)
             : .easeOut(duration: Mortar.Motion.fast)
     }
 
-    /// Staggered delay so tiles don't all start wiggling at once.
-    private var staggerDelay: Double {
-        let hash = abs(seed)
-        return Double(hash % 250) / 1000.0
-    }
-
-    private var wiggleDuration: Double {
-        0.12 + Double(seed % 3) * 0.02
+    /// Per-seed offset spread across one full oscillation cycle (a sweep there
+    /// and back), giving each tile a distinct, stable phase.
+    private var phaseOffset: Double {
+        let cycle = Self.wiggleDuration * 2
+        return Double(seed.magnitude % 100) / 100.0 * cycle
     }
 
     public func body(content: Content) -> some View {
@@ -58,8 +70,6 @@ public struct WiggleModifier: ViewModifier {
                 .animation(rotationAnimation, value: animating)
                 .task(id: isWiggling) {
                     if isWiggling {
-                        try? await Task.sleep(for: .seconds(staggerDelay))
-                        guard !Task.isCancelled else { return }
                         // Snap to the -angleBase resting tilt (unanimated: only
                         // `animating` is tracked), let SwiftUI render it, then
                         // toggle `animating` so the repeat sweeps symmetrically
