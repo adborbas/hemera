@@ -36,7 +36,9 @@ public struct WiggleModifier: ViewModifier {
             // changes and can never end up statically stuck mid-tilt (the
             // failure mode of toggling a `repeatForever` from a task).
             // Start/stop transitions inherit the caller's `withAnimation`.
-            TimelineView(.animation(minimumInterval: nil, paused: !isWiggling)) { context in
+            // 60Hz cap: each tick re-evaluates on the main thread per tile,
+            // and a 0.28s sine cycle gains nothing from ProMotion's 120Hz.
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isWiggling)) { context in
                 content
                     .rotationEffect(.degrees(angle(at: context.date)))
             }
