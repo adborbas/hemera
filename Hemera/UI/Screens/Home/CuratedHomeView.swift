@@ -122,6 +122,13 @@ struct CuratedHomeView: View {
         .task {
             viewModel.startFirstLoadTimer(tileCount: homeTiles.count)
         }
+        .onDisappear {
+            // Leaving the tab mid-edit would otherwise strand the draft;
+            // commit, matching the tap-outside-to-exit behavior.
+            if viewModel.isEditing {
+                viewModel.exitEditMode(commit: true)
+            }
+        }
     }
 }
 
