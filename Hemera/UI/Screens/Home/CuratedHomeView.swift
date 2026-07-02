@@ -202,7 +202,7 @@ private extension CuratedHomeView {
     enum Localization {
         static let home = String(localized: "Home", comment: "Navigation title for the Home screen showing pinned entities")
         static let cancel = String(localized: "Cancel", comment: "Button to cancel layout editing and discard changes")
-        static let done = String(localized: "Done", comment: "Button to dismiss the current screen")
+        static let done = String(localized: "Done", comment: "Button to commit layout edits and leave edit mode on the Home screen")
         static let undo = String(localized: "Undo", comment: "Toolbar button to undo the last layout edit")
         static let editLayout = String(localized: "Edit Layout", comment: "Context menu action to enter tile layout editing mode")
         static let removeFromHome = String(localized: "Remove from Home", comment: "Context menu action to unpin an entity from the Home screen")

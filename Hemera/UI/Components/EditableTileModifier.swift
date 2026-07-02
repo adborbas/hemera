@@ -55,19 +55,38 @@ struct EditableTileModifier: ViewModifier {
         Button {
             onResize(nextSize)
         } label: {
-            Image(systemName: resizeIcon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: Mortar.IconSize.s, height: Mortar.IconSize.s)
-                .background(
-                    Circle()
-                        .fill(.thinMaterial)
-                        .environment(\.colorScheme, .dark)
-                )
+            Label(
+                tile.size == .small ? Localization.makeLarger : Localization.makeSmaller,
+                systemImage: resizeIcon
+            )
+            .labelStyle(.iconOnly)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: Mortar.IconSize.s, height: Mortar.IconSize.s)
+            .background(
+                Circle()
+                    .fill(.thinMaterial)
+                    .environment(\.colorScheme, .dark)
+            )
+            // Minimum 44pt tap target (HIG) around the smaller visible circle.
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(6)
         .transition(.scale.combined(with: .opacity))
+    }
+}
+
+private extension EditableTileModifier {
+    enum Localization {
+        static let makeLarger = String(
+            localized: "Make Larger",
+            comment: "Accessibility label for the tile resize button when tapping it enlarges the tile"
+        )
+        static let makeSmaller = String(
+            localized: "Make Smaller",
+            comment: "Accessibility label for the tile resize button when tapping it shrinks the tile"
+        )
     }
 }
 
