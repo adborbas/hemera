@@ -141,7 +141,7 @@ private extension CuratedHomeView {
         if let entityId = entityIdByTileId[tile.id],
            let vm = viewModel.viewModelFactory.makeViewModel(forEntityId: entityId) {
             let tileIndex = displayedTiles.firstIndex(where: { $0.id == tile.id }) ?? 0
-            vm.makeCardView()
+            let card = vm.makeCardView()
                 .matchedTransitionSource(id: vm.id, in: overlayTransition)
                 .tileEntrance(index: tileIndex, isActive: viewModel.isFirstLoad)
                 .environment(\.isMediumTile, tile.size == .medium)
@@ -161,30 +161,35 @@ private extension CuratedHomeView {
                         }
                     }
                 )
-                .contextMenu {
-                    if !viewModel.isEditing {
+
+            // Detached (not emptied) while editing so its long-press
+            // recognizer doesn't compete with the reorder drag.
+            if viewModel.isEditing {
+                card
+            } else {
+                card.contextMenu {
+                    Button {
+                        withAnimation {
+                            viewModel.enterEditMode(homeTiles: homeTiles)
+                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        Label(Localization.editLayout, systemImage: "square.and.pencil")
+                    }
+                    if !viewModel.isDemoMode {
                         Button {
-                            withAnimation {
-                                viewModel.enterEditMode(homeTiles: homeTiles)
-                            }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId)
                         } label: {
-                            Label(Localization.editLayout, systemImage: "square.and.pencil")
-                        }
-                        if !viewModel.isDemoMode {
-                            Button {
-                                viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId)
-                            } label: {
-                                Label(Localization.openInHomeAssistant, systemImage: "globe")
-                            }
-                        }
-                        Button(role: .destructive) {
-                            viewModel.removeFromHome(entityId: vm.id)
-                        } label: {
-                            Label(Localization.removeFromHome, systemImage: "minus.circle")
+                            Label(Localization.openInHomeAssistant, systemImage: "globe")
                         }
                     }
+                    Button(role: .destructive) {
+                        viewModel.removeFromHome(entityId: vm.id)
+                    } label: {
+                        Label(Localization.removeFromHome, systemImage: "minus.circle")
+                    }
                 }
+            }
         } else {
             EntityCard {
                 Text(tile.title)
