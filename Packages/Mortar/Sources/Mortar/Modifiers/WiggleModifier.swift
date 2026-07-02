@@ -4,50 +4,20 @@ public struct WiggleModifier: ViewModifier {
     let isWiggling: Bool
     let seed: Int
 
-    @State private var animating = false
-    @State private var started = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Peak rotation, identical for every tile so they all sweep the same
     /// distance.
     private static let angleBase = 2.0
 
-    /// Duration of a single sweep, identical for every tile so they all wiggle
-    /// at the same frequency.
-    private static let wiggleDuration = 0.14
+    /// One full oscillation (a sweep there and back), identical for every
+    /// tile so they all wiggle at the same frequency.
+    private static let cycleDuration = 0.28
 
-    /// Current rotation. Zero until the start fires, then oscillates between
-    /// -angleBase and +angleBase as `animating` toggles.
-    ///
-    /// Gated on `started` (not `isWiggling`) so that on exit the return to zero
-    /// lands in the same transaction as `animating` flipping false — the
-    /// ease-out then replaces the running `repeatForever`. Gating on the
-    /// external `isWiggling` would zero the rotation a render too early, leaving
-    /// the repeat with no delta to cancel against.
-    private var rotation: Double {
-        guard started else { return 0 }
-        return animating ? Self.angleBase : -Self.angleBase
-    }
-
-    /// Repeating wiggle while running; a gentle ease-out once `started` clears
-    /// so the tile settles back to upright instead of snapping.
-    ///
-    /// Tiles share frequency and amplitude but start at a per-seed point in the
-    /// cycle (`phaseOffset`), so they move in lockstep yet out of phase rather
-    /// than all tilting the same way at the same instant.
-    private var rotationAnimation: Animation {
-        started
-            ? .easeInOut(duration: Self.wiggleDuration)
-                .repeatForever(autoreverses: true)
-                .delay(phaseOffset)
-            : .easeOut(duration: Mortar.Motion.fast)
-    }
-
-    /// Per-seed offset spread across one full oscillation cycle (a sweep there
-    /// and back), giving each tile a distinct, stable phase.
-    private var phaseOffset: Double {
-        let cycle = Self.wiggleDuration * 2
-        return Double(seed.magnitude % 100) / 100.0 * cycle
+    /// Per-seed offset into the oscillation cycle, giving each tile a
+    /// distinct, stable phase.
+    private var phase: Double {
+        Double(seed.magnitude % 100) / 100.0 * 2 * .pi
     }
 
     public func body(content: Content) -> some View {
@@ -61,29 +31,22 @@ public struct WiggleModifier: ViewModifier {
                     }
                 }
         } else {
-            content
-                .rotationEffect(.degrees(rotation))
-                // Declarative animation: registers `repeatForever` in the view
-                // graph so it keeps oscillating. (Imperative `withAnimation`
-                // from an async `.task` continuation only applies the final
-                // value statically and never runs the repeat.)
-                .animation(rotationAnimation, value: animating)
-                .task(id: isWiggling) {
-                    if isWiggling {
-                        // Snap to the -angleBase resting tilt (unanimated: only
-                        // `animating` is tracked), let SwiftUI render it, then
-                        // toggle `animating` so the repeat sweeps symmetrically
-                        // from -angleBase to +angleBase.
-                        started = true
-                        try? await Task.sleep(for: .milliseconds(1))
-                        guard !Task.isCancelled else { return }
-                        animating = true
-                    } else {
-                        started = false
-                        animating = false
-                    }
-                }
+            // Rotation is a pure function of wall-clock time, so the wiggle
+            // needs no stored animation state: it survives view identity
+            // changes and can never end up statically stuck mid-tilt (the
+            // failure mode of toggling a `repeatForever` from a task).
+            // Start/stop transitions inherit the caller's `withAnimation`.
+            TimelineView(.animation(minimumInterval: nil, paused: !isWiggling)) { context in
+                content
+                    .rotationEffect(.degrees(angle(at: context.date)))
+            }
         }
+    }
+
+    private func angle(at date: Date) -> Double {
+        guard isWiggling else { return 0 }
+        let t = date.timeIntervalSinceReferenceDate
+        return sin((t / Self.cycleDuration) * 2 * .pi + phase) * Self.angleBase
     }
 }
 
