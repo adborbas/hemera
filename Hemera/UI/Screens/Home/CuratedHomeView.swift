@@ -82,14 +82,7 @@ struct CuratedHomeView: View {
             .navigationTitle(Localization.home)
             .toolbar {
                 if viewModel.isEditing {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button(Localization.cancel) {
-                            withAnimation {
-                                viewModel.exitEditMode(commit: false)
-                            }
-                        }
-                    }
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItemGroup(placement: .topBarLeading) {
                         Button {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                 viewModel.performUndo()
@@ -100,6 +93,17 @@ struct CuratedHomeView: View {
                                 .labelStyle(.iconOnly)
                         }
                         .disabled(!viewModel.canUndo)
+
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                viewModel.performRedo()
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            Label(Localization.redo, systemImage: "arrow.uturn.forward")
+                                .labelStyle(.iconOnly)
+                        }
+                        .disabled(!viewModel.canRedo)
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(Localization.done) {
@@ -201,9 +205,9 @@ private extension CuratedHomeView {
 private extension CuratedHomeView {
     enum Localization {
         static let home = String(localized: "Home", comment: "Navigation title for the Home screen showing pinned entities")
-        static let cancel = String(localized: "Cancel", comment: "Button to cancel layout editing and discard changes")
         static let done = String(localized: "Done", comment: "Button to commit layout edits and leave edit mode on the Home screen")
         static let undo = String(localized: "Undo", comment: "Toolbar button to undo the last layout edit")
+        static let redo = String(localized: "Redo", comment: "Toolbar button to re-apply the last undone layout edit")
         static let editLayout = String(localized: "Edit Layout", comment: "Context menu action to enter tile layout editing mode")
         static let removeFromHome = String(localized: "Remove from Home", comment: "Context menu action to unpin an entity from the Home screen")
         static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity in the Home Assistant web interface")
