@@ -12,7 +12,6 @@ final class CuratedHomeViewModel {
     private(set) var undoStack: [EditAction] = []
     private(set) var redoStack: [EditAction] = []
     private(set) var isFirstLoad = true
-    var selectedTileID: Tile.ID?
 
     let isDemoMode: Bool
     let haWebViewPresenter: HAWebViewPresenter
@@ -105,7 +104,6 @@ final class CuratedHomeViewModel {
         entityIdByTileId = Dictionary(uniqueKeysWithValues: entries.map { ($0.tile.id, $0.entityId) })
         undoStack = []
         redoStack = []
-        selectedTileID = nil
         isEditing = true
     }
 
@@ -126,7 +124,6 @@ final class CuratedHomeViewModel {
         entityIdByTileId = [:]
         undoStack = []
         redoStack = []
-        selectedTileID = nil
         isEditing = false
     }
 

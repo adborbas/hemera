@@ -4,7 +4,7 @@ import Mortar
 import TileGridEngine
 
 struct CuratedHomeView: View {
-    @Bindable var viewModel: CuratedHomeViewModel
+    let viewModel: CuratedHomeViewModel
     @Namespace private var overlayTransition
 
     @Query(sort: \HomeTile.sortOrder) private var homeTiles: [HomeTile]
@@ -152,7 +152,6 @@ private extension CuratedHomeView {
                 .editableTile(
                     tile,
                     isEditing: viewModel.isEditing,
-                    selectedTileID: $viewModel.selectedTileID,
                     onResize: { targetSize in
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                             viewModel.resizeTile(tile, to: targetSize)
