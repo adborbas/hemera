@@ -68,8 +68,8 @@ struct EditableTileModifier: ViewModifier {
                     .fill(.thinMaterial)
                     .environment(\.colorScheme, .dark)
             )
-            // Minimum 44pt tap target (HIG) around the smaller visible circle.
-            .frame(width: 44, height: 44)
+            // Minimum tap target (HIG) around the smaller visible circle.
+            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
