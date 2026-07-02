@@ -1,4 +1,5 @@
 import SwiftUI
+import Mortar
 import TileGridEngine
 
 /// Renders a single section of tiles using TileGridEngine for reordering.
@@ -67,6 +68,7 @@ struct SectionGrid<Content: View>: View {
             content(tile)
                 .frame(width: size.width, height: size.height)
                 .offset(x: origin.x, y: origin.y)
+                .animation(Mortar.Motion.springSnappy, value: origin)
                 .opacity(0.25)
                 .allowsHitTesting(false)
         }
@@ -108,6 +110,10 @@ struct SectionGrid<Content: View>: View {
             content(tile)
                 .frame(width: size.width, height: size.height)
                 .offset(x: visualOrigin.x, y: visualOrigin.y)
+                .animation(
+                    isDragging || !isEditing ? nil : Mortar.Motion.springSnappy,
+                    value: CGRect(origin: visualOrigin, size: size)
+                )
                 .scaleEffect(isDragging ? 1.03 : 1.0)
                 .shadow(radius: isDragging ? 8 : 0)
                 .zIndex(isDragging ? 1 : 0)

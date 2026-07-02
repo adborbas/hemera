@@ -10,8 +10,8 @@ final class CuratedHomeViewModel {
     private(set) var isEditing = false
     private(set) var draftTiles: [Tile]?
     private(set) var undoStack: [EditAction] = []
+    private(set) var redoStack: [EditAction] = []
     private(set) var isFirstLoad = true
-    var selectedTileID: Tile.ID?
 
     let isDemoMode: Bool
     let haWebViewPresenter: HAWebViewPresenter
@@ -24,6 +24,10 @@ final class CuratedHomeViewModel {
 
     var canUndo: Bool {
         !undoStack.isEmpty
+    }
+
+    var canRedo: Bool {
+        !redoStack.isEmpty
     }
 
     /// Captured at `enterEditMode` time so commit can map tile IDs back to
@@ -99,7 +103,7 @@ final class CuratedHomeViewModel {
         draftTiles = entries.map(\.tile)
         entityIdByTileId = Dictionary(uniqueKeysWithValues: entries.map { ($0.tile.id, $0.entityId) })
         undoStack = []
-        selectedTileID = nil
+        redoStack = []
         isEditing = true
     }
 
@@ -119,7 +123,7 @@ final class CuratedHomeViewModel {
         draftTiles = nil
         entityIdByTileId = [:]
         undoStack = []
-        selectedTileID = nil
+        redoStack = []
         isEditing = false
     }
 
@@ -133,6 +137,7 @@ final class CuratedHomeViewModel {
     /// pre-reorder order.
     func recordReorderUndo(previousOrder: [Tile.ID]) {
         undoStack.append(.reorder(previousOrder: previousOrder))
+        redoStack = []
     }
 
     func resizeTile(_ tile: Tile, to targetSize: TileSize) {
@@ -142,22 +147,38 @@ final class CuratedHomeViewModel {
         let oldSize = tiles[index].size
         guard oldSize != targetSize else { return }
         undoStack.append(.resize(tileID: tile.id, oldSize: oldSize))
+        redoStack = []
         tiles[index].size = targetSize
         draftTiles = tiles
     }
 
     func performUndo() {
-        guard let action = undoStack.popLast(), var tiles = draftTiles else { return }
+        guard let action = undoStack.popLast(), let inverse = apply(action) else { return }
+        redoStack.append(inverse)
+    }
+
+    func performRedo() {
+        guard let action = redoStack.popLast(), let inverse = apply(action) else { return }
+        undoStack.append(inverse)
+    }
+
+    /// Applies an edit action to the draft and returns its inverse, so undo
+    /// and redo are the same operation walking opposite stacks.
+    private func apply(_ action: EditAction) -> EditAction? {
+        guard var tiles = draftTiles else { return nil }
+        let inverse: EditAction
         switch action {
         case .resize(let tileID, let oldSize):
-            if let index = tiles.firstIndex(where: { $0.id == tileID }) {
-                tiles[index].size = oldSize
-            }
+            guard let index = tiles.firstIndex(where: { $0.id == tileID }) else { return nil }
+            inverse = .resize(tileID: tileID, oldSize: tiles[index].size)
+            tiles[index].size = oldSize
         case .reorder(let previousOrder):
+            inverse = .reorder(previousOrder: tiles.map(\.id))
             let byID = Dictionary(uniqueKeysWithValues: tiles.map { ($0.id, $0) })
             tiles = previousOrder.compactMap { byID[$0] }
         }
         draftTiles = tiles
+        return inverse
     }
 
     // MARK: - First-load Animation

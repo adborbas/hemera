@@ -4,23 +4,20 @@ public struct WiggleModifier: ViewModifier {
     let isWiggling: Bool
     let seed: Int
 
-    @State private var animating = false
-    @State private var started = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var angle: Double {
-        let base = 1.5 + Double(seed % 3) * 0.5 // 1.5-2.5 range
-        return animating ? base : -base
-    }
+    /// Peak rotation, identical for every tile so they all sweep the same
+    /// distance.
+    private static let angleBase = 2.0
 
-    /// Staggered delay so tiles don't all start wiggling at once.
-    private var staggerDelay: Double {
-        let hash = abs(seed)
-        return Double(hash % 250) / 1000.0
-    }
+    /// One full oscillation (a sweep there and back), identical for every
+    /// tile so they all wiggle at the same frequency.
+    private static let cycleDuration = 0.28
 
-    private var wiggleDuration: Double {
-        0.12 + Double(seed % 3) * 0.02
+    /// Per-seed offset into the oscillation cycle, giving each tile a
+    /// distinct, stable phase.
+    private var phase: Double {
+        Double(seed.magnitude % 100) / 100.0 * 2 * .pi
     }
 
     public func body(content: Content) -> some View {
@@ -34,41 +31,24 @@ public struct WiggleModifier: ViewModifier {
                     }
                 }
         } else {
-            content
-                .rotationEffect(.degrees(isWiggling && started ? angle : 0))
-                .onChange(of: isWiggling) { _, newValue in
-                    if newValue {
-                        startWiggleWithDelay()
-                    } else {
-                        stopWiggle()
-                    }
-                }
-                .onAppear {
-                    if isWiggling {
-                        startWiggleWithDelay()
-                    }
-                }
-        }
-    }
-
-    private func startWiggleWithDelay() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + staggerDelay) {
-            guard isWiggling else { return }
-            started = true
-            withAnimation(
-                .easeInOut(duration: wiggleDuration)
-                .repeatForever(autoreverses: true)
-            ) {
-                animating = true
+            // Rotation is a pure function of wall-clock time, so the wiggle
+            // needs no stored animation state: it survives view identity
+            // changes and can never end up statically stuck mid-tilt (the
+            // failure mode of toggling a `repeatForever` from a task).
+            // Start/stop transitions inherit the caller's `withAnimation`.
+            // 60Hz cap: each tick re-evaluates on the main thread per tile,
+            // and a 0.28s sine cycle gains nothing from ProMotion's 120Hz.
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isWiggling)) { context in
+                content
+                    .rotationEffect(.degrees(angle(at: context.date)))
             }
         }
     }
 
-    private func stopWiggle() {
-        withAnimation(.easeOut(duration: Mortar.Motion.fast)) {
-            animating = false
-            started = false
-        }
+    private func angle(at date: Date) -> Double {
+        guard isWiggling else { return 0 }
+        let t = date.timeIntervalSinceReferenceDate
+        return sin((t / Self.cycleDuration) * 2 * .pi + phase) * Self.angleBase
     }
 }
 

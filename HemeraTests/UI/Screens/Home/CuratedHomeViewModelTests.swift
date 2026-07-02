@@ -171,6 +171,67 @@ struct CuratedHomeViewModelTests {
         #expect(vm.draftTiles?.map(\.id) == [tileA.id, tileB.id])
     }
 
+    @Test
+    func performRedo_afterUndoingResize_reappliesTheResize() {
+        let vm = makeViewModel()
+        let tile = makeTile(entityId: "light.a", size: .small)
+        vm.enterEditMode(seed: [(tile, "light.a")])
+        vm.resizeTile(tile, to: .medium)
+        vm.performUndo()
+        #expect(vm.canRedo == true)
+
+        vm.performRedo()
+
+        #expect(vm.draftTiles?.first?.size == .medium)
+        #expect(vm.canRedo == false)
+        #expect(vm.canUndo == true)
+    }
+
+    @Test
+    func performRedo_afterUndoingReorder_reappliesTheOrder() {
+        let vm = makeViewModel()
+        let tileA = makeTile(entityId: "light.a")
+        let tileB = makeTile(entityId: "light.b")
+        vm.enterEditMode(seed: [(tileA, "light.a"), (tileB, "light.b")])
+        vm.recordReorderUndo(previousOrder: [tileA.id, tileB.id])
+        vm.applyReorder([tileB, tileA])
+        vm.performUndo()
+
+        vm.performRedo()
+
+        #expect(vm.draftTiles?.map(\.id) == [tileB.id, tileA.id])
+    }
+
+    @Test
+    func newEdit_afterUndo_clearsRedoStack() {
+        let vm = makeViewModel()
+        let tile = makeTile(entityId: "light.a", size: .small)
+        vm.enterEditMode(seed: [(tile, "light.a")])
+        vm.resizeTile(tile, to: .medium)
+        vm.performUndo()
+        #expect(vm.canRedo == true)
+
+        vm.resizeTile(tile, to: .large)
+
+        #expect(vm.canRedo == false)
+    }
+
+    @Test
+    func undoRedo_roundTrip_isLossless() {
+        let vm = makeViewModel()
+        let tile = makeTile(entityId: "light.a", size: .small)
+        vm.enterEditMode(seed: [(tile, "light.a")])
+        vm.resizeTile(tile, to: .medium)
+
+        vm.performUndo()
+        vm.performRedo()
+        vm.performUndo()
+
+        #expect(vm.draftTiles?.first?.size == .small)
+        #expect(vm.canUndo == false)
+        #expect(vm.canRedo == true)
+    }
+
     // MARK: - Remove From Home
 
     @Test
