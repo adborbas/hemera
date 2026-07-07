@@ -8,7 +8,7 @@ Hemera uses release branches to allow development to continue on `main` while a 
    ```bash
    git checkout -b release/1.0.0 main
    ```
-2. Bump the marketing version in Xcode project settings if needed
+2. Bump `MARKETING_VERSION` in `Config/Shared.xcconfig` to match the release (e.g. `1.0.0`). All targets inherit it from there.
 3. Commit: `"Prepare release 1.0.0"`
 4. Push and submit to Apple for review
 
@@ -16,6 +16,7 @@ Hemera uses release branches to allow development to continue on `main` while a 
 
 1. Create a fix branch from `release/1.0.0` (not from `main`)
 2. Open a PR targeting `release/1.0.0`
+3. If re-uploading to App Store Connect, bump `CURRENT_PROJECT_VERSION` in `Config/Shared.xcconfig` — the build number must be unique per marketing version.
 
 ## Shipping
 
