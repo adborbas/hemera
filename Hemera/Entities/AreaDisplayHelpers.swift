@@ -24,9 +24,15 @@ enum AreaDisplayHelpers {
         let humidity = sensors.first { $0.deviceClass == "humidity" }
 
         let tempStr = temp.flatMap { Double($0.state) }
-            .map { "\(Int($0.rounded()))\(temp?.unitOfMeasurement ?? "°")" }
+            .map { (value: Double) -> String in
+                let number = value.formatted(.number.precision(.fractionLength(1)))
+                return number + (temp?.unitOfMeasurement ?? "°")
+            }
         let humStr = humidity.flatMap { Double($0.state) }
-            .map { "\(Int($0.rounded()))\(humidity?.unitOfMeasurement ?? "%")" }
+            .map { (value: Double) -> String in
+                let number = value.formatted(.number.precision(.fractionLength(1)))
+                return number + (humidity?.unitOfMeasurement ?? "%")
+            }
 
         return (tempStr, humStr)
     }

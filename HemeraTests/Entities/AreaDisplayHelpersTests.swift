@@ -29,17 +29,29 @@ struct AreaDisplayHelpersTests {
 
         let (t, h) = AreaDisplayHelpers.climateSummary(from: [temp, humidity])
 
-        #expect(t == "21°C")
-        #expect(h == "47%")
+        // Whole values still render with one decimal, using the current locale's separator.
+        #expect(t == 21.0.formatted(.number.precision(.fractionLength(1))) + "°C")
+        #expect(h == 47.0.formatted(.number.precision(.fractionLength(1))) + "%")
     }
 
     @Test
-    func climateSummary_roundsFractionalValues() {
+    func climateSummary_formatsFractionalValuesToOneDecimal() {
         let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21.6", deviceClass: "temperature", unitOfMeasurement: "°C")
 
         let (t, _) = AreaDisplayHelpers.climateSummary(from: [temp])
 
-        #expect(t == "22°C")
+        // Fractional value is preserved to one decimal, not rounded to a whole number.
+        #expect(t == 21.6.formatted(.number.precision(.fractionLength(1))) + "°C")
+    }
+
+    @Test
+    func climateSummary_roundsToOneDecimal() {
+        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21.68", deviceClass: "temperature", unitOfMeasurement: "°C")
+
+        let (t, _) = AreaDisplayHelpers.climateSummary(from: [temp])
+
+        // More than one decimal is rounded, not truncated.
+        #expect(t == 21.7.formatted(.number.precision(.fractionLength(1))) + "°C")
     }
 
     @Test

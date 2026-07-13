@@ -122,7 +122,7 @@ struct StateUpdatePropagationTests {
         context.insert(sensor)
 
         let (tempBefore, _) = AreaDisplayHelpers.climateSummary(from: area.sensors)
-        #expect(tempBefore == "21°C")
+        #expect(tempBefore == 21.0.formatted(.number.precision(.fractionLength(1))) + "°C")
 
         let haEntity = try HAEntity(
             entityId: "sensor.temp",
@@ -137,6 +137,6 @@ struct StateUpdatePropagationTests {
         EntityRegistry.shared.upsert(from: haEntity, in: context)
 
         let (tempAfter, _) = AreaDisplayHelpers.climateSummary(from: area.sensors)
-        #expect(tempAfter == "24°C")
+        #expect(tempAfter == 24.0.formatted(.number.precision(.fractionLength(1))) + "°C")
     }
 }
