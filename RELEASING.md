@@ -2,13 +2,16 @@
 
 Hemera uses release branches to allow development to continue on `main` while a release stabilizes (e.g., during Apple review).
 
-The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. Each of the three steps below has a matching lane you can run locally and a `workflow_dispatch` workflow you can trigger from the GitHub **Actions** tab:
+The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. Each step below has a matching lane you can run locally and a `workflow_dispatch` workflow you can trigger from the GitHub **Actions** tab:
 
 | Step | Lane | Workflow |
 |---|---|---|
 | Cut a release | `bundle exec fastlane cut_release version:1.3.0` | **Cut Release** |
 | Upload to TestFlight | `bundle exec fastlane beta` | **Upload to TestFlight** |
+| Prepare App Store version | `bundle exec fastlane prepare_release version:1.3.0` | **Prepare App Store Version** |
 | Publish | `bundle exec fastlane publish version:1.3.0` | **Publish Release** |
+
+**Prepare App Store version** creates/updates the App Store version, attaches the latest processed TestFlight build, sets the release notes (from `fastlane/metadata/en-US/release_notes.txt`), and marks it for automatic release once approved. It stops short of submitting — you click **Submit for Review** in App Store Connect. Release notes are a fixed string; edit that file (or override in ASC) to change them. Screenshots and all other metadata are managed manually in App Store Connect (the lane leaves them untouched).
 
 The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
 
