@@ -1,7 +1,12 @@
-name: Release
+name: Upload to TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      promo_screenshots:
+        description: 'Also generate promo screenshots'
+        type: boolean
+        default: false
 
 env:
   XCODE_VERSION: '26.2'
@@ -46,6 +51,7 @@ jobs:
   promo-screenshots:
     name: Promo Screenshots
     runs-on: macos-15
+    if: github.actor == 'adborbas' && inputs.promo_screenshots
     steps:
       - uses: actions/checkout@v4
 
