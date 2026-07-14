@@ -60,6 +60,20 @@ platform :ios do
     ) + 1
     set_xcconfig_value(key: "CURRENT_PROJECT_VERSION", value: next_build.to_s)
 
+    # The project uses automatic signing for local development, but on CI there's
+    # no Apple account to resolve a profile, so the archive must use manual
+    # signing with the match-installed distribution profile. Scoped to the
+    # Release configuration so Debug/local automatic signing is untouched.
+    profile_name = ENV.fetch("sigh_com.adborbas.hemera.app_appstore_profile-name")
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Hemera.xcodeproj",
+      targets: ["Hemera"],
+      build_configurations: ["Release"],
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name
+    )
+
     build_app(
       project: "Hemera.xcodeproj",
       scheme: "Hemera",
