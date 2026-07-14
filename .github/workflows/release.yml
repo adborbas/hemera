@@ -15,6 +15,7 @@ jobs:
   build:
     name: Upload to TestFlight
     runs-on: macos-15
+    timeout-minutes: 30
     environment: release
     if: github.actor == 'adborbas'
     steps:

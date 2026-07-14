@@ -1,7 +1,7 @@
 default_platform(:ios)
 
 XCCONFIG = "Config/Shared.xcconfig".freeze
-BETA_GROUP = "Testers".freeze # internal TestFlight group builds are enabled for
+BETA_GROUP = "Testers (all builds)".freeze # internal group set to auto-receive all builds
 
 platform :ios do
   # ---------------------------------------------------------------------------
@@ -87,20 +87,19 @@ platform :ios do
       }
     )
 
-    # Assign the build to the internal "Testers" group. This requires the build
-    # to finish processing first, so we wait (can take a few minutes). Internal
-    # groups need no beta review, so submit_beta_review is disabled — otherwise
-    # pilot would try (and fail) to submit for external review, which requires a
-    # Beta App Description. The build is still linked to the group.
+    # Upload and return immediately — do NOT wait for App Store Connect to
+    # finish processing. Waiting is a well-known source of CI hangs (pilot polls
+    # the oldest processing build, not the one just uploaded), and it's the only
+    # reason the job needs to wait at all. Distribution to internal testers is
+    # decoupled: the "Testers" group has access to all builds, so every build is
+    # delivered automatically once Apple finishes processing it — no in-lane
+    # group assignment (which would force the wait) required.
     upload_to_testflight(
       api_key: api_key,
-      groups: [BETA_GROUP],
-      distribute_external: false,
-      submit_beta_review: false,
-      skip_waiting_for_build_processing: false
+      skip_waiting_for_build_processing: true
     )
 
-    UI.success("Uploaded build #{next_build} to TestFlight and enabled it for '#{BETA_GROUP}'.")
+    UI.success("Uploaded build #{next_build} to TestFlight. It will reach the '#{BETA_GROUP}' group once App Store Connect finishes processing it.")
   end
 
   # ---------------------------------------------------------------------------
