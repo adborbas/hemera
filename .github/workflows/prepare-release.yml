@@ -1,4 +1,4 @@
-name: Prepare App Store Version
+name: 3 · Prepare App Store Release
 
 on:
   workflow_dispatch:
