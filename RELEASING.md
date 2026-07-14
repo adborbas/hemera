@@ -7,7 +7,7 @@ The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. 
 | Step | Lane | Workflow |
 |---|---|---|
 | Cut a release | `bundle exec fastlane cut_release version:1.3.0` | **Cut Release** |
-| Upload to TestFlight | `bundle exec fastlane beta` | **Release** |
+| Upload to TestFlight | `bundle exec fastlane beta` | **Upload to TestFlight** |
 | Publish | `bundle exec fastlane publish version:1.3.0` | **Publish Release** |
 
 The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
