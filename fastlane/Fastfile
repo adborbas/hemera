@@ -135,6 +135,51 @@ platform :ios do
 
     UI.success("Published #{tag}. Opened a back-merge PR for #{branch} → main.")
   end
+
+  # ---------------------------------------------------------------------------
+  # 4. Prepare an App Store version for review
+  #    Creates/updates the App Store version, attaches the latest processed
+  #    build, sets the release notes (from fastlane/metadata), and marks it for
+  #    automatic release — everything except the final Submit, which stays a
+  #    manual click in App Store Connect.
+  #    Usage: bundle exec fastlane prepare_release [version:1.4.0] [build:12]
+  #    version defaults to the branch MARKETING_VERSION; build to the latest.
+  # ---------------------------------------------------------------------------
+  desc "Prepare an App Store version for review (does not submit)"
+  lane :prepare_release do |options|
+    version = options[:version]
+    version = nil if version.to_s.strip.empty?
+    version ||= get_xcconfig_value(key: "MARKETING_VERSION")
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_P8"),
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    # Attach a specific build if given, otherwise the latest build already
+    # uploaded to TestFlight for this version.
+    build_number = options[:build]
+    build_number = nil if build_number.to_s.strip.empty?
+    build_number ||= latest_testflight_build_number(api_key: api_key, version: version)
+
+    deliver(
+      api_key: api_key,
+      app_version: version,
+      build_number: build_number.to_s,
+      skip_binary_upload: true,   # the build is uploaded by the beta lane
+      skip_screenshots: true,     # screenshots are managed manually in ASC
+      skip_metadata: false,       # push release_notes from fastlane/metadata
+      automatic_release: true,    # go live automatically once approved
+      submit_for_review: false,   # prepare only — submit stays a manual step
+      run_precheck_before_submit: false,
+      force: true                 # no interactive HTML preview on CI
+    )
+
+    UI.success("Prepared App Store version #{version} (build #{build_number}) for review. Submit it in App Store Connect when ready.")
+  end
 end
 
 # Set a KEY = VALUE line in Config/Shared.xcconfig in place.
