@@ -77,6 +77,10 @@ Screenshots/
 .deriveddata-screenshots/
 Packages/AppStoreScreenshots/Resources/Bezels/
 
+# Ruby / bundler (vendored gems on CI via ruby/setup-ruby bundler-cache)
+.bundle/
+vendor/
+
 # Claude Code local settings
 .claude/settings.local.json
 .claude/worktrees/
