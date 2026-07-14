@@ -1,0 +1,11 @@
+git_url("git@github.com:adborbas/hemera-certificates.git")
+storage_mode("git")
+
+type("appstore")
+
+app_identifier(["com.adborbas.hemera.app"])
+
+# In CI the certs repo is read-only (fetched via SSH deploy key), so match must
+# not attempt to create/regenerate signing assets. The one-time creation is done
+# locally with `readonly: false` (see RELEASING.md).
+readonly(true)

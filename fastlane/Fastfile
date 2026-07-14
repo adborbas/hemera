@@ -1,0 +1,163 @@
+default_platform(:ios)
+
+XCCONFIG = "Config/Shared.xcconfig".freeze
+BETA_GROUP = "Testers".freeze # internal TestFlight group builds are enabled for
+
+platform :ios do
+  # ---------------------------------------------------------------------------
+  # 1. Cut a new release
+  #    Branch from main, bump MARKETING_VERSION, commit, push.
+  #    Usage: bundle exec fastlane cut_release version:1.3.0
+  # ---------------------------------------------------------------------------
+  desc "Cut a new release branch and bump the marketing version"
+  lane :cut_release do |options|
+    version = options[:version] or UI.user_error!("Missing `version:` (e.g. version:1.3.0)")
+    branch = "release/#{version}"
+
+    ensure_git_status_clean
+    sh("git", "fetch", "origin", "main")
+    sh("git", "checkout", "-B", branch, "origin/main")
+
+    set_xcconfig_value(key: "MARKETING_VERSION", value: version)
+
+    git_commit(path: XCCONFIG, message: "Prepare release #{version}")
+    push_to_git_remote(local_branch: branch, remote_branch: branch, force: false)
+
+    UI.success("Cut #{branch}. Submit to Apple, then run the Beta lane to upload a build.")
+  end
+
+  # ---------------------------------------------------------------------------
+  # 2. Upload a release build to TestFlight
+  #    Signs via match, bumps the build number, archives, uploads.
+  #    Usage: bundle exec fastlane beta
+  # ---------------------------------------------------------------------------
+  desc "Build a signed release and upload it to TestFlight"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_P8"),
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    # Fail fast (before the slow archive) if MARKETING_VERSION is already
+    # released: its TestFlight train is closed, so the upload would be rejected.
+    # Bumping the marketing version is a once-per-release decision — run
+    # `fastlane cut_release version:<next>` instead.
+    ensure_open_version_train!
+
+    match(
+      type: "appstore",
+      api_key: api_key,
+      readonly: true
+    )
+
+    # Unique build number per upload: highest TestFlight build for this version + 1.
+    next_build = latest_testflight_build_number(
+      api_key: api_key,
+      initial_build_number: 0
+    ) + 1
+    set_xcconfig_value(key: "CURRENT_PROJECT_VERSION", value: next_build.to_s)
+
+    build_app(
+      project: "Hemera.xcodeproj",
+      scheme: "Hemera",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          # match sets this env var to the exact profile name it installed.
+          "com.adborbas.hemera.app" => ENV["sigh_com.adborbas.hemera.app_appstore_profile-name"]
+        }
+      }
+    )
+
+    # Assign the build to the internal "Testers" group. This requires the build
+    # to finish processing first, so we wait (can take a few minutes). Internal
+    # groups need no beta review, so submit_beta_review is disabled — otherwise
+    # pilot would try (and fail) to submit for external review, which requires a
+    # Beta App Description. The build is still linked to the group.
+    upload_to_testflight(
+      api_key: api_key,
+      groups: [BETA_GROUP],
+      distribute_external: false,
+      submit_beta_review: false,
+      skip_waiting_for_build_processing: false
+    )
+
+    UI.success("Uploaded build #{next_build} to TestFlight and enabled it for '#{BETA_GROUP}'.")
+  end
+
+  # ---------------------------------------------------------------------------
+  # 3. Publish a release
+  #    Tag the release branch, create a GitHub release, merge back to main.
+  #    Usage: bundle exec fastlane publish version:1.3.0
+  # ---------------------------------------------------------------------------
+  desc "Tag, create a GitHub release, and merge the release branch back to main"
+  lane :publish do |options|
+    version = options[:version] or UI.user_error!("Missing `version:` (e.g. version:1.3.0)")
+    branch = "release/#{version}"
+    tag = "v#{version}"
+
+    ensure_git_status_clean
+    sh("git", "fetch", "origin", branch, "main")
+    sh("git", "checkout", branch)
+    sh("git", "reset", "--hard", "origin/#{branch}")
+
+    add_git_tag(tag: tag)
+    push_git_tags(tag: tag)
+
+    sh("gh", "release", "create", tag, "--title", version, "--notes", "Release #{version}")
+
+    # Open a PR to merge the release branch back into main. Merging it (and
+    # deleting the branch) is a manual step so it respects branch protection.
+    sh(
+      "gh", "pr", "create",
+      "--base", "main",
+      "--head", branch,
+      "--title", "Merge #{branch} back to main",
+      "--body", "Back-merge of the shipped #{tag} release into main."
+    )
+
+    UI.success("Published #{tag}. Opened a back-merge PR for #{branch} → main.")
+  end
+end
+
+# Set a KEY = VALUE line in Config/Shared.xcconfig in place.
+def set_xcconfig_value(key:, value:)
+  path = File.expand_path("../#{XCCONFIG}", __dir__)
+  contents = File.read(path)
+  updated = contents.gsub(/^#{Regexp.escape(key)}\s*=.*$/, "#{key} = #{value}")
+  UI.user_error!("`#{key}` not found in #{XCCONFIG}") if updated == contents
+  File.write(path, updated)
+  UI.message("Set #{key} = #{value} in #{XCCONFIG}")
+end
+
+# Read a KEY's value from Config/Shared.xcconfig.
+def get_xcconfig_value(key:)
+  path = File.expand_path("../#{XCCONFIG}", __dir__)
+  match = File.read(path).match(/^#{Regexp.escape(key)}\s*=\s*(.+)$/)
+  UI.user_error!("`#{key}` not found in #{XCCONFIG}") if match.nil?
+  match[1].strip
+end
+
+# Fail if MARKETING_VERSION is already released on the App Store — its
+# TestFlight train is closed for new builds. Requires that spaceship is already
+# authenticated (app_store_connect_api_key sets its token by default).
+def ensure_open_version_train!
+  marketing_version = get_xcconfig_value(key: "MARKETING_VERSION")
+  app = Spaceship::ConnectAPI::App.find("com.adborbas.hemera.app")
+  UI.user_error!("Could not find app com.adborbas.hemera.app on App Store Connect") if app.nil?
+
+  live = app.get_live_app_store_version
+  return if live.nil? # nothing released yet — any version is open
+
+  if Gem::Version.new(marketing_version) <= Gem::Version.new(live.version_string)
+    UI.user_error!(
+      "MARKETING_VERSION #{marketing_version} is already released (live: #{live.version_string}). " \
+      "Its TestFlight train is closed for new builds. " \
+      "Run `fastlane cut_release version:<next>` to bump the marketing version first."
+    )
+  end
+end

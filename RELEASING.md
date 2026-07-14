@@ -2,6 +2,16 @@
 
 Hemera uses release branches to allow development to continue on `main` while a release stabilizes (e.g., during Apple review).
 
+The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. Each of the three steps below has a matching lane you can run locally and a `workflow_dispatch` workflow you can trigger from the GitHub **Actions** tab:
+
+| Step | Lane | Workflow |
+|---|---|---|
+| Cut a release | `bundle exec fastlane cut_release version:1.3.0` | **Cut Release** |
+| Upload to TestFlight | `bundle exec fastlane beta` | **Release** |
+| Publish | `bundle exec fastlane publish version:1.3.0` | **Publish Release** |
+
+The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
+
 ## Cutting a release
 
 1. Branch from `main`:
