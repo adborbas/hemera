@@ -11,7 +11,7 @@ The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. 
 | Prepare App Store version | `bundle exec fastlane prepare_release version:1.3.0` | **Prepare App Store Version** |
 | Publish | `bundle exec fastlane publish version:1.3.0` | **Publish Release** |
 
-**Prepare App Store version** creates/updates the App Store version, attaches the latest processed TestFlight build, sets the release notes (from `fastlane/metadata/en-US/release_notes.txt`), and marks it for automatic release once approved. It stops short of submitting — you click **Submit for Review** in App Store Connect. Release notes are a fixed string; edit that file (or override in ASC) to change them. Screenshots and all other metadata are managed manually in App Store Connect (the lane leaves them untouched).
+**Prepare App Store version** creates/updates the App Store version, attaches a TestFlight build (the latest processed one by default, or a specific build via the `build` input), sets the release notes (from `fastlane/metadata/en-US/release_notes.txt`), and marks it for automatic release once approved. It stops short of submitting — you click **Submit for Review** in App Store Connect. Release notes are a fixed string; edit that file (or override in ASC) to change them. Screenshots and all other metadata are managed manually in App Store Connect (the lane leaves them untouched).
 
 The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
 

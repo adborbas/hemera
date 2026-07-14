@@ -143,7 +143,8 @@ platform :ios do
   #    build, sets the release notes (from fastlane/metadata), and marks it for
   #    automatic release — everything except the final Submit, which stays a
   #    manual click in App Store Connect.
-  #    Usage: bundle exec fastlane prepare_release [version:1.4.0]
+  #    Usage: bundle exec fastlane prepare_release [version:1.4.0] [build:12]
+  #    version defaults to the branch MARKETING_VERSION; build to the latest.
   # ---------------------------------------------------------------------------
   desc "Prepare an App Store version for review (does not submit)"
   lane :prepare_release do |options|
@@ -159,8 +160,11 @@ platform :ios do
       in_house: false
     )
 
-    # Attach the latest build already uploaded to TestFlight for this version.
-    build_number = latest_testflight_build_number(api_key: api_key, version: version)
+    # Attach a specific build if given, otherwise the latest build already
+    # uploaded to TestFlight for this version.
+    build_number = options[:build]
+    build_number = nil if build_number.to_s.strip.empty?
+    build_number ||= latest_testflight_build_number(api_key: api_key, version: version)
 
     deliver(
       api_key: api_key,

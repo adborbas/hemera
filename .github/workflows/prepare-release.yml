@@ -6,6 +6,9 @@ on:
       version:
         description: 'Version to prepare (defaults to the branch MARKETING_VERSION)'
         required: false
+      build:
+        description: 'TestFlight build number to attach (defaults to the latest for the version)'
+        required: false
 
 jobs:
   prepare:
@@ -26,4 +29,4 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-        run: bundle exec fastlane prepare_release version:"${{ inputs.version }}"
+        run: bundle exec fastlane prepare_release version:"${{ inputs.version }}" build:"${{ inputs.build }}"
