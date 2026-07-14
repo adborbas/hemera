@@ -6,12 +6,12 @@ The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. 
 
 | Step | Lane | Workflow |
 |---|---|---|
-| Cut a release | `bundle exec fastlane cut_release version:1.3.0` | **Cut Release** |
-| Upload to TestFlight | `bundle exec fastlane beta` | **Upload to TestFlight** |
-| Prepare App Store version | `bundle exec fastlane prepare_release version:1.3.0` | **Prepare App Store Version** |
-| Publish | `bundle exec fastlane publish version:1.3.0` | **Publish Release** |
+| Cut a release | `bundle exec fastlane cut_release version:1.3.0` | **1 · Cut Release** |
+| Upload to TestFlight | `bundle exec fastlane beta` | **2 · Upload to TestFlight** |
+| Prepare App Store release | `bundle exec fastlane prepare_release version:1.3.0` | **3 · Prepare App Store Release** |
+| Complete release | `bundle exec fastlane publish version:1.3.0` | **4 · Complete Release** |
 
-**Prepare App Store version** creates/updates the App Store version, attaches a TestFlight build (the latest processed one by default, or a specific build via the `build` input), sets the release notes (from `fastlane/metadata/en-US/release_notes.txt`), and marks it for automatic release once approved. It stops short of submitting — you click **Submit for Review** in App Store Connect. Release notes are a fixed string; edit that file (or override in ASC) to change them. Screenshots and all other metadata are managed manually in App Store Connect (the lane leaves them untouched).
+**Prepare App Store Release** creates/updates the App Store version, attaches a TestFlight build (the latest processed one by default, or a specific build via the `build` input), sets the release notes (from `fastlane/metadata/en-US/release_notes.txt`), and marks it for automatic release once approved. It stops short of submitting — you click **Submit for Review** in App Store Connect. Release notes are a fixed string; edit that file (or override in ASC) to change them. Screenshots and all other metadata are managed manually in App Store Connect (the lane leaves them untouched).
 
 The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
 

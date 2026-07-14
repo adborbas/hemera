@@ -1,4 +1,4 @@
-name: Upload to TestFlight
+name: 2 · Upload to TestFlight
 
 on:
   workflow_dispatch:
