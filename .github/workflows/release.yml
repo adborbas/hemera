@@ -8,17 +8,40 @@ env:
 
 jobs:
   build:
-    name: Build Release
+    name: Upload to TestFlight
     runs-on: macos-15
+    environment: release
+    if: github.actor == 'adborbas'
     steps:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
 
-      # TODO: Add release build, signing, and distribution steps
-      - name: Build
-        run: echo "Release build placeholder"
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Local.xcconfig
+        run: |
+          echo "DEVELOPMENT_TEAM = ${{ vars.DEVELOPMENT_TEAM }}" > Config/Local.xcconfig
+
+      - name: Configure SSH for match certs repo
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MATCH_DEPLOY_KEY }}" > ~/.ssh/match_ed25519
+          chmod 600 ~/.ssh/match_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          echo -e "Host github.com\n  IdentityFile ~/.ssh/match_ed25519\n  IdentitiesOnly yes" >> ~/.ssh/config
+
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bundle exec fastlane beta
 
   promo-screenshots:
     name: Promo Screenshots

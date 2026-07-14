@@ -1,0 +1,14 @@
+app_identifier("com.adborbas.hemera.app")
+
+# The Team ID is intentionally not tracked in git (see Config/Local.xcconfig.template).
+# Read it from the environment (CI sets DEVELOPMENT_TEAM) or the developer's
+# local, gitignored Config/Local.xcconfig — never hardcoded in a committed file.
+team = ENV["DEVELOPMENT_TEAM"]
+if team.nil?
+  local_config = File.expand_path("../Config/Local.xcconfig", __dir__)
+  team = File.read(local_config)[/DEVELOPMENT_TEAM\s*=\s*(\S+)/, 1] if File.exist?(local_config)
+end
+team_id(team) if team
+
+# Apple ID / App Store Connect login is not required: all lanes authenticate
+# via an App Store Connect API key (see the Fastfile).

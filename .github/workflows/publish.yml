@@ -1,0 +1,38 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 1.3.0) — must have a release/<version> branch'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish:
+    name: Tag, Release, Back-merge PR
+    runs-on: macos-15
+    environment: release
+    if: github.actor == 'adborbas'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bundle exec fastlane publish version:${{ inputs.version }}
