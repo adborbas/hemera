@@ -18,7 +18,7 @@ struct AreaDetailViewModelTests {
         let schema = Schema([
             LightEntity.self, CoverEntity.self, SceneEntity.self, SensorEntity.self,
             SwitchEntity.self, ButtonEntity.self, AutomationEntity.self, BinarySensorEntity.self,
-            ClimateEntity.self, AreaEntity.self, HomeTile.self
+            ClimateEntity.self, AreaEntity.self, FloorEntity.self, HomeTile.self
         ])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         container = try! ModelContainer(for: schema, configurations: config)

@@ -9,6 +9,10 @@ final class AreaEntity {
     var icon: String?
     var sortOrder: Int
 
+    /// The floor this area belongs to, when Home Assistant assigns one.
+    /// Optional — additive, lightweight-migration-safe.
+    var floor: FloorEntity?
+
     // Inverse relationships (optional but handy)
     @Relationship(inverse: \LightEntity.area)
     var lights: [LightEntity] = []

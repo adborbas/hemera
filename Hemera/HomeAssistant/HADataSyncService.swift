@@ -73,7 +73,7 @@ final class HADataSyncService {
     private func syncAllData() async {
         do {
             let payload = try await fetchSyncPayload()
-            Log.info("Fetched \(payload.entities.count) entities, \(payload.areaMappings.count) areas — applying to main context")
+            Log.info("Fetched \(payload.entities.count) entities, \(payload.areaMappings.count) areas, \(payload.floors?.count ?? 0) floors — applying to main context")
 
             await applySyncPayload(payload)
 
@@ -105,6 +105,22 @@ final class HADataSyncService {
         let serverEntityIds = Set(payload.entities.map(\.entityId))
         entityRegistry.markMissingEntitiesAsUnavailable(serverEntityIds: serverEntityIds, in: mainContext)
 
+        // Upsert floors before areas so area→floor links can resolve. Only
+        // when the floor fetch succeeded (non-nil) — see `fetchFloorRegistry`.
+        var floorsById: [String: FloorEntity] = [:]
+        if let floors = payload.floors {
+            for floor in floors {
+                let entity = FloorEntity.upsert(
+                    id: floor.floorId,
+                    name: floor.name,
+                    level: floor.level,
+                    sortOrder: payload.floorSortOrder[floor.floorId] ?? 0,
+                    in: mainContext
+                )
+                floorsById[floor.floorId] = entity
+            }
+        }
+
         for (index, mapping) in payload.areaMappings.enumerated() {
             let sortOrder = payload.areaSortOrder[mapping.area_id] ?? index
             let icon = payload.areaIcons[mapping.area_id]
@@ -115,6 +131,12 @@ final class HADataSyncService {
                 sortOrder: sortOrder,
                 in: mainContext
             )
+            // Reassign floor only when the fetch succeeded, so a transient
+            // failure never clears existing links. `nil` when the area has no
+            // floor or references a floor that no longer exists.
+            if payload.floors != nil {
+                area.floor = payload.areaFloorIds[mapping.area_id].flatMap { floorsById[$0] }
+            }
             for entityId in mapping.entities {
                 entityRegistry.assignArea(area, toEntityWithId: entityId, in: mainContext)
             }
@@ -122,6 +144,12 @@ final class HADataSyncService {
                 saveBatch("area batch")
                 await Task.yield()
             }
+        }
+
+        // Prune floors the server no longer has — but only when the fetch
+        // succeeded, so a transient failure never wipes persisted floors.
+        if let floors = payload.floors {
+            pruneFloors(keeping: Set(floors.map(\.floorId)))
         }
 
         for (index, mapping) in payload.deviceMappings.enumerated() {
@@ -133,6 +161,13 @@ final class HADataSyncService {
         }
 
         saveBatch("final sync")
+    }
+
+    private func pruneFloors(keeping serverFloorIds: Set<String>) {
+        guard let stored = try? mainContext.fetch(FetchDescriptor<FloorEntity>()) else { return }
+        for floor in stored where !serverFloorIds.contains(floor.floorId) {
+            mainContext.delete(floor)
+        }
     }
 
     private func saveBatch(_ label: String) {
@@ -152,6 +187,13 @@ final class HADataSyncService {
         let deviceMappings: [DeviceMapping]
         let areaSortOrder: [String: Int]
         let areaIcons: [String: String]
+        /// Floor registry entries, or `nil` when the floor fetch failed.
+        /// `nil` suppresses floor upserts, area→floor reassignment and pruning
+        /// so a transient failure never wipes persisted floors.
+        let floors: [FloorRegistryEntry]?
+        let floorSortOrder: [String: Int]
+        /// `areaId → floorId` for areas that Home Assistant assigns to a floor.
+        let areaFloorIds: [String: String]
     }
 
     private func fetchSyncPayload() async throws -> SyncPayload {
@@ -169,9 +211,14 @@ final class HADataSyncService {
             entitiesTask, areaMappingsTask, deviceMappingsTask, areaRegistryTask, floorRegistryTask
         )
 
-        let areaSortOrder = AreaSortOrderResolver.resolve(areas: areaRegistry, floors: floorRegistry)
+        let areaSortOrder = AreaSortOrderResolver.resolve(areas: areaRegistry, floors: floorRegistry ?? [])
+        let floorSortOrder = FloorSortOrderResolver.resolve(floors: floorRegistry ?? [])
         let areaIcons = Dictionary(
             areaRegistry.compactMap { entry in entry.icon.map { (entry.areaId, $0) } },
+            uniquingKeysWith: { _, new in new }
+        )
+        let areaFloorIds = Dictionary(
+            areaRegistry.compactMap { entry in entry.floorId.map { (entry.areaId, $0) } },
             uniquingKeysWith: { _, new in new }
         )
 
@@ -180,7 +227,10 @@ final class HADataSyncService {
             areaMappings: areaMappings,
             deviceMappings: deviceMappings,
             areaSortOrder: areaSortOrder,
-            areaIcons: areaIcons
+            areaIcons: areaIcons,
+            floors: floorRegistry,
+            floorSortOrder: floorSortOrder,
+            areaFloorIds: areaFloorIds
         )
     }
 
@@ -232,8 +282,11 @@ final class HADataSyncService {
     }
 
     /// Fetches floor entries from the HA floor registry.
-    /// Returns an empty array on failure so sort order falls back gracefully.
-    private func fetchFloorRegistry() async -> [FloorRegistryEntry] {
+    ///
+    /// Returns `nil` on failure (so callers can distinguish a transient error
+    /// from a genuinely empty registry and avoid wiping persisted floors), and
+    /// an empty array when Home Assistant simply has no floors defined.
+    private func fetchFloorRegistry() async -> [FloorRegistryEntry]? {
         do {
             let request = HARequest(type: .webSocket("config/floor_registry/list"), data: [:])
             let response = try await conn.send(request)
@@ -249,8 +302,8 @@ final class HADataSyncService {
                 return FloorRegistryEntry(floorId: floorId, name: name, level: level)
             }
         } catch {
-            Log.error("Failed to fetch floor registry — proceeding without floor-based ordering", cause: error)
-            return []
+            Log.error("Failed to fetch floor registry — keeping existing floors", cause: error)
+            return nil
         }
     }
 

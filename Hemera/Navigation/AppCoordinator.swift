@@ -95,6 +95,7 @@ final class TabViewModels {
             viewModelFactory: session.viewModelFactory,
             demoCoordinator: demoCoordinator,
             authManager: authManager,
+            areaDisplaySettings: ServiceLocator.shared.areaDisplaySettings,
             errorNotifier: session.errorNotifier,
             connectionRetrier: connectionRetrier,
             resync: session.resync

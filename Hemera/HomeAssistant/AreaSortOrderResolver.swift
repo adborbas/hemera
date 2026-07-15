@@ -61,3 +61,29 @@ enum AreaSortOrderResolver {
         return result
     }
 }
+
+/// Computes a display position for each floor.
+///
+/// Floors are ordered by their Home Assistant `level` ascending. Floors
+/// without a level fall back to registry order (the sequence returned by
+/// `config/floor_registry/list`). The sort is stable on `(level ?? Int.max,
+/// registryIndex)`, so floors sharing a level keep their registry order.
+///
+/// Returns a `floorId → sortOrder` mapping.
+enum FloorSortOrderResolver {
+
+    static func resolve(floors: [FloorRegistryEntry]) -> [String: Int] {
+        let ordered = floors.enumerated().sorted { lhs, rhs in
+            let lLevel = lhs.element.level ?? Int.max
+            let rLevel = rhs.element.level ?? Int.max
+            if lLevel != rLevel { return lLevel < rLevel }
+            return lhs.offset < rhs.offset
+        }
+
+        var result: [String: Int] = [:]
+        for (sortOrder, item) in ordered.enumerated() {
+            result[item.element.floorId] = sortOrder
+        }
+        return result
+    }
+}

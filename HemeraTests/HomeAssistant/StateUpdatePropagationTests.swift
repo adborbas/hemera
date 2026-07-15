@@ -19,7 +19,7 @@ struct StateUpdatePropagationTests {
             LightEntity.self, SwitchEntity.self, CoverEntity.self,
             BinarySensorEntity.self, SensorEntity.self, SceneEntity.self,
             ButtonEntity.self, AutomationEntity.self, ClimateEntity.self,
-            AreaEntity.self, HomeTile.self
+            AreaEntity.self, FloorEntity.self, HomeTile.self
         ])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         container = try! ModelContainer(for: schema, configurations: config)
