@@ -15,15 +15,28 @@ The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. 
 
 The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
 
+## Versioning model
+
+`main` always holds the **next in-development version**, so it never sits on a
+version that's already released. When you cut a release, the branch pins that
+version and `main` advances to the next minor:
+
+- `main` is at `1.4.0` → cut `release/1.4.0` (pinned at `1.4.0`) → `main` advances to `1.5.0`.
+
+Because the release branch inherits its version from `main`, the version is
+pinned by *branching* rather than by a commit, so the back-merge to `main` never
+conflicts on `MARKETING_VERSION` (a clean release with no review fixes has
+nothing to merge back at all).
+
 ## Cutting a release
 
 1. Branch from `main`:
    ```bash
-   git checkout -b release/1.0.0 main
+   git checkout -b release/1.4.0 main
    ```
-2. Bump `MARKETING_VERSION` in `Config/Shared.xcconfig` to match the release (e.g. `1.0.0`). All targets inherit it from there.
-3. Commit: `"Prepare release 1.0.0"`
-4. Push and submit to Apple for review
+2. `MARKETING_VERSION` in `Config/Shared.xcconfig` already matches (it's what `main` held); only change it if you're cutting a different version.
+3. Advance `main`: bump its `MARKETING_VERSION` to the next minor (e.g. `1.5.0`), commit `"Bump main to 1.5.0 for development"`, and push.
+4. Push the release branch and submit to Apple for review.
 
 ## Fixing issues during review
 
