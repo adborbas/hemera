@@ -19,7 +19,8 @@ struct AppCoordinatorTests {
             router: router,
             demoCoordinator: DemoCoordinator(),
             sessionManager: sessionManager,
-            screenManager: env.screenManager
+            screenManager: env.screenManager,
+            areaDisplaySettings: env.areaDisplaySettings
         )
 
         coordinator = AppCoordinator(sessionManager: sessionManager, authManager: authManager, router: router)

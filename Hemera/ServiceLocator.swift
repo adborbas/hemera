@@ -8,6 +8,7 @@ final class ServiceLocator {
     let demoCoordinator: any DemoCoordinating
     let sessionManager: SessionManager
     let screenManager: ScreenManager
+    let areaDisplaySettings: AreaDisplaySettings
     var appCoordinator: AppCoordinator?
 
     /// Session-scoped dependencies. Non-nil when a session (HA or demo) is active.
@@ -27,23 +28,26 @@ final class ServiceLocator {
         router: AppRouter,
         demoCoordinator: any DemoCoordinating,
         sessionManager: SessionManager,
-        screenManager: ScreenManager
+        screenManager: ScreenManager,
+        areaDisplaySettings: AreaDisplaySettings
     ) {
         _shared = ServiceLocator(
             authManager: authManager,
             router: router,
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
-            screenManager: screenManager
+            screenManager: screenManager,
+            areaDisplaySettings: areaDisplaySettings
         )
     }
 
-    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager) {
+    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, areaDisplaySettings: AreaDisplaySettings) {
         self.authManager = authManager
         self.router = router
         self.demoCoordinator = demoCoordinator
         self.sessionManager = sessionManager
         self.screenManager = screenManager
+        self.areaDisplaySettings = areaDisplaySettings
     }
 
     #if DEBUG
@@ -64,7 +68,8 @@ final class ServiceLocator {
             router: router,
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
-            screenManager: env.screenManager
+            screenManager: env.screenManager,
+            areaDisplaySettings: env.areaDisplaySettings
         )
 
         if authenticated {

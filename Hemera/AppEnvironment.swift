@@ -11,6 +11,7 @@ final class AppEnvironment {
     let container: ModelContainer
     let storage: Storage
     let screenManager: ScreenManager
+    let areaDisplaySettings: AreaDisplaySettings
 
     init() {
         Self.registerEntities()
@@ -33,6 +34,7 @@ final class AppEnvironment {
 
         self.storage = SwiftDataStorage(context: container.mainContext)
         self.screenManager = ScreenManager()
+        self.areaDisplaySettings = AreaDisplaySettings()
     }
 }
 
@@ -40,7 +42,7 @@ final class AppEnvironment {
 
 extension AppEnvironment {
     static func createSchema() -> Schema {
-        Schema(EntityRegistry.shared.allEntityTypes + [AreaEntity.self, HomeTile.self])
+        Schema(EntityRegistry.shared.allEntityTypes + [AreaEntity.self, FloorEntity.self, HomeTile.self])
     }
 }
 

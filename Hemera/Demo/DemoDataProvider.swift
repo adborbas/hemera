@@ -20,6 +20,20 @@ enum DemoDataProvider {
         context.insert(office)
         context.insert(garden)
 
+        // MARK: - Floors
+
+        let groundFloor = FloorEntity(floorId: "ground", name: "Ground Floor", level: 0, sortOrder: 0)
+        let upstairs = FloorEntity(floorId: "upstairs", name: "Upstairs", level: 1, sortOrder: 1)
+        context.insert(groundFloor)
+        context.insert(upstairs)
+
+        livingRoom.floor = groundFloor
+        kitchen.floor = groundFloor
+        bathroom.floor = groundFloor
+        bedroom.floor = upstairs
+        office.floor = upstairs
+        // garden is intentionally left floorless — it appears in the "Other" section.
+
         // MARK: - Living Room
 
         let ceilingLight = LightEntity(
