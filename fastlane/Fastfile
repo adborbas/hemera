@@ -6,24 +6,37 @@ BETA_GROUP = "Testers (all builds)".freeze # internal group set to auto-receive 
 platform :ios do
   # ---------------------------------------------------------------------------
   # 1. Cut a new release
-  #    Branch from main, bump MARKETING_VERSION, commit, push.
-  #    Usage: bundle exec fastlane cut_release version:1.3.0
+  #    Branch release/<version> from main, then advance main to the next
+  #    development version so main never sits on a released version and always
+  #    stays ahead of the release branch. main normally already holds <version>
+  #    (it tracks the in-development version), so the release branch just pins it.
+  #    Usage: bundle exec fastlane cut_release version:1.4.0
   # ---------------------------------------------------------------------------
-  desc "Cut a new release branch and bump the marketing version"
+  desc "Cut a release branch and advance main to the next development version"
   lane :cut_release do |options|
-    version = options[:version] or UI.user_error!("Missing `version:` (e.g. version:1.3.0)")
+    version = options[:version] or UI.user_error!("Missing `version:` (e.g. version:1.4.0)")
     branch = "release/#{version}"
+    next_version = next_minor_version(version)
 
     ensure_git_status_clean
     sh("git", "fetch", "origin", "main")
+
+    # Create the release branch, pinned at <version>. main normally already holds
+    # this version, so this is usually a no-op; record it only if it differs.
     sh("git", "checkout", "-B", branch, "origin/main")
-
-    set_xcconfig_value(key: "MARKETING_VERSION", value: version)
-
-    git_commit(path: XCCONFIG, message: "Prepare release #{version}")
+    if get_xcconfig_value(key: "MARKETING_VERSION") != version
+      set_xcconfig_value(key: "MARKETING_VERSION", value: version)
+      git_commit(path: XCCONFIG, message: "Prepare release #{version}")
+    end
     push_to_git_remote(local_branch: branch, remote_branch: branch, force: false)
 
-    UI.success("Cut #{branch}. Submit to Apple, then run the Beta lane to upload a build.")
+    # Advance main to the next development version.
+    sh("git", "checkout", "-B", "main", "origin/main")
+    set_xcconfig_value(key: "MARKETING_VERSION", value: next_version)
+    git_commit(path: XCCONFIG, message: "Bump main to #{next_version} for development")
+    push_to_git_remote(local_branch: "main", remote_branch: "main", force: false)
+
+    UI.success("Cut #{branch} at #{version}; advanced main to #{next_version}. Run the Upload to TestFlight lane next.")
   end
 
   # ---------------------------------------------------------------------------
@@ -123,17 +136,24 @@ platform :ios do
 
     sh("gh", "release", "create", tag, "--title", version, "--notes", "Release #{version}")
 
-    # Open a PR to merge the release branch back into main. Merging it (and
-    # deleting the branch) is a manual step so it respects branch protection.
-    sh(
-      "gh", "pr", "create",
-      "--base", "main",
-      "--head", branch,
-      "--title", "Merge #{branch} back to main",
-      "--body", "Back-merge of the shipped #{tag} release into main."
-    )
-
-    UI.success("Published #{tag}. Opened a back-merge PR for #{branch} → main.")
+    # Open a PR to merge the release branch back into main — but only if the
+    # branch has commits main doesn't already have (e.g. fixes made during
+    # review). With the version pinned by branching rather than a commit, a clean
+    # release often has nothing to merge back. Merging the PR (and deleting the
+    # branch) is a manual step so it respects branch protection.
+    behind = sh("git", "rev-list", "--count", "origin/main..origin/#{branch}").strip.to_i
+    if behind.zero?
+      UI.success("Published #{tag}. No release-branch changes to merge back to main.")
+    else
+      sh(
+        "gh", "pr", "create",
+        "--base", "main",
+        "--head", branch,
+        "--title", "Merge #{branch} back to main",
+        "--body", "Back-merge of the shipped #{tag} release into main."
+      )
+      UI.success("Published #{tag}. Opened a back-merge PR for #{branch} → main.")
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -190,6 +210,13 @@ def set_xcconfig_value(key:, value:)
   UI.user_error!("`#{key}` not found in #{XCCONFIG}") if updated == contents
   File.write(path, updated)
   UI.message("Set #{key} = #{value} in #{XCCONFIG}")
+end
+
+# Next development version: bump the minor, reset the patch.
+# "1.4.0" -> "1.5.0", "1.4" -> "1.5.0".
+def next_minor_version(version)
+  major, minor, = version.split(".").map(&:to_i)
+  "#{major || 0}.#{(minor || 0) + 1}.0"
 end
 
 # Read a KEY's value from Config/Shared.xcconfig.
