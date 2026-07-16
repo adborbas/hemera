@@ -1,7 +1,13 @@
 import Foundation
 import KeychainAccess
 
-final class KeychainStore: @unchecked Sendable {
+protocol KeychainStoring: Sendable {
+    func saveCredentials(_ credentials: ServerCredentials) throws
+    func loadCredentials() -> ServerCredentials?
+    func clearAll() throws
+}
+
+final class KeychainStore: KeychainStoring, @unchecked Sendable {
 
     static let shared = KeychainStore()
 
@@ -14,9 +20,9 @@ final class KeychainStore: @unchecked Sendable {
 
     private static let credentialsKey = "server_credentials"
 
-    func saveCredentials(_ credentials: ServerCredentials) {
-        guard let data = try? JSONEncoder().encode(credentials) else { return }
-        try? keychain.set(data, key: Self.credentialsKey)
+    func saveCredentials(_ credentials: ServerCredentials) throws {
+        let data = try JSONEncoder().encode(credentials)
+        try keychain.set(data, key: Self.credentialsKey)
     }
 
     func loadCredentials() -> ServerCredentials? {
@@ -24,7 +30,7 @@ final class KeychainStore: @unchecked Sendable {
         return try? JSONDecoder().decode(ServerCredentials.self, from: data)
     }
 
-    func clearAll() {
-        try? keychain.removeAll()
+    func clearAll() throws {
+        try keychain.removeAll()
     }
 }

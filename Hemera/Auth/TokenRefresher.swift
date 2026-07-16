@@ -3,10 +3,10 @@ import HemeraLog
 
 actor TokenRefresher {
 
-    private let keychainStore: KeychainStore
+    private let keychainStore: any KeychainStoring
     private var refreshTask: Task<(String, ServerCredentials), Error>?
 
-    init(keychainStore: KeychainStore) {
+    init(keychainStore: any KeychainStoring) {
         self.keychainStore = keychainStore
     }
 
@@ -39,7 +39,13 @@ actor TokenRefresher {
 
             let credentialsToSave = updated
             let store = keychainStore
-            await MainActor.run { store.saveCredentials(credentialsToSave) }
+            await MainActor.run {
+                do {
+                    try store.saveCredentials(credentialsToSave)
+                } catch {
+                    Log.error("Failed to persist refreshed credentials", cause: error)
+                }
+            }
             return (updated.accessToken, updated)
         }
         refreshTask = task
