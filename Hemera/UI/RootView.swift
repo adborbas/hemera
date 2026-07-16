@@ -24,9 +24,18 @@ struct RootView: View {
             case .connecting:
                 ConnectingView(viewModel: ConnectingViewModel())
             case .authenticated:
-                MainTabView(viewModel: MainTabViewModel())
-                    .modelContainer(ServiceLocator.shared.session!.container)
-                    .transaction { $0.animation = nil }
+                if let session = ServiceLocator.shared.session {
+                    MainTabView(viewModel: MainTabViewModel())
+                        .modelContainer(session.container)
+                        .transaction { $0.animation = nil }
+                } else {
+                    /**
+                     Session torn down while destination is briefly still .authenticated.
+                     Render nothing rather than crashing; the router handler will move
+                     destination away from .authenticated on the same runloop turn.
+                     */
+                    Color.clear
+                }
             }
         }
         .environment(authManager)

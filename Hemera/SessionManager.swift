@@ -88,7 +88,10 @@ final class SessionManager: ConnectionRetrying {
         Log.info("Starting demo session")
 
         let demoConfig = ModelConfiguration(isStoredInMemoryOnly: true)
-        let demoContainer = try! ModelContainer(for: AppEnvironment.createSchema(), configurations: demoConfig)
+        guard let demoContainer = try? ModelContainer(for: AppEnvironment.createSchema(), configurations: demoConfig) else {
+            Log.error("Failed to create in-memory demo container — aborting demo session")
+            return
+        }
         self.demoContainer = demoContainer
         let demoContext = demoContainer.mainContext
 
