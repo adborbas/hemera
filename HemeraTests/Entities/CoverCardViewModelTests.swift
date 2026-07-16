@@ -221,6 +221,32 @@ struct CoverCardViewModelTests {
         #expect(vm.tintColor == .blue)
     }
 
+    // MARK: - Position Cooldown
+
+    @Test
+    func position_whileSuppressed_returnsPending_thenModelAfterExpiry() async throws {
+        let cooldown = CommitCooldown(duration: 0.1)
+        let cover = CoverEntity(
+            entityId: "cover.test",
+            name: "Test Cover",
+            state: .open,
+            currentPosition: 30,
+            supportedFeaturesRaw: CoverEntity.Features.setPosition.rawValue
+        )
+        let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), cooldown: cooldown)
+
+        #expect(vm.position == 30)
+
+        // Commit a new position; the model is unchanged (server has not confirmed).
+        vm.setPosition(to: 80)
+        #expect(vm.position == 80)
+
+        // No state_changed arrives (failed commit): after the window the slider
+        // value must reconcile back to the model (server truth).
+        try await Task.sleep(for: .milliseconds(250))
+        #expect(vm.position == 30)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(

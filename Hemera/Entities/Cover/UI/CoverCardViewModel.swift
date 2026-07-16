@@ -24,9 +24,14 @@ final class CoverCardViewModel: Identifiable {
     var name: String { cover.name }
     var isAvailable: Bool { cover.isAvailable }
     var deviceId: String? { cover.deviceId }
-    var position: Int? { cover.currentPosition }
+    var position: Int? {
+        if cooldown.isSuppressed, let pending = pendingPosition { return pending }
+        return cover.currentPosition
+    }
     var state: CoverEntity.State { cover.state }
 
+    private var pendingPosition: Int?
+    private let cooldown: CommitCooldown
     private let controller: CoverControlling
     private(set) var actionTask: Task<Void, Never>?
 
@@ -109,7 +114,9 @@ final class CoverCardViewModel: Identifiable {
     }
 
     init(cover: CoverEntity,
-         controller: CoverControlling) {
+         controller: CoverControlling,
+         cooldown: CommitCooldown? = nil) {
+        self.cooldown = cooldown ?? CommitCooldown()
         self.id = cover.entityId
         self.cover = cover
         self.controller = controller
@@ -119,6 +126,8 @@ final class CoverCardViewModel: Identifiable {
 
     func setPosition(to position: Int) {
         guard cover.isAvailable else { return }
+        pendingPosition = position
+        cooldown.commit()
         actionTask = Task {
             await controller.setPosition(of: id, to: position)
         }

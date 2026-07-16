@@ -43,6 +43,26 @@ struct LightCardViewModelTests {
         #expect(vm.iconName == "lightbulb.fill")
     }
 
+    // MARK: - Brightness Cooldown
+
+    @Test
+    func brightness_whileSuppressed_returnsPending_thenModelAfterExpiry() async throws {
+        let cooldown = CommitCooldown(duration: 0.1)
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .on, brightness: 100)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), cooldown: cooldown)
+
+        #expect(vm.brightness == 100)
+
+        // Commit a new value; the model is unchanged (server has not confirmed).
+        vm.setBrightness(to: 200)
+        #expect(vm.brightness == 200)
+
+        // No state_changed arrives (failed commit): after the window the slider
+        // value must reconcile back to the model (server truth).
+        try await Task.sleep(for: .milliseconds(250))
+        #expect(vm.brightness == 100)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(state: LightEntity.State) -> LightCardViewModel {

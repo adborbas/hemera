@@ -21,21 +21,28 @@ import Foundation
 @Observable
 @MainActor
 final class CommitCooldown {
-    private static let duration: TimeInterval = 1
+    /// Stored & observed so window expiry notifies observers (a pure time-computed
+    /// value would flip silently, leaving sliders stuck at the dragged position on
+    /// a failed commit — no `state_changed` arrives to trigger reconciliation).
+    private(set) var isSuppressed = false
 
-    private var lastCommitDate: Date?
-    private let now: @Sendable () -> Date
+    private let duration: TimeInterval
+    private var expiryTask: Task<Void, Never>?
 
-    init(now: @escaping @Sendable () -> Date = { Date() }) {
-        self.now = now
-    }
-
-    var isSuppressed: Bool {
-        guard let last = lastCommitDate else { return false }
-        return now().timeIntervalSince(last) < Self.duration
+    init(duration: TimeInterval = 1) {
+        self.duration = duration
     }
 
     func commit() {
-        lastCommitDate = now()
+        isSuppressed = true
+        // Cancel-on-recommit debounces rapid drags: the window always measures
+        // from the last commit.
+        expiryTask?.cancel()
+        expiryTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: .seconds(self.duration))
+            guard !Task.isCancelled else { return }
+            self.isSuppressed = false
+        }
     }
 }
