@@ -199,7 +199,7 @@ public struct TileGridEngine: Sendable {
                                 id: id,
                                 row: r,
                                 column: c,
-                                spanX: tile.size.spanX,
+                                spanX: min(tile.size.spanX, columns),
                                 spanY: tile.size.spanY
                             )
                         )
@@ -258,7 +258,7 @@ public struct TileGridEngine: Sendable {
         }
 
         func place(tile: Tile, atRow row: Int, col: Int) {
-            let spanX = tile.size.spanX
+            let spanX = min(tile.size.spanX, columns)
             let spanY = tile.size.spanY
             ensureRows(row + spanY)
 
