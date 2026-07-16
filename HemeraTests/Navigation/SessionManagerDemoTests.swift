@@ -65,9 +65,11 @@ struct SessionManagerTests {
 
     @Test
     func inMemoryDemoContainer_withCurrentSchema_buildsAndIsQueryable() throws {
-        // Guards the graceful demo-container fallback in `startDemoSession`: if the
-        // current schema ever stopped building an in-memory container, the demo path
-        // would silently no-op. This fails loudly instead.
+        /**
+         Guards the graceful demo-container fallback in `startDemoSession`: if the
+         current schema ever stopped building an in-memory container, the demo path
+         would silently no-op. This fails loudly instead.
+         */
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: AppEnvironment.createSchema(), configurations: config)
         let count = try container.mainContext.fetchCount(FetchDescriptor<AreaEntity>())

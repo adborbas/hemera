@@ -29,9 +29,11 @@ struct RootView: View {
                         .modelContainer(session.container)
                         .transaction { $0.animation = nil }
                 } else {
-                    // Session torn down while destination is briefly still .authenticated.
-                    // Render nothing rather than crashing; the router handler will move
-                    // destination away from .authenticated on the same runloop turn.
+                    /**
+                     Session torn down while destination is briefly still .authenticated.
+                     Render nothing rather than crashing; the router handler will move
+                     destination away from .authenticated on the same runloop turn.
+                     */
                     Color.clear
                 }
             }
