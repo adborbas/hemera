@@ -105,6 +105,7 @@ final class LightCardViewModel: Identifiable {
 
     func setBrightness(to value: Int) {
         guard light.isAvailable else { return }
+        resetPending()
         pendingBrightness = value
         cooldown.commit()
         Task {
@@ -114,6 +115,7 @@ final class LightCardViewModel: Identifiable {
 
     func setColorTemp(to mireds: Int) {
         guard light.isAvailable else { return }
+        resetPending()
         pendingColorTemp = mireds
         cooldown.commit()
         Task {
@@ -123,11 +125,24 @@ final class LightCardViewModel: Identifiable {
 
     func setHSColor(hue: Double, saturation: Double) {
         guard light.isAvailable else { return }
+        resetPending()
         pendingHSColor = [hue, saturation]
         cooldown.commit()
         Task {
             await controller.setHSColor(id, hue: hue, saturation: saturation)
         }
+    }
+
+    /**
+     One cooldown gates all three pending values, so every commit clears the
+     others first — otherwise a stale pending from an earlier commit would
+     resurface (and mask server truth) when a different property is committed
+     within the shared window.
+     */
+    private func resetPending() {
+        pendingBrightness = nil
+        pendingColorTemp = nil
+        pendingHSColor = nil
     }
 }
 

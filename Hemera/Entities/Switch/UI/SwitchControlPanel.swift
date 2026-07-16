@@ -5,8 +5,10 @@ struct SwitchControlPanel: View {
     var viewModel: SwitchCardViewModel
     @Binding var isPresented: Bool
 
-    @State private var isOn: Bool = false
     @State private var isPressed: Bool = false
+
+    // Reflects the model (server truth) — no local optimistic mirror.
+    private var isOn: Bool { viewModel.isOn }
 
     var body: some View {
         EntityControlPanel(
@@ -15,12 +17,6 @@ struct SwitchControlPanel: View {
             subtitle: subtitle
         ) {
             powerButton
-        }
-        .onAppear { isOn = viewModel.isOn }
-        .onChange(of: viewModel.isOn) { _, newValue in
-            withAnimation(Mortar.Motion.springBouncy) {
-                isOn = newValue
-            }
         }
     }
 
@@ -66,11 +62,7 @@ struct SwitchControlPanel: View {
 
     private func toggleState() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let newState = !isOn
-        withAnimation(Mortar.Motion.springBouncy) {
-            isOn = newState
-        }
-        viewModel.setOn(newState)
+        viewModel.setOn(!viewModel.isOn)
     }
 }
 

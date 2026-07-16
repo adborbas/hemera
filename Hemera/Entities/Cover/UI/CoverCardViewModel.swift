@@ -27,6 +27,19 @@ final class CoverCardViewModel: Identifiable {
     var position: Int? { cover.currentPosition }
     var state: CoverEntity.State { cover.state }
 
+    /**
+     Pending-aware position for the slider control only. Everything that reflects
+     server truth (the card, subtitle, and `iconTapped`) uses `position` — the
+     slider needs the optimistic pending value so it reconciles on failure via
+     the observable cooldown expiry without ever showing unconfirmed state on the card.
+     */
+    var sliderPosition: Int? {
+        if cooldown.isSuppressed, let pending = pendingPosition { return pending }
+        return cover.currentPosition
+    }
+
+    private var pendingPosition: Int?
+    private let cooldown: CommitCooldown
     private let controller: CoverControlling
     private(set) var actionTask: Task<Void, Never>?
 
@@ -109,7 +122,9 @@ final class CoverCardViewModel: Identifiable {
     }
 
     init(cover: CoverEntity,
-         controller: CoverControlling) {
+         controller: CoverControlling,
+         cooldown: CommitCooldown? = nil) {
+        self.cooldown = cooldown ?? CommitCooldown()
         self.id = cover.entityId
         self.cover = cover
         self.controller = controller
@@ -119,6 +134,8 @@ final class CoverCardViewModel: Identifiable {
 
     func setPosition(to position: Int) {
         guard cover.isAvailable else { return }
+        pendingPosition = position
+        cooldown.commit()
         actionTask = Task {
             await controller.setPosition(of: id, to: position)
         }

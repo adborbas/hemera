@@ -294,6 +294,36 @@ struct ClimateCardViewModelTests {
         #expect(vm.availableHVACModes == [.off, .heat])
     }
 
+    // MARK: - Target Temperature Cooldown
+
+    @Test
+    func targetTemperature_whileSuppressed_returnsPending_thenModelAfterExpiry() async {
+        let cooldown = CommitCooldown(duration: 0.05)
+        let climate = ClimateEntity(
+            entityId: "climate.test",
+            name: "Test Climate",
+            state: .heat,
+            temperature: 20,
+            hvacModesRaw: ["off", "heat"],
+            supportedFeaturesRaw: ClimateEntity.SupportedFeatures.targetTemperature.rawValue
+        )
+        let vm = ClimateCardViewModel(climate: climate, controller: SpyClimateControlling(), cooldown: cooldown)
+
+        #expect(vm.targetTemperature == 20)
+
+        // Commit a new target; the model is unchanged (server has not confirmed).
+        vm.setTemperature(24)
+        #expect(vm.targetTemperature == 24)
+
+        /**
+         No state_changed arrives (failed commit): after the window the value
+         must reconcile back to the model (server truth). Await the expiry task
+         directly so scheduler contention can't flake the result.
+         */
+        await cooldown.expiryTask?.value
+        #expect(vm.targetTemperature == 20)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(

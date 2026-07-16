@@ -13,7 +13,7 @@ struct CoverControlPanel: View {
     }
 
     private var initialValue: Double {
-        guard let position = viewModel.position else { return 0 }
+        guard let position = viewModel.sliderPosition else { return 0 }
         return Double(100 - position) / 100.0
     }
 
@@ -48,7 +48,7 @@ struct CoverControlPanel: View {
         .onChange(of: currentMode) { _, newMode in
             viewModel.preferredControlMode = newMode
         }
-        .onChange(of: viewModel.position) { _, _ in
+        .onChange(of: viewModel.sliderPosition) { _, _ in
             value = initialValue
         }
         .onChange(of: viewModel.supportedControlModes) { _, newModes in
