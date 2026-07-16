@@ -315,8 +315,10 @@ struct ClimateCardViewModelTests {
         vm.setTemperature(24)
         #expect(vm.targetTemperature == 24)
 
-        // No state_changed arrives (failed commit): after the window the value
-        // must reconcile back to the model (server truth).
+        /**
+         No state_changed arrives (failed commit): after the window the value
+         must reconcile back to the model (server truth).
+         */
         try await Task.sleep(for: .milliseconds(250))
         #expect(vm.targetTemperature == 20)
     }

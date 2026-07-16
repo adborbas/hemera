@@ -39,8 +39,10 @@ struct CommitCooldownTests {
         let cooldown = CommitCooldown(duration: 0.2)
         cooldown.commit()
 
-        // Re-commit before the first window expires; the window must now be
-        // measured from this second commit, not the first.
+        /**
+         Re-commit before the first window expires; the window must now be
+         measured from this second commit, not the first.
+         */
         try await Task.sleep(for: .milliseconds(120))
         cooldown.commit()
 

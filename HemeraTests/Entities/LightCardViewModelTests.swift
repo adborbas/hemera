@@ -57,8 +57,10 @@ struct LightCardViewModelTests {
         vm.setBrightness(to: 200)
         #expect(vm.brightness == 200)
 
-        // No state_changed arrives (failed commit): after the window the slider
-        // value must reconcile back to the model (server truth).
+        /**
+         No state_changed arrives (failed commit): after the window the slider
+         value must reconcile back to the model (server truth).
+         */
         try await Task.sleep(for: .milliseconds(250))
         #expect(vm.brightness == 100)
     }

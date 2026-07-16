@@ -241,8 +241,10 @@ struct CoverCardViewModelTests {
         vm.setPosition(to: 80)
         #expect(vm.position == 80)
 
-        // No state_changed arrives (failed commit): after the window the slider
-        // value must reconcile back to the model (server truth).
+        /**
+         No state_changed arrives (failed commit): after the window the slider
+         value must reconcile back to the model (server truth).
+         */
         try await Task.sleep(for: .milliseconds(250))
         #expect(vm.position == 30)
     }

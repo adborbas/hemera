@@ -21,9 +21,11 @@ import Foundation
 @Observable
 @MainActor
 final class CommitCooldown {
-    /// Stored & observed so window expiry notifies observers (a pure time-computed
-    /// value would flip silently, leaving sliders stuck at the dragged position on
-    /// a failed commit — no `state_changed` arrives to trigger reconciliation).
+    /**
+     Stored & observed so window expiry notifies observers (a pure time-computed
+     value would flip silently, leaving sliders stuck at the dragged position on
+     a failed commit — no `state_changed` arrives to trigger reconciliation).
+     */
     private(set) var isSuppressed = false
 
     private let duration: TimeInterval
@@ -35,8 +37,10 @@ final class CommitCooldown {
 
     func commit() {
         isSuppressed = true
-        // Cancel-on-recommit debounces rapid drags: the window always measures
-        // from the last commit.
+        /**
+         Cancel-on-recommit debounces rapid drags: the window always measures
+         from the last commit.
+         */
         expiryTask?.cancel()
         expiryTask = Task { [weak self] in
             guard let self else { return }
