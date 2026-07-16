@@ -115,8 +115,10 @@ final class ClimateEntity: StoredEntity {
         targetTempLow = entity.attributes["target_temp_low"] as? Double
         currentHumidity = entity.attributes["current_humidity"] as? Double
         humidity = entity.attributes["humidity"] as? Double
-        minTemp = entity.attributes["min_temp"] as? Double ?? 7
-        maxTemp = entity.attributes["max_temp"] as? Double ?? 35
+        let rawMinTemp = entity.attributes["min_temp"] as? Double ?? 7
+        let rawMaxTemp = entity.attributes["max_temp"] as? Double ?? 35
+        minTemp = Swift.min(rawMinTemp, rawMaxTemp)
+        maxTemp = Swift.max(rawMinTemp, rawMaxTemp)
         minHumidity = entity.attributes["min_humidity"] as? Double ?? 30
         maxHumidity = entity.attributes["max_humidity"] as? Double ?? 99
         targetTempStep = entity.attributes["target_temp_step"] as? Double ?? 0.5

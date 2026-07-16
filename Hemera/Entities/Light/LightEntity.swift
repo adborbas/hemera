@@ -84,8 +84,15 @@ final class LightEntity: StoredEntity {
         } else {
             hsColor = nil
         }
-        minMireds = entity.attributes["min_mireds"] as? Int
-        maxMireds = entity.attributes["max_mireds"] as? Int
+        let rawMinMireds = entity.attributes["min_mireds"] as? Int
+        let rawMaxMireds = entity.attributes["max_mireds"] as? Int
+        if let lo = rawMinMireds, let hi = rawMaxMireds {
+            minMireds = Swift.min(lo, hi)
+            maxMireds = Swift.max(lo, hi)
+        } else {
+            minMireds = rawMinMireds
+            maxMireds = rawMaxMireds
+        }
         offBrightness = entity.attributes["off_brightness"] as? Int
         offWithTransition = entity.attributes["off_with_transition"] as? Bool
         supportedColorModes = entity.attributes["supported_color_modes"] as? [String]

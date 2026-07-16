@@ -95,12 +95,25 @@ struct ClimateControlPanel: View {
         )
     }
 
+    // MARK: - Temperature Range
+
+    /**
+     Sorted, non-degenerate temperature range. Guards against a misconfigured server
+     reporting `min_temp > max_temp` (ClosedRange traps) or `min_temp == max_temp`
+     (zero-width span → NaN in the slider fraction divisors).
+     */
+    private var temperatureRange: ClosedRange<Double> {
+        let lo = Swift.min(viewModel.minTemp, viewModel.maxTemp)
+        let hi = Swift.max(viewModel.minTemp, viewModel.maxTemp)
+        return lo < hi ? lo...hi : lo...(lo + 1)
+    }
+
     // MARK: - Read-Only Temperature Display
 
     private var readOnlyTemperatureDisplay: some View {
         ReadOnlyTemperatureArc(
             currentTemperature: viewModel.currentTemperature,
-            range: viewModel.minTemp...viewModel.maxTemp,
+            range: temperatureRange,
             tintColor: viewModel.tintColor,
             temperatureFormatter: ClimateCardViewModel.formatTemperature
         )
@@ -117,7 +130,7 @@ struct ClimateControlPanel: View {
                 targetLow: $targetLow,
                 targetHigh: $targetHigh,
                 currentTemperature: viewModel.currentTemperature,
-                range: viewModel.minTemp...viewModel.maxTemp,
+                range: temperatureRange,
                 tintColor: viewModel.tintColor,
                 arcGradientColors: viewModel.arcGradientColors,
                 lowHandleColor: viewModel.lowHandleColor,
@@ -133,7 +146,7 @@ struct ClimateControlPanel: View {
             CircularTemperatureSlider(
                 targetTemperature: $targetTemp,
                 currentTemperature: viewModel.currentTemperature,
-                range: viewModel.minTemp...viewModel.maxTemp,
+                range: temperatureRange,
                 tintColor: viewModel.tintColor,
                 step: viewModel.targetTempStep,
                 temperatureFormatter: ClimateCardViewModel.formatTemperature
