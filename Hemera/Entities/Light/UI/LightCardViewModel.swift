@@ -159,6 +159,7 @@ final class LightCardViewModel: Identifiable {
 extension LightCardViewModel {
     static func registration(controller: LightControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: LightEntity.domain,
             makeViewModelsForArea: { area in
                 area.lights.sorted(by: { $0.entityId < $1.entityId }).map {
                     LightCardViewModel(light: $0, controller: controller)
@@ -167,6 +168,9 @@ extension LightCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let light = LightEntity.fetch(byId: entityId, in: context) else { return nil }
                 return LightCardViewModel(light: light, controller: controller)
+            },
+            entityExists: { entityId, context in
+                LightEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }

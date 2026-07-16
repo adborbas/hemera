@@ -62,6 +62,7 @@ final class BinarySensorCardViewModel: Identifiable {
 extension BinarySensorCardViewModel {
     static func registration() -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: BinarySensorEntity.domain,
             makeViewModelsForArea: { area in
                 area.binarySensors.sorted(by: { $0.entityId < $1.entityId }).map {
                     BinarySensorCardViewModel(binarySensor: $0)
@@ -70,6 +71,9 @@ extension BinarySensorCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let binarySensor = BinarySensorEntity.fetch(byId: entityId, in: context) else { return nil }
                 return BinarySensorCardViewModel(binarySensor: binarySensor)
+            },
+            entityExists: { entityId, context in
+                BinarySensorEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }

@@ -60,6 +60,7 @@ final class SwitchCardViewModel: Identifiable {
 extension SwitchCardViewModel {
     static func registration(controller: SwitchControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: SwitchEntity.domain,
             makeViewModelsForArea: { area in
                 area.switches.sorted(by: { $0.entityId < $1.entityId }).map {
                     SwitchCardViewModel(switchEntity: $0, controller: controller)
@@ -68,6 +69,9 @@ extension SwitchCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let switchEntity = SwitchEntity.fetch(byId: entityId, in: context) else { return nil }
                 return SwitchCardViewModel(switchEntity: switchEntity, controller: controller)
+            },
+            entityExists: { entityId, context in
+                SwitchEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }

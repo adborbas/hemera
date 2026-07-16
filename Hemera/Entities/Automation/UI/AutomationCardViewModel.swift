@@ -57,6 +57,7 @@ final class AutomationCardViewModel: Identifiable {
 extension AutomationCardViewModel {
     static func registration(controller: AutomationControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: AutomationEntity.domain,
             makeViewModelsForArea: { area in
                 area.automations.sorted(by: { $0.entityId < $1.entityId }).map {
                     AutomationCardViewModel(automation: $0, controller: controller)
@@ -65,6 +66,9 @@ extension AutomationCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let automation = AutomationEntity.fetch(byId: entityId, in: context) else { return nil }
                 return AutomationCardViewModel(automation: automation, controller: controller)
+            },
+            entityExists: { entityId, context in
+                AutomationEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }

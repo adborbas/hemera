@@ -40,6 +40,36 @@ struct ViewModelFactoryTests {
         #expect((first as AnyObject) === (second as AnyObject))
     }
 
+    @Test
+    func makeViewModel_cachedLookup_probesOnlyTheOwningDomain() throws {
+        let (factory, context) = makeFactory()
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .on)
+        context.insert(light)
+        try context.save()
+
+        // Register a second domain whose existence probe records every call.
+        let otherDomainProbes = CallCounter()
+        factory.register(
+            ViewModelFactory.Registration(
+                domain: "switch",
+                makeViewModelsForArea: { _ in [] },
+                makeViewModelForEntityId: { _, _ in nil },
+                entityExists: { _, _ in
+                    otherDomainProbes.count += 1
+                    return false
+                }
+            )
+        )
+
+        // First call caches; second call re-validates the cached VM.
+        _ = factory.makeViewModel(forEntityId: "light.test")
+        _ = factory.makeViewModel(forEntityId: "light.test")
+
+        // The light lookup must target only the "light" registration, never fan out
+        // to the "switch" one.
+        #expect(otherDomainProbes.count == 0)
+    }
+
     // MARK: - Helpers
 
     private func makeFactory() -> (ViewModelFactory, ModelContext) {
@@ -51,6 +81,11 @@ struct ViewModelFactoryTests {
         factory.register(LightCardViewModel.registration(controller: StubLightControlling()))
         return (factory, context)
     }
+}
+
+@MainActor
+private final class CallCounter {
+    var count = 0
 }
 
 @MainActor
