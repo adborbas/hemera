@@ -155,6 +155,58 @@ struct CoverCardViewModelTests {
         #expect(controller.stoppedIds == ["cover.test"])
     }
 
+    @Test
+    func close_duringOpen_cancelsInFlightOpen() async {
+        let controller = SlowCoverControlling()
+        let vm = makeViewModel(features: [.open, .close], controller: controller)
+
+        vm.open()
+        let openTask = vm.actionTask
+        vm.close()
+
+        await openTask?.value
+        await vm.actionTask?.value
+
+        #expect(openTask?.isCancelled == true)
+        #expect(controller.didCompleteOpen == false)
+        #expect(controller.closedIds == ["cover.test"])
+    }
+
+    @Test
+    func setPosition_duringOpen_cancelsInFlightOpen() async {
+        let controller = SlowCoverControlling()
+        let vm = makeViewModel(features: [.open, .setPosition], controller: controller)
+
+        vm.open()
+        let openTask = vm.actionTask
+        vm.setPosition(to: 50)
+
+        await openTask?.value
+        await vm.actionTask?.value
+
+        #expect(openTask?.isCancelled == true)
+        #expect(controller.didCompleteOpen == false)
+        #expect(controller.positionCalls == [50])
+    }
+
+    @Test
+    func toggleViaIconTapped_duringOpen_cancelsInFlightOpen() async {
+        let controller = SlowCoverControlling()
+        // No .open feature → iconTapped's .closed case falls back to toggle().
+        let vm = makeViewModel(state: .closed, features: [], controller: controller)
+
+        vm.open()
+        let openTask = vm.actionTask
+        vm.iconTapped()
+
+        await openTask?.value
+        await vm.actionTask?.value
+
+        #expect(openTask?.isCancelled == true)
+        #expect(controller.didCompleteOpen == false)
+        #expect(controller.toggledIds == ["cover.test"])
+    }
+
     // MARK: - Simple State Description
 
     @Test
@@ -350,8 +402,13 @@ private final class SpyCoverControlling: CoverControlling {
 private final class SlowCoverControlling: CoverControlling {
     var didCompleteOpen = false
     var stoppedIds: [String] = []
+    var positionCalls: [Int] = []
+    var closedIds: [String] = []
+    var toggledIds: [String] = []
 
-    func setPosition(of id: String, to position: Int) async {}
+    func setPosition(of id: String, to position: Int) async {
+        positionCalls.append(position)
+    }
 
     func openCover(_ id: String) async {
         try? await Task.sleep(for: .seconds(2))
@@ -359,11 +416,15 @@ private final class SlowCoverControlling: CoverControlling {
         didCompleteOpen = true
     }
 
-    func closeCover(_ id: String) async {}
+    func closeCover(_ id: String) async {
+        closedIds.append(id)
+    }
 
     func stopCover(_ id: String) async {
         stoppedIds.append(id)
     }
 
-    func toggleCover(_ id: String) async {}
+    func toggleCover(_ id: String) async {
+        toggledIds.append(id)
+    }
 }

@@ -282,6 +282,29 @@ struct ClimateCardViewModelTests {
         #expect(spy.setTemperatureCalls.isEmpty)
     }
 
+    // MARK: - Action Cancellation
+
+    /**
+     A second action must cancel the in-flight one. Otherwise the demo controller's
+     post-sleep `guard !Task.isCancelled` never fires and the still-running earlier
+     action overwrites the state the newer action just applied.
+     */
+    @Test func setTemperature_whileActionInFlight_cancelsPriorAction() async {
+        let controller = SlowClimateControlling()
+        let vm = makeViewModel(state: .heat, controller: controller)
+
+        vm.setTemperature(20)
+        let firstTask = vm.actionTask
+        vm.setHVACMode(.cool)
+
+        await firstTask?.value
+        await vm.actionTask?.value
+
+        #expect(firstTask?.isCancelled == true)
+        #expect(controller.didCompleteSetTemperature == false)
+        #expect(controller.setHVACModeCalls == ["cool"])
+    }
+
     // MARK: - Available HVAC Modes
 
     @Test func availableHVACModes_parsesFromRaw() {
@@ -407,4 +430,32 @@ private final class SpyClimateControlling: ClimateControlling {
     func turnOffClimate(_ id: String) async {
         turnOffCalls.append(id)
     }
+}
+
+/**
+ Mirrors the demo controller: `setTemperature` simulates a delayed apply, then only
+ completes if its Task was not cancelled — the same `guard !Task.isCancelled` the bug hinges on.
+ */
+@MainActor
+private final class SlowClimateControlling: ClimateControlling {
+    var didCompleteSetTemperature = false
+    var setHVACModeCalls: [String] = []
+
+    func setHVACMode(_ id: String, mode: String) async {
+        setHVACModeCalls.append(mode)
+    }
+
+    func setTemperature(_ id: String, temperature: Double) async {
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled else { return }
+        didCompleteSetTemperature = true
+    }
+
+    func setTemperatureRange(_ id: String, low: Double, high: Double) async {}
+    func setFanMode(_ id: String, mode: String) async {}
+    func setSwingMode(_ id: String, mode: String) async {}
+    func setPresetMode(_ id: String, mode: String) async {}
+    func setHumidity(_ id: String, humidity: Double) async {}
+    func turnOnClimate(_ id: String) async {}
+    func turnOffClimate(_ id: String) async {}
 }
