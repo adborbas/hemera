@@ -183,9 +183,11 @@ final class ScreenManager {
                 isDimmed = false
             }
         case .inactive:
-            // Transient interruptions (Control Center, Notification Center,
-            // incoming calls) yield `.inactive` without backgrounding the app.
-            // Keep the current dim state so it survives them.
+            /**
+             Transient interruptions (Control Center, Notification Center,
+             incoming calls) yield `.inactive` without backgrounding the app.
+             Keep the current dim state so it survives them.
+             */
             break
         @unknown default:
             break
