@@ -92,10 +92,15 @@ struct LightControlPanel: View {
         case .colorTemp:
             let minMireds = viewModel.minMireds ?? 153
             let maxMireds = viewModel.maxMireds ?? 500
+            // Sort and widen a degenerate span so ClosedRange never traps and the slider
+            // geometry divisors stay finite for a misconfigured server.
+            let lo = Double(Swift.min(minMireds, maxMireds))
+            let hi = Double(Swift.max(minMireds, maxMireds))
+            let miredsRange = lo < hi ? lo...hi : lo...(lo + 1)
             VerticalSlider(
                 value: $colorTemp,
                 configuration: .init(
-                    range: Double(minMireds)...Double(maxMireds),
+                    range: miredsRange,
                     style: .picker
                 )
             ) { value in
@@ -169,7 +174,10 @@ struct LightControlPanel: View {
             return Color(red: 1.0, green: 0.85, blue: 0.6)
         }
         // t: 0 = coolest (low mireds), 1 = warmest (high mireds)
-        let t = (mireds - Double(min)) / Double(max - min)
+        let lo = Swift.min(min, max)
+        let hi = Swift.max(min, max)
+        let span = Double(hi - lo)
+        let t = span > 0 ? (mireds - Double(lo)) / span : 0
         // Cool end (~6500K): visible cool blue
         // Warm end (~2000K): amber
         let r = 0.82 + t * 0.18
