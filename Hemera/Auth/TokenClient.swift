@@ -80,10 +80,19 @@ enum TokenClient {
         return try JSONDecoder().decode(TokenResponse.self, from: data)
     }
 
-    private static func formEncode(_ params: [String: String]) -> String {
+    /**
+     RFC 3986 unreserved set — safe for x-www-form-urlencoded values.
+     Excludes sub-delims (+ & = , ; …) which are structural in a form body;
+     `.urlQueryAllowed` would leave them unescaped (notably `+` → space).
+     */
+    private static let formAllowedCharacters = CharacterSet(charactersIn:
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
+    // Internal (not private) so `formEncode` can be unit-tested directly via @testable import.
+    static func formEncode(_ params: [String: String]) -> String {
         params.map { key, value in
-            let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? key
-            let encodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
+            let encodedKey = key.addingPercentEncoding(withAllowedCharacters: formAllowedCharacters) ?? key
+            let encodedValue = value.addingPercentEncoding(withAllowedCharacters: formAllowedCharacters) ?? value
             return "\(encodedKey)=\(encodedValue)"
         }.joined(separator: "&")
     }

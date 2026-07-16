@@ -28,11 +28,11 @@ final class AuthManager: AuthManaging {
     private(set) var state: AuthState = .unauthenticated
     private(set) var credentials: ServerCredentials?
 
-    private let keychainStore: KeychainStore
+    private let keychainStore: any KeychainStoring
     private let tokenRefresher: TokenRefresher
     private var onChangeHandlers: [(AuthState, AuthChangeReason) -> Void] = []
 
-    init(keychainStore: KeychainStore, userDefaults: UserDefaults = .standard) {
+    init(keychainStore: any KeychainStoring, userDefaults: UserDefaults = .standard) {
         self.keychainStore = keychainStore
         self.tokenRefresher = TokenRefresher(keychainStore: keychainStore)
 
@@ -45,7 +45,7 @@ final class AuthManager: AuthManaging {
     }
 
     convenience init() {
-        self.init(keychainStore: .shared)
+        self.init(keychainStore: KeychainStore.shared)
     }
 
     func addOnChangeHandler(_ handler: @escaping (AuthState, AuthChangeReason) -> Void) {
@@ -70,7 +70,11 @@ final class AuthManager: AuthManaging {
 
     func didAuthenticate(with creds: ServerCredentials) {
         Log.info("Authenticated with \(creds.serverURL.host() ?? "unknown")")
-        keychainStore.saveCredentials(creds)
+        do {
+            try keychainStore.saveCredentials(creds)
+        } catch {
+            Log.error("Failed to persist credentials — session will not survive relaunch", cause: error)
+        }
         credentials = creds
         state = .authenticated
         onChangeHandlers.forEach { $0(.authenticated, .userInitiated) }
@@ -79,21 +83,35 @@ final class AuthManager: AuthManaging {
     func logout() {
         performLogout(reason: .userInitiated)
     }
+
+    // Internal (not private) so tests can reference the same key instead of duplicating the literal.
+    static let hasLaunchedKey = "com.hemera.hasLaunchedBefore"
 }
 
 // MARK: - Private Methods
 
 private extension AuthManager {
 
-    private static let hasLaunchedKey = "com.hemera.hasLaunchedBefore"
+    /**
+     Clears stale keychain credentials left over from a previous install.
+     iOS preserves keychain items across app uninstall/reinstall, but
+     UserDefaults are wiped. If the flag is missing, this is a fresh install.
 
-    /// Clears stale keychain credentials left over from a previous install.
-    /// iOS preserves keychain items across app uninstall/reinstall, but
-    /// UserDefaults are wiped. If the flag is missing, this is a fresh install.
-    static func clearKeychainIfReinstalled(keychainStore: KeychainStore, userDefaults: UserDefaults) {
-        if !userDefaults.bool(forKey: hasLaunchedKey) {
-            keychainStore.clearAll()
-            userDefaults.set(true, forKey: hasLaunchedKey)
+     Trade-off (accepted knowingly): freshness is inferred only from the missing
+     flag, which is equally absent for a legitimate upgrade from a build that
+     predated this flag — so such an upgrade triggers a one-time logout. We accept
+     that for the safer security posture (never inherit foreign credentials).
+     Gating the wipe on install-identity is not reliably possible from the Keychain
+     alone without risking a reinstall inheriting a previous user's credentials.
+     */
+    static func clearKeychainIfReinstalled(keychainStore: any KeychainStoring, userDefaults: UserDefaults) {
+        guard !userDefaults.bool(forKey: hasLaunchedKey) else { return }
+        do {
+            try keychainStore.clearAll()
+            userDefaults.set(true, forKey: hasLaunchedKey) // only mark done if the wipe actually happened
+        } catch {
+            Log.error("First-run keychain wipe failed — will retry next launch", cause: error)
+            // Flag intentionally NOT set, so the wipe is retried on the next launch.
         }
     }
 
@@ -108,7 +126,11 @@ private extension AuthManager {
                 }
             }
         }
-        keychainStore.clearAll()
+        do {
+            try keychainStore.clearAll()
+        } catch {
+            Log.warning("Failed to clear credentials on logout", cause: error)
+        }
         credentials = nil
         state = .unauthenticated
         onChangeHandlers.forEach { $0(.unauthenticated, reason) }
