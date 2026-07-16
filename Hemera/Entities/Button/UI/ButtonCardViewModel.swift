@@ -67,6 +67,7 @@ final class ButtonCardViewModel: Identifiable {
 extension ButtonCardViewModel {
     static func registration(controller: ButtonControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: ButtonEntity.domain,
             makeViewModelsForArea: { area in
                 area.buttons.filter { $0.deviceClass.isUserActionable }.sorted(by: { $0.entityId < $1.entityId }).map {
                     ButtonCardViewModel(button: $0, controller: controller)
@@ -76,6 +77,9 @@ extension ButtonCardViewModel {
                 guard let button = ButtonEntity.fetch(byId: entityId, in: context),
                       button.deviceClass.isUserActionable else { return nil }
                 return ButtonCardViewModel(button: button, controller: controller)
+            },
+            entityExists: { entityId, context in
+                ButtonEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }

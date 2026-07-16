@@ -361,6 +361,7 @@ extension ClimateCardViewModel {
 extension ClimateCardViewModel {
     static func registration(controller: ClimateControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: ClimateEntity.domain,
             makeViewModelsForArea: { area in
                 area.climates.sorted(by: { $0.entityId < $1.entityId }).map {
                     ClimateCardViewModel(climate: $0, controller: controller)
@@ -369,6 +370,9 @@ extension ClimateCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let climate = ClimateEntity.fetch(byId: entityId, in: context) else { return nil }
                 return ClimateCardViewModel(climate: climate, controller: controller)
+            },
+            entityExists: { entityId, context in
+                ClimateEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }
@@ -380,6 +384,8 @@ extension ClimateCardViewModel: EntityCardViewModel {
     func makeCardView() -> AnyView {
         AnyView(ClimateCard(viewModel: self))
     }
+
+    var hasOverlay: Bool { true }
 
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
         AnyView(ClimateControlPanel(viewModel: self, isPresented: isPresented))

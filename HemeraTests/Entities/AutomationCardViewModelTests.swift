@@ -53,6 +53,15 @@ struct AutomationCardViewModelTests {
         #expect(vm.iconName == "gearshape.2.fill")
     }
 
+    // MARK: - Has Overlay
+
+    @Test
+    func hasOverlay_isTrue() {
+        let vm = makeViewModel(state: .on)
+        #expect(vm.hasOverlay)
+        #expect(vm.makeOverlayView(isPresented: .constant(true)) != nil)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(state: AutomationEntity.State) -> AutomationCardViewModel {

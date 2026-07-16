@@ -41,6 +41,7 @@ final class SceneCardViewModel: Identifiable {
 extension SceneCardViewModel {
     static func registration(controller: SceneControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: SceneEntity.domain,
             makeViewModelsForArea: { area in
                 area.scenes.sorted(by: { $0.entityId < $1.entityId }).map {
                     SceneCardViewModel(scene: $0, controller: controller)
@@ -49,6 +50,9 @@ extension SceneCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let scene = SceneEntity.fetch(byId: entityId, in: context) else { return nil }
                 return SceneCardViewModel(scene: scene, controller: controller)
+            },
+            entityExists: { entityId, context in
+                SceneEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }

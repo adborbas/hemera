@@ -22,7 +22,7 @@ struct LightCard: View {
                       subtitle: viewModel.isOn ? Localization.on : Localization.off,
                       accessibilityIdentifier: viewModel.id)
         } backgroundOverlay: {
-            if isMediumTile {
+            if isMediumTile && viewModel.isDimmable {
                 CardFillOverlay(fraction: fillFraction, fillColor: viewModel.tintColor, anchor: .bottom)
             }
         }

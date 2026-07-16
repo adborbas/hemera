@@ -51,6 +51,8 @@ final class LightCardViewModel: Identifiable {
 
     var supportedModes: [LightControlMode] {
         guard let modes = light.supportedColorModes else { return [.brightness] }
+        // A light whose only color mode is "onoff" has no brightness/color controls.
+        if Set(modes) == ["onoff"] { return [] }
         var result: [LightControlMode] = [.brightness]
         if modes.contains("color_temp") {
             if light.minMireds != nil && light.maxMireds != nil {
@@ -65,6 +67,12 @@ final class LightCardViewModel: Identifiable {
         }
         return result
     }
+
+    /**
+     Whether the light exposes a brightness control (i.e. is dimmable).
+     `false` for on/off-only lights, which drive neither the fill nor the overlay.
+     */
+    var isDimmable: Bool { supportedModes.contains(.brightness) }
 
     nonisolated let id: String
     var name: String { light.name }
@@ -151,6 +159,7 @@ final class LightCardViewModel: Identifiable {
 extension LightCardViewModel {
     static func registration(controller: LightControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: LightEntity.domain,
             makeViewModelsForArea: { area in
                 area.lights.sorted(by: { $0.entityId < $1.entityId }).map {
                     LightCardViewModel(light: $0, controller: controller)
@@ -159,6 +168,9 @@ extension LightCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let light = LightEntity.fetch(byId: entityId, in: context) else { return nil }
                 return LightCardViewModel(light: light, controller: controller)
+            },
+            entityExists: { entityId, context in
+                LightEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }
@@ -171,7 +183,14 @@ extension LightCardViewModel: EntityCardViewModel {
         AnyView(LightCard(viewModel: self))
     }
 
+    /**
+     On/off-only lights have no controllable modes, so they present no overlay —
+     the card icon toggle is their only control. Keep in sync with `makeOverlayView`.
+     */
+    var hasOverlay: Bool { !supportedModes.isEmpty }
+
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
-        AnyView(LightControlPanel(viewModel: self, isPresented: isPresented))
+        guard hasOverlay else { return nil }
+        return AnyView(LightControlPanel(viewModel: self, isPresented: isPresented))
     }
 }

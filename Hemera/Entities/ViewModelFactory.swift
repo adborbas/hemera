@@ -16,13 +16,19 @@ final class ViewModelFactory {
 
     /// A pair of closures that create ViewModels for a single entity domain.
     struct Registration {
+        /// The Home Assistant domain string this registration owns (e.g. `"light"`).
+        let domain: String
         /// Creates all ViewModels for entities of this domain within an area.
         let makeViewModelsForArea: @MainActor (AreaEntity) -> [any EntityCardViewModel]
         /// Creates a ViewModel for a single entity by ID, if it exists in storage.
         let makeViewModelForEntityId: @MainActor (String, ModelContext) -> (any EntityCardViewModel)?
+        /// Whether an entity of this domain with the given ID still exists in storage.
+        /// A cheap existence probe that does not allocate a ViewModel.
+        let entityExists: @MainActor (String, ModelContext) -> Bool
     }
 
     private var registrations: [Registration] = []
+    private var registrationsByDomain: [String: Registration] = [:]
     private var cache: [String: any EntityCardViewModel] = [:]
     private let context: ModelContext
     /// Retains the container so its entities stay valid as long as this factory (and any VMs it created) are alive.
@@ -38,6 +44,7 @@ final class ViewModelFactory {
     /// Registers a domain's ViewModel factory.
     func register(_ registration: Registration) {
         registrations.append(registration)
+        registrationsByDomain[registration.domain] = registration
     }
 
     /// Registers all built-in entity domain factories.
@@ -78,7 +85,16 @@ final class ViewModelFactory {
 
     /// Returns the cached VM for the entity, or creates one by looking it up in storage.
     func makeViewModel(forEntityId entityId: String) -> (any EntityCardViewModel)? {
-        if let cached = cache[entityId] { return cached }
+        if let cached = cache[entityId] {
+            /**
+             Re-confirm the backing @Model still exists before returning the cached
+             VM; if the entity was deleted mid-session, drop the stale VM so callers
+             never touch an invalidated @Model. The cached instance is still returned
+             for live entities, preserving ephemeral interaction state.
+             */
+            if entityExists(entityId) { return cached }
+            cache[entityId] = nil
+        }
         for registration in registrations {
             if let vm = registration.makeViewModelForEntityId(entityId, context) {
                 cache[entityId] = vm
@@ -86,6 +102,15 @@ final class ViewModelFactory {
             }
         }
         return nil
+    }
+
+    /// Whether the entity backing a cached VM still exists in storage. Targets the
+    /// single registration owning the id's domain (HA ids are `"<domain>.<object>"`)
+    /// so the probe is one cheap fetch, not a fan-out across every domain.
+    private func entityExists(_ entityId: String) -> Bool {
+        let domain = String(entityId.prefix { $0 != "." })
+        guard let registration = registrationsByDomain[domain] else { return false }
+        return registration.entityExists(entityId, context)
     }
 
     /// If a VM for this entityId is already cached, return the cached instance;
@@ -103,7 +128,7 @@ final class ViewModelFactory {
     /// is unavailable or its primary action was invoked in place.
     func handleCardTap(entityId: String) -> (any EntityCardViewModel)? {
         guard let vm = makeViewModel(forEntityId: entityId), vm.isAvailable else { return nil }
-        if vm.makeOverlayView(isPresented: .constant(true)) != nil {
+        if vm.hasOverlay {
             return vm
         }
         vm.performPrimaryAction()

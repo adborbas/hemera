@@ -244,6 +244,7 @@ private extension CoverCardViewModel {
 extension CoverCardViewModel {
     static func registration(controller: CoverControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
+            domain: CoverEntity.domain,
             makeViewModelsForArea: { area in
                 area.covers.sorted(by: { $0.entityId < $1.entityId }).map {
                     CoverCardViewModel(cover: $0, controller: controller)
@@ -252,6 +253,9 @@ extension CoverCardViewModel {
             makeViewModelForEntityId: { entityId, context in
                 guard let cover = CoverEntity.fetch(byId: entityId, in: context) else { return nil }
                 return CoverCardViewModel(cover: cover, controller: controller)
+            },
+            entityExists: { entityId, context in
+                CoverEntity.fetch(byId: entityId, in: context) != nil
             }
         )
     }
@@ -263,6 +267,8 @@ extension CoverCardViewModel: EntityCardViewModel {
     func makeCardView() -> AnyView {
         AnyView(CoverCard(viewModel: self))
     }
+
+    var hasOverlay: Bool { true }
 
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
         AnyView(CoverControlPanel(viewModel: self, isPresented: isPresented))
