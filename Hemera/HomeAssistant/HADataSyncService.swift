@@ -33,6 +33,34 @@ final class HADataSyncService {
 
     private var stateChangedToken: HACancellable?
 
+    /**
+     Guards the real-time path until the initial snapshot has been applied.
+     While `false`, incoming `state_changed` events are buffered instead of
+     applied, so a change that fires during the snapshot-fetch window is
+     reconciled against the snapshot rather than lost.
+     */
+    private var isSnapshotApplied = false
+
+    /**
+     Events received before the snapshot was applied, kept in arrival order.
+     A plain array is safe: the service is `@MainActor` and HAKit delivers
+     the subscription callback on `.main` (`connection.callbackQueue = .main`).
+     */
+    private var bufferedEvents: [HAResponseEventStateChanged] = []
+
+    /**
+     Cap on `bufferedEvents` so a stalled sync (live socket, but a `getStates`
+     that never returns) can't grow the buffer without bound. Past the cap the
+     oldest events are dropped; the snapshot re-baselines every entity on
+     flush, so only intermediate states of a fast-changing entity during the
+     stall are lost.
+     */
+    static let maxBufferedEvents = 2000
+
+    /// Ensures the buffer-overflow warning is logged once per sync window, not
+    /// once per dropped event.
+    private var didWarnBufferOverflow = false
+
     deinit { stateChangedToken?.cancel() }
 
     private var conn: HAConnection { connectionManager.connection }
@@ -55,17 +83,31 @@ final class HADataSyncService {
 
     func start() {
         Log.info("Starting initial data sync")
-        Task {
-            await syncAllData()
-            subscribeToStateChanges()
-        }
+        /**
+         Subscribe before fetching the snapshot so events firing during the
+         fetch window are buffered (not lost) and flushed once it lands.
+         */
+        subscribeToStateChanges()
+        Task { await syncAllData() }
     }
 
     /// Re-fetches all data and re-subscribes to real-time changes (e.g. after reconnecting or pull-to-refresh).
     func resync() async {
         Log.info("Re-syncing all data")
-        await syncAllData()
+        /**
+         Re-arm buffering for the resync window, then re-subscribe before the
+         fetch so events during the window are reconciled against the snapshot
+         (closing the same gap as `start()`, e.g. on reconnect).
+
+         Tradeoff: live updates are held — not applied — until the snapshot
+         lands and flushes, so a foreground / pull-to-refresh resync briefly
+         pauses live UI updates instead of showing them immediately. This is
+         bounded and self-healing: nothing is lost and arrival order is
+         preserved on flush.
+         */
+        isSnapshotApplied = false
         subscribeToStateChanges()
+        await syncAllData()
     }
 
     // MARK: - Data Sync
@@ -76,12 +118,18 @@ final class HADataSyncService {
             Log.info("Fetched \(payload.entities.count) entities, \(payload.areaMappings.count) areas, \(payload.floors?.count ?? 0) floors — applying to main context")
 
             await applySyncPayload(payload)
+            flushBufferedEvents()
 
             errorNotifier?.clearSyncFailed()
             Log.info("Sync complete")
             onSyncComplete()
         } catch {
             Log.error("Failed to sync data", cause: error)
+            /**
+             Flush even on failure so buffered events are applied and the
+             buffer can never grow unbounded across repeated failed syncs.
+             */
+            flushBufferedEvents()
             errorNotifier?.showError(Localization.syncFailed)
             errorNotifier?.markSyncFailed()
             onSyncComplete()
@@ -363,13 +411,50 @@ final class HADataSyncService {
         stateChangedToken = conn.subscribe(to: .stateChanged()) { [weak self] _, event in
             guard let self else { return }
 
-            Task {
+            /**
+             HAKit delivers this callback synchronously on `.main`
+             (`connection.callbackQueue = .main`), so handle it in delivery
+             order. A per-event `Task` would drop HAKit's serial ordering
+             guarantee and could apply back-to-back changes for one entity out
+             of order — and would also race the buffer flush.
+             */
+            MainActor.assumeIsolated {
                 self.handleStateChanged(event)
             }
         }
     }
 
-    private func handleStateChanged(_ event: HAResponseEventStateChanged) {
+    func handleStateChanged(_ event: HAResponseEventStateChanged) {
+        guard isSnapshotApplied else {
+            bufferedEvents.append(event)
+            if bufferedEvents.count > Self.maxBufferedEvents {
+                bufferedEvents.removeFirst()
+                if !didWarnBufferOverflow {
+                    didWarnBufferOverflow = true
+                    Log.warning("state_changed buffer exceeded \(Self.maxBufferedEvents) events during sync — dropping oldest; snapshot will re-baseline on completion")
+                }
+            }
+            return
+        }
+        applyStateChanged(event)
+    }
+
+    /**
+     Applies events buffered during the snapshot-fetch window in arrival
+     order (preserving last-writer-wins), then switches to applying
+     subsequent events immediately.
+     */
+    func flushBufferedEvents() {
+        isSnapshotApplied = true
+        didWarnBufferOverflow = false
+        let pending = bufferedEvents
+        bufferedEvents.removeAll()
+        for event in pending {
+            applyStateChanged(event)
+        }
+    }
+
+    private func applyStateChanged(_ event: HAResponseEventStateChanged) {
         guard let entity = event.newState else { return }
         entityRegistry.upsert(from: entity, in: mainContext)
         do {
