@@ -114,6 +114,46 @@ struct ServerSelectionViewModelTests {
         #expect(viewModel.pendingHTTPURL == nil)
     }
 
+    // MARK: - OAuth Callback Error Surfacing
+
+    @Test
+    func handleOAuthCallback_whenCallbackFails_setsErrorMessageAndDoesNotAuthenticate() async {
+        let authManager = MockAuthManager()
+        let viewModel = ServerSelectionViewModel(authManager: authManager)
+        let serverURL = URL(string: "https://ha.example.com:8123")!
+        let session = OAuthFlowManager.AuthSession(
+            authorizeURL: serverURL,
+            redirectURI: "https://ha.example.com:8123/hemera_callback",
+            state: "expected-state",
+            clientId: serverURL.absoluteString,
+            serverURL: serverURL
+        )
+        // Callback carries a mismatched state, so handleCallback throws before any token exchange.
+        let callbackURL = URL(string: "https://ha.example.com:8123/hemera_callback?state=wrong&code=abc")!
+
+        await viewModel.handleOAuthCallback(url: callbackURL, session: session)
+
+        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.isConnecting == false)
+        #expect(authManager.didAuthenticateCallCount == 0)
+    }
+
+    @Test
+    func prepareManualEntry_clearsStaleErrorMessage() {
+        let viewModel = makeViewModel()
+        viewModel.errorMessage = "stale error"
+        viewModel.prepareManualEntry()
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test
+    func startOAuth_clearsPreviousErrorMessage() {
+        let viewModel = makeViewModel()
+        viewModel.errorMessage = "stale error"
+        viewModel.startOAuth(url: URL(string: "https://ha.example.com:8123")!)
+        #expect(viewModel.errorMessage == nil)
+    }
+
     // MARK: - Auth Cancellation
 
     @Test

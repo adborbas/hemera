@@ -33,6 +33,17 @@ struct ServerSelectionView: View {
         } message: {
             Text(Localization.unencryptedMessage)
         }
+        .alert(
+            Localization.connectionFailedTitle,
+            isPresented: Binding(
+                get: { viewModel.errorMessage != nil && activeSheet == nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )
+        ) {
+            Button(Localization.ok, role: .cancel) { viewModel.errorMessage = nil }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
         .sheet(item: $activeSheet, onDismiss: {
             if viewModel.authSession != nil {
                 viewModel.cancelAuth()
@@ -151,7 +162,10 @@ struct ServerSelectionView: View {
             iconColor: .blue,
             title: Localization.enterManually,
             subtitle: Localization.enterManuallySubtitle,
-            action: { activeSheet = .manualEntry }
+            action: {
+                viewModel.prepareManualEntry()
+                activeSheet = .manualEntry
+            }
         ) {
             DisclosureIndicator()
         }
@@ -179,6 +193,8 @@ private extension ServerSelectionView {
 private extension ServerSelectionView {
     enum Localization {
         static let title = String(localized: "Connect to Server", comment: "Navigation title for the server connection screen")
+        static let connectionFailedTitle = String(localized: "Couldn’t Connect", comment: "Alert title shown when connecting to a Home Assistant server fails during onboarding")
+        static let ok = String(localized: "OK", comment: "Button dismissing the connection-failure alert")
         static let signIn = String(localized: "Sign In", comment: "Navigation title for the OAuth sign-in screen")
         static let cancel = String(localized: "Cancel", comment: "Button to cancel the current action")
 

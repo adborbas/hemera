@@ -71,6 +71,7 @@ struct ManualEntrySheet: View {
             }
         }
         .presentationDetents([.medium])
+        .onDisappear { viewModel.errorMessage = nil }
     }
 
     private func connectAndDismiss() {
