@@ -31,6 +31,21 @@ Use `// MARK: -` to organize sections:
 
 Group protocol conformances into separate extensions. Private helpers go in `private extension TypeName { }`.
 
+## Comments
+
+- **Multi-line comments use the `/** ... */` block form.** This applies to *every* comment that spans more than one line — both explanatory comments and documentation comments. Never stack `//` lines or use a `/* ... */` block for a multi-line comment.
+- **Single-line comments stay `//`** (or `///` for a single-line doc comment). `// MARK: -` section markers are always `//`, regardless.
+
+```swift
+/**
+ Sorted, non-degenerate temperature range for the slider track.
+ Guards against a server reporting min > max, which would trap the ClosedRange.
+*/
+private var temperatureRange: ClosedRange<Double> { ... }
+
+// A single-line explanatory comment stays as a one-line //.
+```
+
 ## Error Handling
 
 - Use `throws` / `try await` for recoverable errors.
