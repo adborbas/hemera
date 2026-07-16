@@ -20,6 +20,7 @@ final class EntityRegistry: Sendable {
         let assignArea: @Sendable (AreaEntity, String, ModelContext) -> Bool
         let assignDeviceId: @Sendable (String, String, ModelContext) -> Bool
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
+        let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
         let fetchUnassignedIds: @Sendable (ModelContext) -> [String]
     }
 
@@ -50,6 +51,9 @@ final class EntityRegistry: Sendable {
                 },
                 markMissing: { serverEntityIds, context in
                     type.markMissingAsUnavailable(serverEntityIds: serverEntityIds, in: context)
+                },
+                clearAreas: { keptEntityIds, context in
+                    type.clearAreaIfNotIn(keptEntityIds, in: context)
                 },
                 fetchUnassignedIds: { context in
                     // #Predicate must expand at concrete @Model type scope — not in
@@ -104,6 +108,18 @@ final class EntityRegistry: Sendable {
         let regs = registrations.withLock { Array($0.values) }
         for registration in regs {
             registration.markMissing(serverEntityIds, context)
+        }
+    }
+
+    /**
+     Clears the area link on entities whose id is not in the given set.
+     Dispatches to each registered entity type. Called during a full sync so
+     entities the server no longer places in any area move back to Unassigned.
+     */
+    func clearAreasForEntities(notIn keptEntityIds: Set<String>, in context: ModelContext) {
+        let regs = registrations.withLock { Array($0.values) }
+        for registration in regs {
+            registration.clearAreas(keptEntityIds, context)
         }
     }
 
