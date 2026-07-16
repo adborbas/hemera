@@ -28,8 +28,10 @@ final class OAuthFlowManager {
             throw AuthError.invalidServerURL
         }
 
-        // Preserve any base path (e.g. subpath-hosted HA behind a reverse proxy)
-        // by appending endpoint paths instead of replacing the server URL's path.
+        /**
+         Preserve any base path (e.g. subpath-hosted HA behind a reverse proxy)
+         by appending endpoint paths instead of replacing the server URL's path.
+         */
         let rawBasePath = redirectComponents.path
         let basePath = rawBasePath.hasSuffix("/") ? String(rawBasePath.dropLast()) : rawBasePath
 
