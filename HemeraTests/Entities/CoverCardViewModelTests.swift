@@ -224,8 +224,8 @@ struct CoverCardViewModelTests {
     // MARK: - Position Cooldown
 
     @Test
-    func position_whileSuppressed_returnsPending_thenModelAfterExpiry() async throws {
-        let cooldown = CommitCooldown(duration: 0.1)
+    func sliderPosition_whileSuppressed_returnsPending_thenModelAfterExpiry() async {
+        let cooldown = CommitCooldown(duration: 0.05)
         let cover = CoverEntity(
             entityId: "cover.test",
             name: "Test Cover",
@@ -235,17 +235,36 @@ struct CoverCardViewModelTests {
         )
         let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), cooldown: cooldown)
 
-        #expect(vm.position == 30)
+        #expect(vm.sliderPosition == 30)
 
         // Commit a new position; the model is unchanged (server has not confirmed).
         vm.setPosition(to: 80)
-        #expect(vm.position == 80)
+        #expect(vm.sliderPosition == 80)
 
         /**
          No state_changed arrives (failed commit): after the window the slider
-         value must reconcile back to the model (server truth).
+         value must reconcile back to the model (server truth). Await the expiry
+         task directly so scheduler contention can't flake the result.
          */
-        try await Task.sleep(for: .milliseconds(250))
+        await cooldown.expiryTask?.value
+        #expect(vm.sliderPosition == 30)
+    }
+
+    @Test
+    func position_duringCooldown_staysServerTruth() {
+        let cooldown = CommitCooldown(duration: 1)
+        let cover = CoverEntity(
+            entityId: "cover.test",
+            name: "Test Cover",
+            state: .open,
+            currentPosition: 30,
+            supportedFeaturesRaw: CoverEntity.Features.setPosition.rawValue
+        )
+        let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), cooldown: cooldown)
+
+        // The card/subtitle/iconTapped surface must never show unconfirmed state:
+        // position stays the model value even while a commit is pending.
+        vm.setPosition(to: 80)
         #expect(vm.position == 30)
     }
 

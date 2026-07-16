@@ -29,7 +29,10 @@ final class CommitCooldown {
     private(set) var isSuppressed = false
 
     private let duration: TimeInterval
-    private var expiryTask: Task<Void, Never>?
+
+    /// Exposed read-only so tests can await window expiry deterministically
+    /// (instead of racing a fixed sleep against the scheduler).
+    private(set) var expiryTask: Task<Void, Never>?
 
     init(duration: TimeInterval = 1) {
         self.duration = duration

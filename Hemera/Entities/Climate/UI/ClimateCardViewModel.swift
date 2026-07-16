@@ -214,6 +214,7 @@ final class ClimateCardViewModel: Identifiable {
 
     func setTemperature(_ temperature: Double) {
         guard climate.isAvailable else { return }
+        resetPending()
         pendingTargetTemp = temperature
         cooldown.commit()
         actionTask = Task { await controller.setTemperature(id, temperature: temperature) }
@@ -221,10 +222,23 @@ final class ClimateCardViewModel: Identifiable {
 
     func setTemperatureRange(low: Double, high: Double) {
         guard climate.isAvailable else { return }
+        resetPending()
         pendingTargetTempLow = low
         pendingTargetTempHigh = high
         cooldown.commit()
         actionTask = Task { await controller.setTemperatureRange(id, low: low, high: high) }
+    }
+
+    /**
+     One cooldown gates the single-setpoint and range pending values, so every
+     commit clears the others first — otherwise a stale pending from an earlier
+     commit would resurface (and mask server truth) when a different setpoint is
+     committed within the shared window.
+     */
+    private func resetPending() {
+        pendingTargetTemp = nil
+        pendingTargetTempLow = nil
+        pendingTargetTempHigh = nil
     }
 
     func setFanMode(_ mode: String) {

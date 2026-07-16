@@ -297,8 +297,8 @@ struct ClimateCardViewModelTests {
     // MARK: - Target Temperature Cooldown
 
     @Test
-    func targetTemperature_whileSuppressed_returnsPending_thenModelAfterExpiry() async throws {
-        let cooldown = CommitCooldown(duration: 0.1)
+    func targetTemperature_whileSuppressed_returnsPending_thenModelAfterExpiry() async {
+        let cooldown = CommitCooldown(duration: 0.05)
         let climate = ClimateEntity(
             entityId: "climate.test",
             name: "Test Climate",
@@ -317,9 +317,10 @@ struct ClimateCardViewModelTests {
 
         /**
          No state_changed arrives (failed commit): after the window the value
-         must reconcile back to the model (server truth).
+         must reconcile back to the model (server truth). Await the expiry task
+         directly so scheduler contention can't flake the result.
          */
-        try await Task.sleep(for: .milliseconds(250))
+        await cooldown.expiryTask?.value
         #expect(vm.targetTemperature == 20)
     }
 

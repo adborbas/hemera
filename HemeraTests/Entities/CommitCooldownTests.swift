@@ -23,35 +23,36 @@ struct CommitCooldownTests {
     }
 
     @Test
-    func commit_expiresAfterDuration() async throws {
-        let cooldown = CommitCooldown(duration: 0.1)
+    func commit_expiresAfterDuration() async {
+        let cooldown = CommitCooldown(duration: 0.05)
         cooldown.commit()
         #expect(cooldown.isSuppressed == true)
 
-        try await Task.sleep(for: .milliseconds(250))
+        // Await the expiry task itself rather than a fixed sleep, so scheduler
+        // contention can't flake the result.
+        await cooldown.expiryTask?.value
         #expect(cooldown.isSuppressed == false)
     }
 
     // MARK: - Debounce
 
     @Test
-    func commit_recommit_measuresWindowFromLastCommit() async throws {
-        let cooldown = CommitCooldown(duration: 0.2)
+    func commit_recommit_cancelsPreviousExpiryAndRearmsWindow() async {
+        let cooldown = CommitCooldown(duration: 0.05)
         cooldown.commit()
+        let firstExpiry = cooldown.expiryTask
 
         /**
-         Re-commit before the first window expires; the window must now be
-         measured from this second commit, not the first.
+         Re-commit before the first window expires (no suspension has occurred,
+         so the first timer cannot have fired yet): the prior timer is cancelled
+         and a fresh one armed, so the window is measured from the last commit.
          */
-        try await Task.sleep(for: .milliseconds(120))
         cooldown.commit()
-
-        // Past the original 200ms window but within the extended one.
-        try await Task.sleep(for: .milliseconds(120))
+        #expect(firstExpiry?.isCancelled == true)
         #expect(cooldown.isSuppressed == true)
 
-        // Past the extended window.
-        try await Task.sleep(for: .milliseconds(250))
+        // The re-armed window still expires.
+        await cooldown.expiryTask?.value
         #expect(cooldown.isSuppressed == false)
     }
 }

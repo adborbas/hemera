@@ -24,11 +24,19 @@ final class CoverCardViewModel: Identifiable {
     var name: String { cover.name }
     var isAvailable: Bool { cover.isAvailable }
     var deviceId: String? { cover.deviceId }
-    var position: Int? {
+    var position: Int? { cover.currentPosition }
+    var state: CoverEntity.State { cover.state }
+
+    /**
+     Pending-aware position for the slider control only. Everything that reflects
+     server truth (the card, subtitle, and `iconTapped`) uses `position` — the
+     slider needs the optimistic pending value so it reconciles on failure via
+     the observable cooldown expiry without ever showing unconfirmed state on the card.
+     */
+    var sliderPosition: Int? {
         if cooldown.isSuppressed, let pending = pendingPosition { return pending }
         return cover.currentPosition
     }
-    var state: CoverEntity.State { cover.state }
 
     private var pendingPosition: Int?
     private let cooldown: CommitCooldown
