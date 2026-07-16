@@ -48,6 +48,19 @@ final class HADataSyncService {
      */
     private var bufferedEvents: [HAResponseEventStateChanged] = []
 
+    /**
+     Cap on `bufferedEvents` so a stalled sync (live socket, but a `getStates`
+     that never returns) can't grow the buffer without bound. Past the cap the
+     oldest events are dropped; the snapshot re-baselines every entity on
+     flush, so only intermediate states of a fast-changing entity during the
+     stall are lost.
+     */
+    static let maxBufferedEvents = 2000
+
+    /// Ensures the buffer-overflow warning is logged once per sync window, not
+    /// once per dropped event.
+    private var didWarnBufferOverflow = false
+
     deinit { stateChangedToken?.cancel() }
 
     private var conn: HAConnection { connectionManager.connection }
@@ -83,7 +96,14 @@ final class HADataSyncService {
         Log.info("Re-syncing all data")
         /**
          Re-arm buffering for the resync window, then re-subscribe before the
-         fetch so events during the window are reconciled against the snapshot.
+         fetch so events during the window are reconciled against the snapshot
+         (closing the same gap as `start()`, e.g. on reconnect).
+
+         Tradeoff: live updates are held — not applied — until the snapshot
+         lands and flushes, so a foreground / pull-to-refresh resync briefly
+         pauses live UI updates instead of showing them immediately. This is
+         bounded and self-healing: nothing is lost and arrival order is
+         preserved on flush.
          */
         isSnapshotApplied = false
         subscribeToStateChanges()
@@ -407,6 +427,13 @@ final class HADataSyncService {
     func handleStateChanged(_ event: HAResponseEventStateChanged) {
         guard isSnapshotApplied else {
             bufferedEvents.append(event)
+            if bufferedEvents.count > Self.maxBufferedEvents {
+                bufferedEvents.removeFirst()
+                if !didWarnBufferOverflow {
+                    didWarnBufferOverflow = true
+                    Log.warning("state_changed buffer exceeded \(Self.maxBufferedEvents) events during sync — dropping oldest; snapshot will re-baseline on completion")
+                }
+            }
             return
         }
         applyStateChanged(event)
@@ -419,6 +446,7 @@ final class HADataSyncService {
      */
     func flushBufferedEvents() {
         isSnapshotApplied = true
+        didWarnBufferOverflow = false
         let pending = bufferedEvents
         bufferedEvents.removeAll()
         for event in pending {

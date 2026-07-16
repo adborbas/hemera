@@ -99,6 +99,24 @@ struct HADataSyncBufferingTests {
     }
 
     @Test
+    func handleStateChanged_bufferExceedsCap_dropsOldest() throws {
+        // The oldest buffered event (for `light.overflow`) is pushed first, then
+        // the buffer is filled past its cap so that event is evicted.
+        let overflowId = "light.overflow"
+        service.handleStateChanged(try lightEvent(entityId: overflowId, state: "on"))
+        for index in 0..<HADataSyncService.maxBufferedEvents {
+            service.handleStateChanged(try lightEvent(entityId: "light.\(index)", state: "on"))
+        }
+
+        service.flushBufferedEvents()
+
+        // The evicted oldest event never ran, so its entity was never created.
+        #expect(try storedLight(overflowId) == nil)
+        // An event still within the cap was applied.
+        #expect(try storedLight("light.0")?.state == .on)
+    }
+
+    @Test
     func handleStateChanged_afterSnapshot_appliesImmediately() throws {
         let light = LightEntity(entityId: "light.lamp", name: "Lamp", state: .off)
         context.insert(light)
