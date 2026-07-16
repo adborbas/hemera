@@ -7,8 +7,10 @@ struct TileGridEngineClampTests {
 
     @Test
     func place_tileWiderThanGrid_clampsWithoutCrashing() {
-        // A `.large` tile has spanX 4; a 2-column grid is narrower than that.
-        // Before clamping, layout wrote grid cells past the row width and trapped.
+        /**
+         A `.large` tile has spanX 4; a 2-column grid is narrower than that.
+         Before clamping, layout wrote grid cells past the row width and trapped.
+         */
         let engine = TileGridEngine(
             columns: 2,
             tiles: [Tile(title: "x", size: .large)]
@@ -37,8 +39,10 @@ struct TileGridEngineClampTests {
 
     @Test
     func place_tileNarrowerThanGrid_spanUnchanged() {
-        // Regression guard for in-app sizing: a `.large` tile (spanX 4) in a
-        // grid at least 4 wide keeps its full span.
+        /**
+         Regression guard for in-app sizing: a `.large` tile (spanX 4) in a
+         grid at least 4 wide keeps its full span.
+         */
         let engine = TileGridEngine(
             columns: 4,
             tiles: [Tile(title: "l", size: .large)]
