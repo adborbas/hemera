@@ -1,0 +1,7 @@
+# pack-refs with: peeled fully-peeled sorted 
+7e3d24425c20649105cb4bdd612b6bab66f73ade refs/heads/ha-URLSession-fix
+7e3d24425c20649105cb4bdd612b6bab66f73ade refs/heads/master
+da9a7b898147204f185cac18a2ee9c178fc756a0 refs/tags/4.0.8
+^7e3d24425c20649105cb4bdd612b6bab66f73ade
+33d95f69499d54b62bd3508a3c9d680ad608d87e refs/tags/ha-URLSession-fix
+^7e3d24425c20649105cb4bdd612b6bab66f73ade

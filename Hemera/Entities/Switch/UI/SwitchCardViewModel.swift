@@ -80,6 +80,8 @@ extension SwitchCardViewModel: EntityCardViewModel {
         AnyView(SwitchCard(viewModel: self))
     }
 
+    var hasOverlay: Bool { true }
+
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
         AnyView(SwitchControlPanel(viewModel: self, isPresented: isPresented))
     }

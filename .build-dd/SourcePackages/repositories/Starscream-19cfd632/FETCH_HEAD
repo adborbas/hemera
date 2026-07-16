@@ -1,0 +1,8 @@
+52f9789a71a33a877944683ac1a68dc699159e81	not-for-merge	branch 'fix/foundation-transport-disconnect-race' of https://github.com/bgoncal/Starscream
+7e3d24425c20649105cb4bdd612b6bab66f73ade	not-for-merge	branch 'ha-URLSession-fix' of https://github.com/bgoncal/Starscream
+aaaf609d07eb487b2fccbe77f6267cf0843e2b19	not-for-merge	branch 'master' of https://github.com/bgoncal/Starscream
+3e9f8aa59b7433b902103647ede86c76bf6e9c6e	not-for-merge	'refs/pull/1/head' of https://github.com/bgoncal/Starscream
+52f9789a71a33a877944683ac1a68dc699159e81	not-for-merge	'refs/pull/2/head' of https://github.com/bgoncal/Starscream
+da9a7b898147204f185cac18a2ee9c178fc756a0	not-for-merge	tag '4.0.8' of https://github.com/bgoncal/Starscream
+5461bd71afcf25e8b6eb5e8746cf186703816316	not-for-merge	tag '4.0.9' of https://github.com/bgoncal/Starscream
+33d95f69499d54b62bd3508a3c9d680ad608d87e	not-for-merge	tag 'ha-URLSession-fix' of https://github.com/bgoncal/Starscream

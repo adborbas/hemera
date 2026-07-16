@@ -133,6 +133,15 @@ struct SwitchCardViewModelTests {
         #expect(vm.deviceClass == .switch)
     }
 
+    // MARK: - Has Overlay
+
+    @Test
+    func hasOverlay_isTrue() {
+        let vm = makeViewModel(deviceClass: .outlet, state: .on)
+        #expect(vm.hasOverlay)
+        #expect(vm.makeOverlayView(isPresented: .constant(true)) != nil)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(

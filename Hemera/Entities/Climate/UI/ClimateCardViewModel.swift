@@ -381,6 +381,8 @@ extension ClimateCardViewModel: EntityCardViewModel {
         AnyView(ClimateCard(viewModel: self))
     }
 
+    var hasOverlay: Bool { true }
+
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
         AnyView(ClimateControlPanel(viewModel: self, isPresented: isPresented))
     }

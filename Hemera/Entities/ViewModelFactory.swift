@@ -78,7 +78,14 @@ final class ViewModelFactory {
 
     /// Returns the cached VM for the entity, or creates one by looking it up in storage.
     func makeViewModel(forEntityId entityId: String) -> (any EntityCardViewModel)? {
-        if let cached = cache[entityId] { return cached }
+        if let cached = cache[entityId] {
+            // Re-confirm the backing @Model still exists before returning the cached
+            // VM; if the entity was deleted mid-session, drop the stale VM so callers
+            // never touch an invalidated @Model. The cached instance is still returned
+            // for live entities, preserving ephemeral interaction state.
+            if entityExists(entityId) { return cached }
+            cache[entityId] = nil
+        }
         for registration in registrations {
             if let vm = registration.makeViewModelForEntityId(entityId, context) {
                 cache[entityId] = vm
@@ -86,6 +93,11 @@ final class ViewModelFactory {
             }
         }
         return nil
+    }
+
+    /// Whether any registered domain still has an entity with this id in storage.
+    private func entityExists(_ entityId: String) -> Bool {
+        registrations.contains { $0.makeViewModelForEntityId(entityId, context) != nil }
     }
 
     /// If a VM for this entityId is already cached, return the cached instance;
@@ -103,7 +115,7 @@ final class ViewModelFactory {
     /// is unavailable or its primary action was invoked in place.
     func handleCardTap(entityId: String) -> (any EntityCardViewModel)? {
         guard let vm = makeViewModel(forEntityId: entityId), vm.isAvailable else { return nil }
-        if vm.makeOverlayView(isPresented: .constant(true)) != nil {
+        if vm.hasOverlay {
             return vm
         }
         vm.performPrimaryAction()

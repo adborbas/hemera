@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Hemera
 
@@ -37,6 +38,15 @@ struct SceneCardViewModelTests {
         try? await Task.sleep(for: .milliseconds(100))
 
         #expect(spy.activatedIds == ["scene.test"])
+    }
+
+    // MARK: - Has Overlay
+
+    @Test
+    func hasOverlay_isFalse() {
+        let vm = makeViewModel()
+        #expect(vm.hasOverlay == false)
+        #expect(vm.makeOverlayView(isPresented: .constant(true)) == nil)
     }
 
     // MARK: - Helpers

@@ -84,10 +84,86 @@ struct LightCardViewModelTests {
         #expect(vm.colorTemp == 250)
     }
 
+    // MARK: - Supported Modes
+
+    @Test
+    func supportedModes_onoffOnly_isEmpty() {
+        let vm = makeViewModel(supportedColorModes: ["onoff"])
+        #expect(vm.supportedModes.isEmpty)
+    }
+
+    @Test
+    func supportedModes_brightnessOnly_containsBrightness() {
+        let vm = makeViewModel(supportedColorModes: ["brightness"])
+        #expect(vm.supportedModes == [.brightness])
+    }
+
+    @Test
+    func supportedModes_absent_defaultsToBrightness() {
+        let vm = makeViewModel(supportedColorModes: nil)
+        #expect(vm.supportedModes == [.brightness])
+    }
+
+    @Test
+    func supportedModes_colorTempAndHue_includesAllControls() {
+        let vm = makeViewModel(
+            supportedColorModes: ["color_temp", "hs"],
+            minMireds: 153,
+            maxMireds: 500
+        )
+        #expect(vm.supportedModes == [.brightness, .colorTemp, .hue])
+    }
+
+    // MARK: - Is Dimmable
+
+    @Test
+    func isDimmable_onoffOnly_isFalse() {
+        let vm = makeViewModel(supportedColorModes: ["onoff"])
+        #expect(vm.isDimmable == false)
+    }
+
+    @Test
+    func isDimmable_brightness_isTrue() {
+        let vm = makeViewModel(supportedColorModes: ["brightness"])
+        #expect(vm.isDimmable)
+    }
+
+    // MARK: - Has Overlay
+
+    @Test
+    func hasOverlay_onoffOnly_isFalse() {
+        let vm = makeViewModel(supportedColorModes: ["onoff"])
+        #expect(vm.hasOverlay == false)
+        #expect(vm.makeOverlayView(isPresented: .constant(true)) == nil)
+    }
+
+    @Test
+    func hasOverlay_dimmable_isTrue() {
+        let vm = makeViewModel(supportedColorModes: ["brightness"])
+        #expect(vm.hasOverlay)
+        #expect(vm.makeOverlayView(isPresented: .constant(true)) != nil)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(state: LightEntity.State) -> LightCardViewModel {
         let light = LightEntity(entityId: "light.test", name: "Test", state: state)
+        return LightCardViewModel(light: light, controller: StubLightControlling())
+    }
+
+    private func makeViewModel(
+        supportedColorModes: [String]?,
+        minMireds: Int? = nil,
+        maxMireds: Int? = nil
+    ) -> LightCardViewModel {
+        let light = LightEntity(
+            entityId: "light.test",
+            name: "Test",
+            state: .on,
+            minMireds: minMireds,
+            maxMireds: maxMireds,
+            supportedColorModes: supportedColorModes
+        )
         return LightCardViewModel(light: light, controller: StubLightControlling())
     }
 }

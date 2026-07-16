@@ -77,6 +77,8 @@ extension AutomationCardViewModel: EntityCardViewModel {
         AnyView(AutomationCard(viewModel: self))
     }
 
+    var hasOverlay: Bool { true }
+
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
         AnyView(AutomationControlPanel(viewModel: self, isPresented: isPresented))
     }

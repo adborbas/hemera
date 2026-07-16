@@ -1,0 +1,106 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "hakit",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/home-assistant/HAKit",
+          "name" : "HAKit"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "0ae8abb6ab7590adc8b0b215c99e97f7d4371c69",
+            "version" : "0.4.7"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "HAKit"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "hemeralog",
+          "kind" : "fileSystem",
+          "location" : "/Users/adamborbas/.paseo/worktrees/2uwcnrs7/light-onoff-overlay/Packages/HemeraLog",
+          "name" : "HemeraLog"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/adamborbas/.paseo/worktrees/2uwcnrs7/light-onoff-overlay/Packages/HemeraLog"
+        },
+        "subpath" : "hemeralog"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "keychainaccess",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/kishikawakatsumi/KeychainAccess.git",
+          "name" : "KeychainAccess"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "84e546727d66f1adc5439debad16270d0fdd04e7",
+            "version" : "4.2.2"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "KeychainAccess"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "mortar",
+          "kind" : "fileSystem",
+          "location" : "/Users/adamborbas/.paseo/worktrees/2uwcnrs7/light-onoff-overlay/Packages/Mortar",
+          "name" : "Mortar"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/adamborbas/.paseo/worktrees/2uwcnrs7/light-onoff-overlay/Packages/Mortar"
+        },
+        "subpath" : "mortar"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "starscream",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/bgoncal/Starscream",
+          "name" : "Starscream"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "7e3d24425c20649105cb4bdd612b6bab66f73ade",
+            "version" : "4.0.8"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "Starscream"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "tilegridengine",
+          "kind" : "fileSystem",
+          "location" : "/Users/adamborbas/.paseo/worktrees/2uwcnrs7/light-onoff-overlay/Packages/TileGridEngine",
+          "name" : "TileGridEngine"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/adamborbas/.paseo/worktrees/2uwcnrs7/light-onoff-overlay/Packages/TileGridEngine"
+        },
+        "subpath" : "tilegridengine"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}

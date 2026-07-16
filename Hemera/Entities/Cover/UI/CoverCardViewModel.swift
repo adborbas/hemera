@@ -264,6 +264,8 @@ extension CoverCardViewModel: EntityCardViewModel {
         AnyView(CoverCard(viewModel: self))
     }
 
+    var hasOverlay: Bool { true }
+
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {
         AnyView(CoverControlPanel(viewModel: self, isPresented: isPresented))
     }
