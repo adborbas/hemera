@@ -64,11 +64,13 @@ final class AreaEntity {
         return area
     }
 
-    /// Deletes stored areas whose id is not in the given set.
-    /// Called after upserting during a full sync — only when the area-mapping fetch
-    /// succeeded — so an area deleted server-side is removed locally. SwiftData nullifies
-    /// the inverse entity relationships on delete, so entities in a deleted area move to
-    /// Unassigned rather than dangling. Mirrors `HADataSyncService.pruneFloors`.
+    /**
+     Deletes stored areas whose id is not in the given set.
+     Called after upserting during a full sync — only when the area-mapping fetch
+     succeeded — so an area deleted server-side is removed locally. SwiftData nullifies
+     the inverse entity relationships on delete, so entities in a deleted area move to
+     Unassigned rather than dangling. Mirrors `HADataSyncService.pruneFloors`.
+     */
     static func prune(keeping serverAreaIds: Set<String>, in context: ModelContext) {
         guard let stored = try? context.fetch(FetchDescriptor<AreaEntity>()) else { return }
         for area in stored where !serverAreaIds.contains(area.areaId) {

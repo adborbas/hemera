@@ -143,11 +143,13 @@ extension StoredEntity {
         }
     }
 
-    /// Clears the area link on all entities of this type whose entityId is not in the given set.
-    /// Called during a full sync — only when the area-mapping fetch succeeded — so an entity
-    /// removed from all areas server-side moves back to Unassigned instead of sticking to its
-    /// old area. Fetches all of `Self` and filters in Swift (no `#Predicate` in generic scope,
-    /// matching `markMissingAsUnavailable`).
+    /**
+     Clears the area link on all entities of this type whose entityId is not in the given set.
+     Called during a full sync — only when the area-mapping fetch succeeded — so an entity
+     removed from all areas server-side moves back to Unassigned instead of sticking to its
+     old area. Fetches all of `Self` and filters in Swift (no `#Predicate` in generic scope,
+     matching `markMissingAsUnavailable`).
+     */
     static func clearAreaIfNotIn(_ keptEntityIds: Set<String>, in context: ModelContext) {
         let descriptor = FetchDescriptor<Self>()
         let allEntities: [Self]

@@ -3,9 +3,11 @@ import SwiftData
 import Testing
 @testable import Hemera
 
-/// Tests reconciliation of `HomeTile` rows against the entities present in a sync.
-/// Exercises the helper `HADataSyncService.applySyncPayload` calls after computing
-/// `serverEntityIds`, without needing a live connection.
+/**
+ Tests reconciliation of `HomeTile` rows against the entities present in a sync.
+ Exercises the helper `HADataSyncService.applySyncPayload` calls after computing
+ `serverEntityIds`, without needing a live connection.
+ */
 @MainActor
 struct HomeTilePruneTests {
 

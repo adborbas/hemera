@@ -111,9 +111,11 @@ final class EntityRegistry: Sendable {
         }
     }
 
-    /// Clears the area link on entities whose id is not in the given set.
-    /// Dispatches to each registered entity type. Called during a full sync so
-    /// entities the server no longer places in any area move back to Unassigned.
+    /**
+     Clears the area link on entities whose id is not in the given set.
+     Dispatches to each registered entity type. Called during a full sync so
+     entities the server no longer places in any area move back to Unassigned.
+     */
     func clearAreasForEntities(notIn keptEntityIds: Set<String>, in context: ModelContext) {
         let regs = registrations.withLock { Array($0.values) }
         for registration in regs {

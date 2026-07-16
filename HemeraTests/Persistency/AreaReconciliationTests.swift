@@ -3,12 +3,14 @@ import SwiftData
 import Testing
 @testable import Hemera
 
-/// Tests the area-membership reconciliation the sync path performs after fetching area
-/// mappings: clearing links for entities the server no longer places in any area, and
-/// pruning `AreaEntity` rows for areas deleted server-side.
-///
-/// These exercise the same helpers `HADataSyncService.applySyncPayload` calls — guarded
-/// there on a successful area-mapping fetch — without needing a live connection.
+/**
+ Tests the area-membership reconciliation the sync path performs after fetching area
+ mappings: clearing links for entities the server no longer places in any area, and
+ pruning `AreaEntity` rows for areas deleted server-side.
+
+ These exercise the same helpers `HADataSyncService.applySyncPayload` calls — guarded
+ there on a successful area-mapping fetch — without needing a live connection.
+ */
 @MainActor
 struct AreaReconciliationTests {
 

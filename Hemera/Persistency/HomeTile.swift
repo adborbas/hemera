@@ -33,11 +33,13 @@ final class HomeTile {
         self.tileSize = tileSize
     }
 
-    /// Deletes home tiles whose entity is no longer present on the server.
-    /// Called on sync completion against the set of entity ids the server reported.
-    /// Keyed on entity presence (not `isAvailable`) so a merely-`"unavailable"` entity
-    /// keeps its tile; only an entity entirely absent from the sync is pruned. Skips
-    /// pruning when the set is empty (a suspect/failed sync).
+    /**
+     Deletes home tiles whose entity is no longer present on the server.
+     Called on sync completion against the set of entity ids the server reported.
+     Keyed on entity presence (not `isAvailable`) so a merely-`"unavailable"` entity
+     keeps its tile; only an entity entirely absent from the sync is pruned. Skips
+     pruning when the set is empty (a suspect/failed sync).
+     */
     static func pruneOrphaned(keeping serverEntityIds: Set<String>, in context: ModelContext) {
         guard !serverEntityIds.isEmpty else { return }
         guard let tiles = try? context.fetch(FetchDescriptor<HomeTile>()) else { return }

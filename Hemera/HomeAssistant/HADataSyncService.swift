@@ -105,10 +105,12 @@ final class HADataSyncService {
         let serverEntityIds = Set(payload.entities.map(\.entityId))
         entityRegistry.markMissingEntitiesAsUnavailable(serverEntityIds: serverEntityIds, in: mainContext)
 
-        // Remove Home tiles whose entity is entirely gone from the server. Keyed on
-        // presence in the sync (not `isAvailable`), so a merely-`"unavailable"` entity
-        // keeps its tile. A `getStates` failure aborts sync before this point, so
-        // reaching here implies entities were fetched; the empty-set guard is belt-and-braces.
+        /**
+         Remove Home tiles whose entity is entirely gone from the server. Keyed on
+         presence in the sync (not `isAvailable`), so a merely-`"unavailable"` entity
+         keeps its tile. A `getStates` failure aborts sync before this point, so
+         reaching here implies entities were fetched; the empty-set guard is belt-and-braces.
+         */
         HomeTile.pruneOrphaned(keeping: serverEntityIds, in: mainContext)
 
         // Upsert floors before areas so area→floor links can resolve. Only
@@ -127,11 +129,13 @@ final class HADataSyncService {
             }
         }
 
-        // Reconcile area membership before reassigning: null out area links for
-        // entities the server no longer places in any area, so an entity un-assigned
-        // server-side moves to Unassigned instead of sticking to its old area. Guarded
-        // on a successful fetch so a transient failure (mappings degraded to []) never
-        // wipes every link.
+        /**
+         Reconcile area membership before reassigning: null out area links for
+         entities the server no longer places in any area, so an entity un-assigned
+         server-side moves to Unassigned instead of sticking to its old area. Guarded
+         on a successful fetch so a transient failure (mappings degraded to []) never
+         wipes every link.
+         */
         if payload.areaMappingsFetchSucceeded {
             let mappedEntityIds = Set(payload.areaMappings.flatMap(\.entities))
             entityRegistry.clearAreasForEntities(notIn: mappedEntityIds, in: mainContext)
@@ -162,9 +166,11 @@ final class HADataSyncService {
             }
         }
 
-        // Prune areas the server no longer has — but only when the fetch
-        // succeeded, so a transient failure never wipes persisted areas. Deleting
-        // an area nullifies its inverse entity links, moving them to Unassigned.
+        /**
+         Prune areas the server no longer has — but only when the fetch
+         succeeded, so a transient failure never wipes persisted areas. Deleting
+         an area nullifies its inverse entity links, moving them to Unassigned.
+         */
         if payload.areaMappingsFetchSucceeded {
             AreaEntity.prune(keeping: Set(payload.areaMappings.map(\.area_id)), in: mainContext)
         }
@@ -210,11 +216,13 @@ final class HADataSyncService {
         let deviceMappings: [DeviceMapping]
         let areaSortOrder: [String: Int]
         let areaIcons: [String: String]
-        /// Whether the area-mapping fetch succeeded. `false` when the fetch failed
-        /// (and `areaMappings` degraded to `[]`), which suppresses the destructive
-        /// area reconciliation — clearing entity links and pruning area rows — so a
-        /// transient failure never wipes persisted area membership. Mirrors the
-        /// `floors: [FloorRegistryEntry]?` nil-means-failed signal.
+        /**
+         Whether the area-mapping fetch succeeded. `false` when the fetch failed
+         (and `areaMappings` degraded to `[]`), which suppresses the destructive
+         area reconciliation — clearing entity links and pruning area rows — so a
+         transient failure never wipes persisted area membership. Mirrors the
+         `floors: [FloorRegistryEntry]?` nil-means-failed signal.
+         */
         let areaMappingsFetchSucceeded: Bool
         /// Floor registry entries, or `nil` when the floor fetch failed.
         /// `nil` suppresses floor upserts, area→floor reassignment and pruning
@@ -240,11 +248,13 @@ final class HADataSyncService {
             entitiesTask, deviceMappingsTask, areaRegistryTask, floorRegistryTask
         )
 
-        // Degrade area mapping like the other registry fetches: a failure yields
-        // nil → [] so a transient template error leaves entities rendering ungrouped
-        // instead of aborting the whole sync. `nil` also distinguishes "fetch failed"
-        // from "server genuinely has no areas", suppressing the destructive area
-        // reconciliation (clear + prune) that would otherwise wipe links on failure.
+        /**
+         Degrade area mapping like the other registry fetches: a failure yields
+         nil → [] so a transient template error leaves entities rendering ungrouped
+         instead of aborting the whole sync. `nil` also distinguishes "fetch failed"
+         from "server genuinely has no areas", suppressing the destructive area
+         reconciliation (clear + prune) that would otherwise wipe links on failure.
+         */
         let fetchedAreaMappings = try? await areaMappingsTask
         let areaMappings = fetchedAreaMappings ?? []
 
