@@ -144,6 +144,14 @@ struct MDISymbolMapperTests {
         }
     }
 
+    @Test func bundledMaps_decodeToNonEmpty() throws {
+        for file in ["AreaMdiToSymbolMap", "EntityMdiToSymbolMap"] {
+            let entries = try loadEntries(from: file)
+            #expect(!entries.isEmpty)
+            #expect(entries.allSatisfy { !$0.mdiNames.isEmpty })
+        }
+    }
+
     // MARK: - Helpers
 
     private struct MappingEntry: Decodable {

@@ -29,7 +29,13 @@ final class AppEnvironment {
         } catch {
             Log.error("ModelContainer creation failed — deleting store (HomeTile layout will be lost). Error: \(error)")
             Self.deleteStore(at: modelConfig.url)
-            self.container = try! ModelContainer(for: schema, configurations: modelConfig)
+            do {
+                self.container = try ModelContainer(for: schema, configurations: modelConfig)
+            } catch {
+                Log.error("ModelContainer recreation failed after store deletion — falling back to in-memory container (no persistence this session). Error: \(error)")
+                let memoryConfig = ModelConfiguration(isStoredInMemoryOnly: true)
+                self.container = try! ModelContainer(for: schema, configurations: memoryConfig)
+            }
         }
 
         self.storage = SwiftDataStorage(context: container.mainContext)

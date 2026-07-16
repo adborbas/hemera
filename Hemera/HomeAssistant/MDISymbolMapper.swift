@@ -1,4 +1,5 @@
 import Foundation
+import HemeraLog
 
 /// Maps Material Design Icon (MDI) names from Home Assistant to SF Symbol names.
 ///
@@ -31,18 +32,24 @@ enum MDISymbolMapper {
 
     private static func loadMapping(from resource: String) -> [String: String] {
         guard let url = Bundle.main.url(forResource: resource, withExtension: "json") else {
-            preconditionFailure("\(resource).json missing from bundle")
+            Log.error("\(resource).json missing from bundle — icon mapping disabled for \(resource)")
+            return [:]
         }
-        let data = try! Data(contentsOf: url)
-        let entries = try! JSONDecoder().decode([Entry].self, from: data)
+        do {
+            let data = try Data(contentsOf: url)
+            let entries = try JSONDecoder().decode([Entry].self, from: data)
 
-        var map: [String: String] = [:]
-        for entry in entries {
-            for mdiName in entry.mdiNames {
-                map[mdiName] = entry.sfSymbol
+            var map: [String: String] = [:]
+            for entry in entries {
+                for mdiName in entry.mdiNames {
+                    map[mdiName] = entry.sfSymbol
+                }
             }
+            return map
+        } catch {
+            Log.error("Failed to load \(resource).json — icon mapping disabled", cause: error)
+            return [:]
         }
-        return map
     }
 }
 

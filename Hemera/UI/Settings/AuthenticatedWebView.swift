@@ -43,11 +43,16 @@ struct AuthenticatedWebView: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         context.coordinator.webView = webView
 
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
-        components.queryItems = (components.queryItems ?? []) + [
-            URLQueryItem(name: "external_auth", value: "1")
-        ]
-        webView.load(URLRequest(url: components.url!))
+        let requestURL: URL
+        if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.queryItems = (components.queryItems ?? []) + [
+                URLQueryItem(name: "external_auth", value: "1")
+            ]
+            requestURL = components.url ?? url
+        } else {
+            requestURL = url
+        }
+        webView.load(URLRequest(url: requestURL))
         return webView
     }
 
