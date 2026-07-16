@@ -68,8 +68,10 @@ final class LightCardViewModel: Identifiable {
         return result
     }
 
-    /// Whether the light exposes a brightness control (i.e. is dimmable).
-    /// `false` for on/off-only lights, which drive neither the fill nor the overlay.
+    /**
+     Whether the light exposes a brightness control (i.e. is dimmable).
+     `false` for on/off-only lights, which drive neither the fill nor the overlay.
+     */
     var isDimmable: Bool { supportedModes.contains(.brightness) }
 
     nonisolated let id: String
@@ -177,8 +179,10 @@ extension LightCardViewModel: EntityCardViewModel {
         AnyView(LightCard(viewModel: self))
     }
 
-    /// On/off-only lights have no controllable modes, so they present no overlay —
-    /// the card icon toggle is their only control. Keep in sync with `makeOverlayView`.
+    /**
+     On/off-only lights have no controllable modes, so they present no overlay —
+     the card icon toggle is their only control. Keep in sync with `makeOverlayView`.
+     */
     var hasOverlay: Bool { !supportedModes.isEmpty }
 
     func makeOverlayView(isPresented: Binding<Bool>) -> AnyView? {

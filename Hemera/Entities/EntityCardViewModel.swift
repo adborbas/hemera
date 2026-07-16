@@ -19,8 +19,10 @@ protocol EntityCardViewModel: AnyObject, Observable, Identifiable where ID == St
     @ViewBuilder
     func makeCardView() -> AnyView
 
-    /// Whether this entity presents a detail overlay when its card body is tapped.
-    /// Must stay in sync with `makeOverlayView` — `true` exactly when it returns non-nil.
+    /**
+     Whether this entity presents a detail overlay when its card body is tapped.
+     Must stay in sync with `makeOverlayView` — `true` exactly when it returns non-nil.
+     */
     var hasOverlay: Bool { get }
 
     /// Creates the overlay view for this entity, if any.

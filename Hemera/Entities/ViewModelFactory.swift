@@ -79,10 +79,12 @@ final class ViewModelFactory {
     /// Returns the cached VM for the entity, or creates one by looking it up in storage.
     func makeViewModel(forEntityId entityId: String) -> (any EntityCardViewModel)? {
         if let cached = cache[entityId] {
-            // Re-confirm the backing @Model still exists before returning the cached
-            // VM; if the entity was deleted mid-session, drop the stale VM so callers
-            // never touch an invalidated @Model. The cached instance is still returned
-            // for live entities, preserving ephemeral interaction state.
+            /**
+             Re-confirm the backing @Model still exists before returning the cached
+             VM; if the entity was deleted mid-session, drop the stale VM so callers
+             never touch an invalidated @Model. The cached instance is still returned
+             for live entities, preserving ephemeral interaction state.
+             */
             if entityExists(entityId) { return cached }
             cache[entityId] = nil
         }
