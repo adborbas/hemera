@@ -71,12 +71,20 @@ struct ManualEntrySheet: View {
             }
         }
         .presentationDetents([.medium])
+        .onDisappear { viewModel.errorMessage = nil }
     }
 
     private func connectAndDismiss() {
-        if viewModel.connectManual() {
-            onDismiss()
+        /**
+         Keep the sheet open if the attempt failed synchronously (e.g. an
+         invalid URL that passes field validation but is rejected by OAuth
+         preparation) so the inline error stays visible instead of the sheet
+         dismissing over an unshown error.
+         */
+        guard viewModel.connectManual(), viewModel.errorMessage == nil else {
+            return
         }
+        onDismiss()
     }
 }
 

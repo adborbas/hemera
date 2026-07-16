@@ -39,6 +39,10 @@ final class ServerSelectionViewModel {
         self.init(authManager: ServiceLocator.shared.authManager)
     }
 
+    func prepareManualEntry() {
+        errorMessage = nil
+    }
+
     func startDiscovery() {
         discovery.startDiscovery()
     }

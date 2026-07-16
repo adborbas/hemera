@@ -24,14 +24,29 @@ final class OAuthFlowManager {
         let state = UUID().uuidString
 
         // Same-origin redirect URI — HA accepts without fetching client_id
-        var redirectComponents = URLComponents(url: serverURL, resolvingAgainstBaseURL: false)!
-        redirectComponents.path = "/hemera_callback"
+        guard var redirectComponents = URLComponents(url: serverURL, resolvingAgainstBaseURL: false) else {
+            throw AuthError.invalidServerURL
+        }
+
+        /**
+         Preserve any base path (e.g. subpath-hosted HA behind a reverse proxy)
+         by appending endpoint paths instead of replacing the server URL's path.
+         */
+        let rawBasePath = redirectComponents.path
+        let basePath = rawBasePath.hasSuffix("/") ? String(rawBasePath.dropLast()) : rawBasePath
+
+        redirectComponents.path = basePath + "/hemera_callback"
         redirectComponents.queryItems = nil
         redirectComponents.fragment = nil
-        let redirectURI = redirectComponents.url!.absoluteString
+        guard let redirectURL = redirectComponents.url else {
+            throw AuthError.invalidServerURL
+        }
+        let redirectURI = redirectURL.absoluteString
 
-        var authComponents = URLComponents(url: serverURL, resolvingAgainstBaseURL: false)!
-        authComponents.path = "/auth/authorize"
+        guard var authComponents = URLComponents(url: serverURL, resolvingAgainstBaseURL: false) else {
+            throw AuthError.invalidServerURL
+        }
+        authComponents.path = basePath + "/auth/authorize"
         authComponents.queryItems = [
             URLQueryItem(name: "client_id", value: clientId),
             URLQueryItem(name: "redirect_uri", value: redirectURI),
