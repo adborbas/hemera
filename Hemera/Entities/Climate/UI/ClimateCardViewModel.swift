@@ -200,6 +200,7 @@ final class ClimateCardViewModel: Identifiable {
 
     func togglePower() {
         guard climate.isAvailable else { return }
+        actionTask?.cancel()
         if climate.state == .off {
             actionTask = Task { await controller.turnOnClimate(id) }
         } else {
@@ -209,6 +210,7 @@ final class ClimateCardViewModel: Identifiable {
 
     func setHVACMode(_ mode: ClimateEntity.HVACMode) {
         guard climate.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task { await controller.setHVACMode(id, mode: mode.rawValue) }
     }
 
@@ -217,6 +219,7 @@ final class ClimateCardViewModel: Identifiable {
         resetPending()
         pendingTargetTemp = temperature
         cooldown.commit()
+        actionTask?.cancel()
         actionTask = Task { await controller.setTemperature(id, temperature: temperature) }
     }
 
@@ -226,6 +229,7 @@ final class ClimateCardViewModel: Identifiable {
         pendingTargetTempLow = low
         pendingTargetTempHigh = high
         cooldown.commit()
+        actionTask?.cancel()
         actionTask = Task { await controller.setTemperatureRange(id, low: low, high: high) }
     }
 
@@ -243,21 +247,25 @@ final class ClimateCardViewModel: Identifiable {
 
     func setFanMode(_ mode: String) {
         guard climate.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task { await controller.setFanMode(id, mode: mode) }
     }
 
     func setSwingMode(_ mode: String) {
         guard climate.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task { await controller.setSwingMode(id, mode: mode) }
     }
 
     func setPresetMode(_ mode: String) {
         guard climate.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task { await controller.setPresetMode(id, mode: mode) }
     }
 
     func setHumidity(_ humidity: Double) {
         guard climate.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task { await controller.setHumidity(id, humidity: humidity) }
     }
 
