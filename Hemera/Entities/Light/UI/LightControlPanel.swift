@@ -92,8 +92,10 @@ struct LightControlPanel: View {
         case .colorTemp:
             let minMireds = viewModel.minMireds ?? 153
             let maxMireds = viewModel.maxMireds ?? 500
-            // Sort and widen a degenerate span so ClosedRange never traps and the slider
-            // geometry divisors stay finite for a misconfigured server.
+            /**
+             Sort and widen a degenerate span so ClosedRange never traps and the slider
+             geometry divisors stay finite for a misconfigured server.
+             */
             let lo = Double(Swift.min(minMireds, maxMireds))
             let hi = Double(Swift.max(minMireds, maxMireds))
             let miredsRange = lo < hi ? lo...hi : lo...(lo + 1)

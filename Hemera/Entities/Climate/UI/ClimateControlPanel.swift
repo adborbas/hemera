@@ -97,9 +97,11 @@ struct ClimateControlPanel: View {
 
     // MARK: - Temperature Range
 
-    /// Sorted, non-degenerate temperature range. Guards against a misconfigured server
-    /// reporting `min_temp > max_temp` (ClosedRange traps) or `min_temp == max_temp`
-    /// (zero-width span → NaN in the slider fraction divisors).
+    /**
+     Sorted, non-degenerate temperature range. Guards against a misconfigured server
+     reporting `min_temp > max_temp` (ClosedRange traps) or `min_temp == max_temp`
+     (zero-width span → NaN in the slider fraction divisors).
+     */
     private var temperatureRange: ClosedRange<Double> {
         let lo = Swift.min(viewModel.minTemp, viewModel.maxTemp)
         let hi = Swift.max(viewModel.minTemp, viewModel.maxTemp)
