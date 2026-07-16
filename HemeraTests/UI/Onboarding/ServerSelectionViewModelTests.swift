@@ -139,6 +139,19 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
+    func connectManual_withCredentialsInURL_returnsTrueButSetsError() {
+        // The URL passes field validation but OAuth preparation rejects the
+        // embedded credentials, so connectManual returns true yet leaves an
+        // error and no session — the manual sheet relies on this to stay open.
+        let viewModel = makeViewModel()
+        viewModel.manualURL = "https://user:pass@ha.example.com"
+        let result = viewModel.connectManual()
+        #expect(result == true)
+        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.authSession == nil)
+    }
+
+    @Test
     func prepareManualEntry_clearsStaleErrorMessage() {
         let viewModel = makeViewModel()
         viewModel.errorMessage = "stale error"
