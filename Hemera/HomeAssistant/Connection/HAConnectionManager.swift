@@ -61,29 +61,41 @@ final class HAConnectionManager {
 
 extension HAConnectionManager: HAConnectionDelegate {
     nonisolated func connection(_ connection: HAConnection, didTransitionTo state: HAConnectionState) {
-        Task { @MainActor in
-            let wasConnected = isConnected
-            switch state {
-            case .ready:
-                isConnected = true
-                lastError = nil
-                Log.info("Connected to Home Assistant")
+        /**
+         HAKit delivers this callback synchronously on `.main`
+         (`connection.callbackQueue = .main`, set in `init`), so handle each
+         transition in delivery order. Wrapping every transition in its own
+         unstructured `Task` would drop that ordering guarantee, so a
+         `.disconnected` then `.ready` pair could compute the reconnect check
+         against stale state and miss or spuriously fire `onReconnect`.
+         */
+        MainActor.assumeIsolated {
+            handleTransition(state)
+        }
+    }
 
-                if !wasConnected && hasConnectedBefore {
-                    Log.info("Reconnected to Home Assistant — triggering resync")
-                    onReconnect?()
-                }
-                hasConnectedBefore = true
-            case .disconnected:
-                isConnected = false
-                Log.warning("Connection state: disconnected")
-            case .connecting:
-                isConnected = false
-                Log.info("Connection state: connecting")
-            case .authenticating:
-                isConnected = false
-                Log.info("Connection state: authenticating")
+    func handleTransition(_ state: HAConnectionState) {
+        let wasConnected = isConnected
+        switch state {
+        case .ready:
+            isConnected = true
+            lastError = nil
+            Log.info("Connected to Home Assistant")
+
+            if !wasConnected && hasConnectedBefore {
+                Log.info("Reconnected to Home Assistant — triggering resync")
+                onReconnect?()
             }
+            hasConnectedBefore = true
+        case .disconnected:
+            isConnected = false
+            Log.warning("Connection state: disconnected")
+        case .connecting:
+            isConnected = false
+            Log.info("Connection state: connecting")
+        case .authenticating:
+            isConnected = false
+            Log.info("Connection state: authenticating")
         }
     }
 }

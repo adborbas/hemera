@@ -33,6 +33,21 @@ final class HADataSyncService {
 
     private var stateChangedToken: HACancellable?
 
+    /**
+     Guards the real-time path until the initial snapshot has been applied.
+     While `false`, incoming `state_changed` events are buffered instead of
+     applied, so a change that fires during the snapshot-fetch window is
+     reconciled against the snapshot rather than lost.
+     */
+    private var isSnapshotApplied = false
+
+    /**
+     Events received before the snapshot was applied, kept in arrival order.
+     A plain array is safe: the service is `@MainActor` and HAKit delivers
+     the subscription callback on `.main` (`connection.callbackQueue = .main`).
+     */
+    private var bufferedEvents: [HAResponseEventStateChanged] = []
+
     deinit { stateChangedToken?.cancel() }
 
     private var conn: HAConnection { connectionManager.connection }
@@ -55,17 +70,24 @@ final class HADataSyncService {
 
     func start() {
         Log.info("Starting initial data sync")
-        Task {
-            await syncAllData()
-            subscribeToStateChanges()
-        }
+        /**
+         Subscribe before fetching the snapshot so events firing during the
+         fetch window are buffered (not lost) and flushed once it lands.
+         */
+        subscribeToStateChanges()
+        Task { await syncAllData() }
     }
 
     /// Re-fetches all data and re-subscribes to real-time changes (e.g. after reconnecting or pull-to-refresh).
     func resync() async {
         Log.info("Re-syncing all data")
-        await syncAllData()
+        /**
+         Re-arm buffering for the resync window, then re-subscribe before the
+         fetch so events during the window are reconciled against the snapshot.
+         */
+        isSnapshotApplied = false
         subscribeToStateChanges()
+        await syncAllData()
     }
 
     // MARK: - Data Sync
@@ -76,12 +98,18 @@ final class HADataSyncService {
             Log.info("Fetched \(payload.entities.count) entities, \(payload.areaMappings.count) areas, \(payload.floors?.count ?? 0) floors — applying to main context")
 
             await applySyncPayload(payload)
+            flushBufferedEvents()
 
             errorNotifier?.clearSyncFailed()
             Log.info("Sync complete")
             onSyncComplete()
         } catch {
             Log.error("Failed to sync data", cause: error)
+            /**
+             Flush even on failure so buffered events are applied and the
+             buffer can never grow unbounded across repeated failed syncs.
+             */
+            flushBufferedEvents()
             errorNotifier?.showError(Localization.syncFailed)
             errorNotifier?.markSyncFailed()
             onSyncComplete()
@@ -363,13 +391,42 @@ final class HADataSyncService {
         stateChangedToken = conn.subscribe(to: .stateChanged()) { [weak self] _, event in
             guard let self else { return }
 
-            Task {
+            /**
+             HAKit delivers this callback synchronously on `.main`
+             (`connection.callbackQueue = .main`), so handle it in delivery
+             order. A per-event `Task` would drop HAKit's serial ordering
+             guarantee and could apply back-to-back changes for one entity out
+             of order — and would also race the buffer flush.
+             */
+            MainActor.assumeIsolated {
                 self.handleStateChanged(event)
             }
         }
     }
 
-    private func handleStateChanged(_ event: HAResponseEventStateChanged) {
+    func handleStateChanged(_ event: HAResponseEventStateChanged) {
+        guard isSnapshotApplied else {
+            bufferedEvents.append(event)
+            return
+        }
+        applyStateChanged(event)
+    }
+
+    /**
+     Applies events buffered during the snapshot-fetch window in arrival
+     order (preserving last-writer-wins), then switches to applying
+     subsequent events immediately.
+     */
+    func flushBufferedEvents() {
+        isSnapshotApplied = true
+        let pending = bufferedEvents
+        bufferedEvents.removeAll()
+        for event in pending {
+            applyStateChanged(event)
+        }
+    }
+
+    private func applyStateChanged(_ event: HAResponseEventStateChanged) {
         guard let entity = event.newState else { return }
         entityRegistry.upsert(from: entity, in: mainContext)
         do {
