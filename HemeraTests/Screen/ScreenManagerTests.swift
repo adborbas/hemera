@@ -1,3 +1,4 @@
+import SwiftUI
 import Testing
 @testable import Hemera
 
@@ -59,6 +60,28 @@ struct ScreenManagerTests {
         screenManager.executePreviewDim()
 
         #expect(screenManager.isDimmed == true)
+    }
+
+    // MARK: - Scene Phase
+
+    @Test func handleScenePhase_inactive_whileDimmed_keepsDim() {
+        screenManager.stayAwake = true
+        screenManager.executePreviewDim()
+        #expect(screenManager.isDimmed == true)
+
+        screenManager.handleScenePhase(.inactive)
+
+        #expect(screenManager.isDimmed == true)
+    }
+
+    @Test func handleScenePhase_background_whileDimmed_clearsDim() {
+        screenManager.stayAwake = true
+        screenManager.executePreviewDim()
+        #expect(screenManager.isDimmed == true)
+
+        screenManager.handleScenePhase(.background)
+
+        #expect(screenManager.isDimmed == false)
     }
 
 }
