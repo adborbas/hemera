@@ -134,6 +134,7 @@ final class CoverCardViewModel: Identifiable {
 
     func setPosition(to position: Int) {
         guard cover.isAvailable else { return }
+        actionTask?.cancel()
         pendingPosition = position
         cooldown.commit()
         actionTask = Task {
@@ -171,6 +172,7 @@ final class CoverCardViewModel: Identifiable {
 
     func open() {
         guard cover.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task {
             await controller.openCover(id)
         }
@@ -178,6 +180,7 @@ final class CoverCardViewModel: Identifiable {
 
     func close() {
         guard cover.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task {
             await controller.closeCover(id)
         }
@@ -185,12 +188,14 @@ final class CoverCardViewModel: Identifiable {
 
     func stop() {
         guard cover.isAvailable else { return }
+        actionTask?.cancel()
         actionTask = Task {
             await controller.stopCover(id)
         }
     }
 
     private func toggle() {
+        actionTask?.cancel()
         actionTask = Task {
             await controller.toggleCover(id)
         }

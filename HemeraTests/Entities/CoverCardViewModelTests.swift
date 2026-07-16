@@ -131,6 +131,30 @@ struct CoverCardViewModelTests {
         #expect(spy.openedIds.isEmpty)
     }
 
+    // MARK: - Action Cancellation
+
+    /**
+     Stopping mid-open must cancel the in-flight open Task. Otherwise the demo
+     controller's post-sleep `guard !Task.isCancelled` never fires and the still-running
+     open overwrites the state Stop just set (cover snaps fully open ~2s after Stop).
+     */
+    @Test
+    func stop_duringOpen_cancelsInFlightOpenSoItDoesNotOverwriteState() async {
+        let controller = SlowCoverControlling()
+        let vm = makeViewModel(features: [.open, .stop], controller: controller)
+
+        vm.open()
+        let openTask = vm.actionTask
+        vm.stop()
+
+        await openTask?.value
+        await vm.actionTask?.value
+
+        #expect(openTask?.isCancelled == true)
+        #expect(controller.didCompleteOpen == false)
+        #expect(controller.stoppedIds == ["cover.test"])
+    }
+
     // MARK: - Simple State Description
 
     @Test
@@ -316,4 +340,30 @@ private final class SpyCoverControlling: CoverControlling {
     func toggleCover(_ id: String) async {
         toggledIds.append(id)
     }
+}
+
+/**
+ Mirrors the demo controller: `openCover` simulates travel, then only completes if
+ its Task was not cancelled — the same `guard !Task.isCancelled` the real bug hinges on.
+ */
+@MainActor
+private final class SlowCoverControlling: CoverControlling {
+    var didCompleteOpen = false
+    var stoppedIds: [String] = []
+
+    func setPosition(of id: String, to position: Int) async {}
+
+    func openCover(_ id: String) async {
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled else { return }
+        didCompleteOpen = true
+    }
+
+    func closeCover(_ id: String) async {}
+
+    func stopCover(_ id: String) async {
+        stoppedIds.append(id)
+    }
+
+    func toggleCover(_ id: String) async {}
 }
