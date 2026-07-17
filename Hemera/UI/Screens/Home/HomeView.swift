@@ -80,14 +80,28 @@ struct AreasView: View {
 
 private extension AreasView {
 
-    static let areaCardHeight: CGFloat =
-        TileGridConstants.smallTileHeight * 2 + TileGridConstants.rowSpacing
+    /**
+     Stable tile id for the synthetic "Unassigned" card, which has no backing
+     `AreaEntity`. Constant so it is distinguishable from real area tiles.
+     */
+    static let unassignedTileId = UUID(stableForString: "hemera.areas.unassigned")
 
-    var gridColumns: [GridItem] {
-        let count = horizontalSizeClass == .compact ? 2 : 3
-        return Array(repeating: GridItem(.flexible(), spacing: Mortar.Spacing.s), count: count)
+    /**
+     Tile-grid column count. Areas render as `.medium` tiles (2 grid columns
+     wide), so 4 columns yields 2-up in compact width and 6 columns keeps the
+     roomier 3-up layout in regular width.
+     */
+    var tileColumns: Int {
+        horizontalSizeClass == .compact ? 4 : 6
     }
 
+    /**
+     Renders the area grid through the shared `SectionGrid` / `TileGridEngine`,
+     so spacing matches the area-detail grid exactly and reordering can be
+     enabled later by supplying `isEditing`/`onReorder`. Each floor is one
+     section; a headerless section (grouping off / no floors) renders without a
+     `SectionHeader`.
+     */
     @ViewBuilder
     func areaCardGrid(hasUnassigned: Bool, hasRealAreas: Bool) -> some View {
         let sections = viewModel.sections(
@@ -97,58 +111,65 @@ private extension AreasView {
             hasUnassigned: hasUnassigned
         )
 
-        ScrollView {
-            if sections.count == 1, sections[0].title == nil {
-                // Flat layout — no floors (or grouping off). Rendered exactly
-                // as before, with no section headers.
-                LazyVGrid(columns: gridColumns, spacing: Mortar.Spacing.s) {
-                    areaCells(for: sections[0], hasRealAreas: hasRealAreas)
-                }
-                .padding(TileGridConstants.padding)
-            } else {
-                LazyVStack(spacing: Mortar.Spacing.s) {
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
-                        Section {
-                            LazyVGrid(columns: gridColumns, spacing: Mortar.Spacing.s) {
-                                areaCells(for: section, hasRealAreas: hasRealAreas)
+                        let areasById = Dictionary(
+                            section.areas.map { (UUID(stableForString: $0.areaId), $0) },
+                            uniquingKeysWith: { first, _ in first }
+                        )
+
+                        VStack(alignment: .leading, spacing: 0) {
+                            if let title = section.title, !title.isEmpty {
+                                SectionHeader(title, isFirst: index == 0)
+                                    .padding(.horizontal, TileGridConstants.padding)
                             }
-                        } header: {
-                            sectionHeader(section.title ?? "", isFirst: index == 0)
+
+                            SectionGrid(
+                                tiles: .constant(tiles(for: section)),
+                                columns: tileColumns,
+                                containerWidth: proxy.size.width,
+                                isEditing: .constant(false),
+                                content: { tile in
+                                    areaCell(for: tile, areasById: areasById, hasRealAreas: hasRealAreas)
+                                }
+                            )
                         }
                     }
                 }
-                .padding(TileGridConstants.padding)
+                .padding(.vertical, TileGridConstants.sectionPadding)
             }
         }
+    }
+
+    /**
+     Builds the tile list for a section: one `.medium` tile per area, plus a
+     trailing tile for the synthetic "Unassigned" card when the section owns it.
+     */
+    func tiles(for section: AreasViewModel.AreaSection) -> [Tile] {
+        var tiles = section.areas.map { area in
+            Tile(id: UUID(stableForString: area.areaId), title: area.name, size: .medium)
+        }
+        if section.includesUnassigned {
+            tiles.append(Tile(id: Self.unassignedTileId, title: "", size: .medium))
+        }
+        return tiles
     }
 
     @ViewBuilder
-    func areaCells(for section: AreasViewModel.AreaSection, hasRealAreas: Bool) -> some View {
-        ForEach(section.areas) { area in
+    func areaCell(for tile: Tile, areasById: [UUID: AreaEntity], hasRealAreas: Bool) -> some View {
+        if let area = areasById[tile.id] {
             NavigationLink(value: AreaDestination.area(area)) {
                 AreaCardView(area: area)
-                    .frame(height: Self.areaCardHeight)
             }
             .buttonStyle(.plain)
-        }
-        if section.includesUnassigned {
+        } else if tile.id == Self.unassignedTileId {
             NavigationLink(value: AreaDestination.unassigned(hasRealAreas: hasRealAreas)) {
                 unassignedCard(hasRealAreas: hasRealAreas)
-                    .frame(height: Self.areaCardHeight)
             }
             .buttonStyle(.plain)
         }
-    }
-
-    /// Floor section title. Scrolls away with its grid (no pinning). Bold,
-    /// primary-colour heading with extra top breathing room for every floor
-    /// after the first (the first sits close under the nav title).
-    func sectionHeader(_ title: String, isFirst: Bool) -> some View {
-        Text(title)
-            .font(.title3.bold())
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, isFirst ? 0 : Mortar.Spacing.l)
     }
 
     func unassignedCard(hasRealAreas: Bool) -> some View {
