@@ -78,6 +78,7 @@ final class LightEntity: StoredEntity {
         brightness = entity.attributes["brightness"] as? Int
         colorMode = entity.attributes["color_mode"] as? String
         colorTemp = entity.attributes["color_temp"] as? Int
+            ?? Self.miredsFromKelvin(entity.attributes["color_temp_kelvin"])
         if let hs = entity.attributes["hs_color"] as? [Any] {
             hsColor = hs.compactMap { ($0 as? NSNumber)?.doubleValue }
             if hsColor?.count != 2 { hsColor = nil }
@@ -85,7 +86,9 @@ final class LightEntity: StoredEntity {
             hsColor = nil
         }
         let rawMinMireds = entity.attributes["min_mireds"] as? Int
+            ?? Self.miredsFromKelvin(entity.attributes["max_color_temp_kelvin"])
         let rawMaxMireds = entity.attributes["max_mireds"] as? Int
+            ?? Self.miredsFromKelvin(entity.attributes["min_color_temp_kelvin"])
         if let lo = rawMinMireds, let hi = rawMaxMireds {
             minMireds = Swift.min(lo, hi)
             maxMireds = Swift.max(lo, hi)
@@ -98,6 +101,20 @@ final class LightEntity: StoredEntity {
         supportedColorModes = entity.attributes["supported_color_modes"] as? [String]
         supportedFeaturesRaw = entity.attributes["supported_features"] as? Int ?? 0
         icon = entity.attributes["icon"] as? String
+    }
+}
+
+// MARK: - Kelvin conversion
+
+private extension LightEntity {
+    /**
+     Converts a HA `*_color_temp_kelvin` attribute to mireds (their reciprocal).
+     Returns nil when the attribute is absent or non-positive so the caller can
+     fall back to the legacy mired attributes.
+    */
+    static func miredsFromKelvin(_ value: Any?) -> Int? {
+        guard let kelvin = value as? Int, kelvin > 0 else { return nil }
+        return 1_000_000 / kelvin
     }
 }
 

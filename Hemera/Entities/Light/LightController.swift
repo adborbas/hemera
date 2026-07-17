@@ -35,11 +35,12 @@ final class LightController: LightControlling, ServiceCallErrorHandling {
 
     func setColorTemp(_ id: String, to mireds: Int) async {
         await performServiceCall("Failed to set color temp for \(id)") {
+            let kelvin = mireds > 0 ? 1_000_000 / mireds : 0
             try await serviceCaller.callService(
                 domain: Keys.domain,
                 service: Keys.turnOn,
                 entityId: id,
-                extraData: [Keys.colorTemp: mireds]
+                extraData: [Keys.colorTempKelvin: kelvin]
             )
         }
     }
@@ -61,6 +62,6 @@ private enum Keys {
     static let turnOn = "turn_on"
     static let turnOff = "turn_off"
     static let brightness = "brightness"
-    static let colorTemp = "color_temp"
+    static let colorTempKelvin = "color_temp_kelvin"
     static let hsColor = "hs_color"
 }
