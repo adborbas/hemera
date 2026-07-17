@@ -3,5 +3,5 @@
 CODE_SIGN_STYLE = Automatic
 
 // Version numbers — bump these once per release; all targets inherit them.
-MARKETING_VERSION = 1.4.0
+MARKETING_VERSION = 1.5.0
 CURRENT_PROJECT_VERSION = 1
