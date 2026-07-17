@@ -15,6 +15,15 @@ The release is automated with [fastlane](fastlane/Fastfile) and GitHub Actions. 
 
 The manual git/`gh` steps below are what each lane does under the hood, kept for reference and for one-off manual releases.
 
+### Secrets
+
+`main` is a protected branch (changes must go through a PR, and a review plus the "Unit Tests" check are required). **Cut Release** advances `main` by opening a PR and **admin-merging** it, which the default `GITHUB_TOKEN` cannot do (it is write-only and cannot bypass protection). The **Cut Release** workflow therefore uses a `RELEASE_PAT` repository secret:
+
+- A personal access token owned by a repo admin, with **contents: write** and **pull requests: write** on this repo (a classic token with `repo` scope also works).
+- Admin bypass relies on the branch's `enforce_admins` being **off**, so the admin-merge skips the review and "Unit Tests" requirements for the trivial one-line version bump.
+
+The other release workflows use the App Store Connect API key (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`) and match (`MATCH_PASSWORD`, `MATCH_DEPLOY_KEY`); see the workflow files for which step needs which.
+
 ## Versioning model
 
 `main` always holds the **next in-development version**, so it never sits on a
@@ -30,13 +39,22 @@ nothing to merge back at all).
 
 ## Cutting a release
 
-1. Branch from `main`:
+1. Branch from `main` and push it (the release branch is not protected):
    ```bash
    git checkout -b release/1.4.0 main
+   git push origin release/1.4.0
    ```
 2. `MARKETING_VERSION` in `Config/Shared.xcconfig` already matches (it's what `main` held); only change it if you're cutting a different version.
-3. Advance `main`: bump its `MARKETING_VERSION` to the next minor (e.g. `1.5.0`), commit `"Bump main to 1.5.0 for development"`, and push.
-4. Push the release branch and submit to Apple for review.
+3. Advance `main` **via a PR** — `main` is protected, so it can't be pushed directly. Put the bump on a branch, open a PR, and merge it:
+   ```bash
+   git checkout -b chore/bump-main-1.5.0 main
+   # bump MARKETING_VERSION to the next minor (e.g. 1.5.0) in Config/Shared.xcconfig
+   git commit -am "Bump main to 1.5.0 for development"
+   git push origin chore/bump-main-1.5.0
+   gh pr create --base main --head chore/bump-main-1.5.0 --title "Bump main to 1.5.0 for development" --body "Advance main after cutting release/1.4.0."
+   gh pr merge chore/bump-main-1.5.0 --squash --admin --delete-branch
+   ```
+4. Submit the release branch to Apple for review.
 
 ## Fixing issues during review
 
