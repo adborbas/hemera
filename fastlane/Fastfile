@@ -46,6 +46,14 @@ platform :ios do
   # ---------------------------------------------------------------------------
   desc "Build a signed release and upload it to TestFlight"
   lane :beta do
+    # On CI there is no interactive login keychain, so match can't set the key
+    # partition list on the runner's login keychain (no password), leaving
+    # codesign blocked on a UI authorization prompt that never comes (the job
+    # then hangs until the timeout). setup_ci creates a dedicated temporary
+    # keychain with a known password that match imports into and codesign uses
+    # non-interactively. It is a no-op when running locally.
+    setup_ci
+
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("ASC_KEY_ID"),
       issuer_id: ENV.fetch("ASC_ISSUER_ID"),
