@@ -52,4 +52,40 @@ struct LightEntityTests {
         #expect(entity.minMireds == nil)
         #expect(entity.maxMireds == nil)
     }
+
+    @Test
+    func update_withKelvinAttributes_derivesInvertedMireds() throws {
+        let entity = LightEntity(entityId: "light.test")
+        // HA 2026.3 drops mireds; only kelvin bounds are sent. min mired ↔ max kelvin.
+        let haEntity = try makeHAEntity(attributes: [
+            "color_temp_kelvin": 4000,
+            "min_color_temp_kelvin": 2000,
+            "max_color_temp_kelvin": 6535
+        ])
+
+        entity.update(from: haEntity)
+
+        #expect(entity.colorTemp == 1_000_000 / 4000)     // 250
+        #expect(entity.minMireds == 1_000_000 / 6535)     // 153, from the highest kelvin
+        #expect(entity.maxMireds == 1_000_000 / 2000)     // 500, from the lowest kelvin
+    }
+
+    @Test
+    func update_prefersLegacyMiredsOverKelvin() throws {
+        let entity = LightEntity(entityId: "light.test")
+        let haEntity = try makeHAEntity(attributes: [
+            "color_temp": 300,
+            "min_mireds": 153,
+            "max_mireds": 500,
+            "color_temp_kelvin": 4000,
+            "min_color_temp_kelvin": 2000,
+            "max_color_temp_kelvin": 6535
+        ])
+
+        entity.update(from: haEntity)
+
+        #expect(entity.colorTemp == 300)
+        #expect(entity.minMireds == 153)
+        #expect(entity.maxMireds == 500)
+    }
 }
