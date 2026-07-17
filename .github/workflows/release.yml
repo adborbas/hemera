@@ -59,10 +59,12 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
 
-      # TODO: The script was written for local use and will need CI-friendly
-      # xcodebuild flags (CODE_SIGN_IDENTITY="", CODE_SIGNING_REQUIRED=NO)
-      # passed through to capture-screenshots.sh before this works on runners.
+      # SCREENSHOT_XCODEBUILD_ARGS disables code signing for the underlying
+      # capture-screenshots.sh so the UI-test build works on a runner (simulator
+      # builds need no signing).
       - name: Generate promo screenshots
+        env:
+          SCREENSHOT_XCODEBUILD_ARGS: 'CODE_SIGN_IDENTITY= CODE_SIGNING_REQUIRED=NO COMPILER_INDEX_STORE_ENABLE=NO'
         run: ./scripts/generate-promo-screenshots.sh
 
       - name: Upload promo screenshots
