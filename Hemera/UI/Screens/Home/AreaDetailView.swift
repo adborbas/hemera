@@ -101,15 +101,16 @@ private struct AreaContentView: View {
                         }
                 }
 
-                VStack(alignment: .leading, spacing: TileGridConstants.sectionSpacing) {
-                    ForEach(viewModel.sections(for: area), id: \.id) { section in
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(viewModel.sections(for: area).enumerated()), id: \.element.id) { index, section in
                         AreaDetailSection(
                             section: section,
                             viewModel: viewModel,
                             overlayItem: $overlayItem,
                             overlayTransition: overlayTransition,
                             columns: columns,
-                            containerWidth: proxy.size.width
+                            containerWidth: proxy.size.width,
+                            isFirst: index == 0
                         )
                     }
                 }
@@ -140,15 +141,16 @@ private struct UnassignedContentView: View {
             )
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: TileGridConstants.sectionSpacing) {
-                        ForEach(viewModel.sections(forUnassignedEntityIds: unassigned.entityIds), id: \.id) { section in
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(viewModel.sections(forUnassignedEntityIds: unassigned.entityIds).enumerated()), id: \.element.id) { index, section in
                             AreaDetailSection(
                                 section: section,
                                 viewModel: viewModel,
                                 overlayItem: $overlayItem,
                                 overlayTransition: overlayTransition,
                                 columns: columns,
-                                containerWidth: proxy.size.width
+                                containerWidth: proxy.size.width,
+                                isFirst: index == 0
                             )
                         }
                     }
@@ -168,21 +170,23 @@ private struct AreaDetailSection: View {
     let overlayTransition: Namespace.ID
     let columns: Int
     let containerWidth: CGFloat
+    let isFirst: Bool
 
     var body: some View {
-        if let title = section.title, !title.isEmpty {
-            Text(title)
-                .font(.headline)
-                .padding(.horizontal, TileGridConstants.padding)
-        }
+        VStack(alignment: .leading, spacing: 0) {
+            if let title = section.title, !title.isEmpty {
+                SectionHeader(title, isFirst: isFirst)
+                    .padding(.horizontal, TileGridConstants.padding)
+            }
 
-        SectionGrid(
-            tiles: .constant(section.tiles),
-            columns: columns,
-            containerWidth: containerWidth,
-            isEditing: .constant(false),
-            content: { tile in tileView(for: tile) }
-        )
+            SectionGrid(
+                tiles: .constant(section.tiles),
+                columns: columns,
+                containerWidth: containerWidth,
+                isEditing: .constant(false),
+                content: { tile in tileView(for: tile) }
+            )
+        }
     }
 
     @ViewBuilder
