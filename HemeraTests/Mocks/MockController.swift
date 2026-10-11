@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 final class MockController: LightControlling, CoverControlling, SceneControlling,
-    SwitchControlling, ButtonControlling, AutomationControlling, ClimateControlling {
+    ScriptControlling, SwitchControlling, ButtonControlling, AutomationControlling, ClimateControlling {
     func setLight(_ id: String, on: Bool) async {}
     func setBrightness(_ id: String, to brightness: Int) async {}
     func setColorTemp(_ id: String, to mireds: Int) async {}
@@ -16,6 +16,9 @@ final class MockController: LightControlling, CoverControlling, SceneControlling
     func toggleCover(_ id: String) async {}
 
     func activateScene(_ id: String) async {}
+
+    func runScript(_ id: String) async {}
+    func cancelScript(_ id: String) async {}
 
     func setSwitch(_ id: String, on: Bool) async {}
 

@@ -20,7 +20,7 @@ struct AreaReconciliationTests {
     init() {
         let schema = Schema([
             LightEntity.self, SwitchEntity.self, CoverEntity.self,
-            SensorEntity.self, BinarySensorEntity.self, SceneEntity.self,
+            SensorEntity.self, BinarySensorEntity.self, SceneEntity.self, ScriptEntity.self,
             ButtonEntity.self, AutomationEntity.self, ClimateEntity.self,
             AreaEntity.self, FloorEntity.self, HomeTile.self
         ])

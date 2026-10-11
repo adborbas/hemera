@@ -84,6 +84,7 @@ final class AreasViewModel {
             !area.lights.isEmpty
                 || !area.covers.isEmpty
                 || !area.scenes.isEmpty
+                || !area.scripts.isEmpty
                 || !area.switches.isEmpty
                 || !area.buttons.isEmpty
                 || !area.automations.isEmpty

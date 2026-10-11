@@ -23,6 +23,9 @@ final class AreaEntity {
     @Relationship(inverse: \SceneEntity.area)
     var scenes: [SceneEntity] = []
 
+    @Relationship(inverse: \ScriptEntity.area)
+    var scripts: [ScriptEntity] = []
+
     @Relationship(inverse: \SensorEntity.area)
     var sensors: [SensorEntity] = []
 
