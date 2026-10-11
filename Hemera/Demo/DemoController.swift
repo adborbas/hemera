@@ -16,6 +16,13 @@ final class DemoController {
 
     let context: ModelContext
 
+    /**
+     Identifies the current simulated run per script id. A run's delayed auto-revert
+     only fires if its token is still current, so a newer run or an explicit cancel
+     isn't cut short by an earlier run's pending revert.
+    */
+    var scriptRunTokens: [String: UUID] = [:]
+
     init(context: ModelContext) {
         self.context = context
     }

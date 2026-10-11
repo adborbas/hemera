@@ -54,6 +54,7 @@ final class ViewModelFactory {
         lightController: some LightControlling,
         coverController: some CoverControlling,
         sceneController: some SceneControlling,
+        scriptController: some ScriptControlling,
         switchController: some SwitchControlling,
         buttonController: some ButtonControlling,
         automationController: some AutomationControlling,
@@ -62,6 +63,7 @@ final class ViewModelFactory {
         register(LightCardViewModel.registration(controller: lightController))
         register(CoverCardViewModel.registration(controller: coverController))
         register(SceneCardViewModel.registration(controller: sceneController))
+        register(ScriptCardViewModel.registration(controller: scriptController))
         register(BinarySensorCardViewModel.registration())
         register(SwitchCardViewModel.registration(controller: switchController))
         register(ButtonCardViewModel.registration(controller: buttonController))

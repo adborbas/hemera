@@ -12,7 +12,7 @@ struct UnavailabilityTests {
 
     init() {
         let schema = Schema([
-            LightEntity.self, CoverEntity.self, SceneEntity.self,
+            LightEntity.self, CoverEntity.self, SceneEntity.self, ScriptEntity.self,
             SensorEntity.self, SwitchEntity.self, BinarySensorEntity.self,
             ButtonEntity.self, AutomationEntity.self, AreaEntity.self, FloorEntity.self, HomeTile.self
         ])

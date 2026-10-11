@@ -90,6 +90,7 @@ enum DemoDataProvider {
 
         let movieScene = SceneEntity(entityId: "scene.movie_night", name: "Movie Night")
         let relaxScene = SceneEntity(entityId: "scene.relax", name: "Relax")
+        let movieScript = ScriptEntity(entityId: "script.movie_time", name: "Movie Time")
 
         let motionLights = AutomationEntity(
             entityId: "automation.motion_lights",
@@ -412,7 +413,7 @@ enum DemoDataProvider {
         let allEntities: [any PersistentModel] = [
             // Living Room
             ceilingLight, floorLamp, tvBacklight, blinds, curtains,
-            movieScene, relaxScene, motionLights, livingMotion, livingTemp, livingHumidity,
+            movieScene, relaxScene, movieScript, motionLights, livingMotion, livingTemp, livingHumidity,
             livingRoomAC,
             // Bedroom
             bedsideLamp, readingLight, blackoutBlinds,
@@ -442,6 +443,7 @@ enum DemoDataProvider {
         curtains.area = livingRoom
         movieScene.area = livingRoom
         relaxScene.area = livingRoom
+        movieScript.area = livingRoom
         motionLights.area = livingRoom
         livingMotion.area = livingRoom
         livingTemp.area = livingRoom
@@ -507,7 +509,9 @@ enum DemoDataProvider {
             deviceClass: .garage
         )
 
-        for entity in [hallwayLight, garageDoor] as [any PersistentModel] {
+        let welcomeScript = ScriptEntity(entityId: "script.welcome_home", name: "Welcome Home")
+
+        for entity in [hallwayLight, garageDoor, welcomeScript] as [any PersistentModel] {
             context.insert(entity)
         }
         // Intentionally NOT assigning .area — these appear in the "Other" section

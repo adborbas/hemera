@@ -42,7 +42,7 @@ private extension EntityCategory {
             .covers
         case "climate":
             .climate
-        case "switch", "button", "scene", "automation":
+        case "switch", "button", "scene", "script", "automation":
             .controls
         case "binary_sensor":
             .sensors
@@ -70,7 +70,7 @@ private extension EntityCategory {
         )
         static let controls = String(
             localized: "Controls",
-            comment: "Section header for switch, button, scene, and automation entities in area detail view"
+            comment: "Section header for switch, button, scene, script, and automation entities in area detail view"
         )
         static let sensors = String(
             localized: "Sensors",

@@ -17,7 +17,7 @@ struct StateUpdatePropagationTests {
     init() {
         let schema = Schema([
             LightEntity.self, SwitchEntity.self, CoverEntity.self,
-            BinarySensorEntity.self, SensorEntity.self, SceneEntity.self,
+            BinarySensorEntity.self, SensorEntity.self, SceneEntity.self, ScriptEntity.self,
             ButtonEntity.self, AutomationEntity.self, ClimateEntity.self,
             AreaEntity.self, FloorEntity.self, HomeTile.self
         ])

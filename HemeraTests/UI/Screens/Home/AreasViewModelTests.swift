@@ -15,7 +15,7 @@ struct AreasViewModelTests {
 
     init() {
         let schema = Schema([
-            LightEntity.self, CoverEntity.self, SceneEntity.self, SensorEntity.self,
+            LightEntity.self, CoverEntity.self, SceneEntity.self, ScriptEntity.self, SensorEntity.self,
             SwitchEntity.self, ButtonEntity.self, AutomationEntity.self, BinarySensorEntity.self,
             ClimateEntity.self, AreaEntity.self, FloorEntity.self, HomeTile.self
         ])
@@ -38,6 +38,7 @@ struct AreasViewModelTests {
             lightController: mockController,
             coverController: mockController,
             sceneController: mockController,
+            scriptController: mockController,
             switchController: mockController,
             buttonController: mockController,
             automationController: mockController,
