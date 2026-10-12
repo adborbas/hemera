@@ -250,7 +250,7 @@ extension CoverCardViewModel {
         ViewModelFactory.Registration(
             domain: CoverEntity.domain,
             makeViewModelsForArea: { area in
-                area.covers.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.covers.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     CoverCardViewModel(cover: $0, controller: controller)
                 }
             },

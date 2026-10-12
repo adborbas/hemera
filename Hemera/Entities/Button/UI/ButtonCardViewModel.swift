@@ -73,7 +73,7 @@ extension ButtonCardViewModel {
         ViewModelFactory.Registration(
             domain: ButtonEntity.domain,
             makeViewModelsForArea: { area in
-                area.buttons.filter { $0.deviceClass.isUserActionable }.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.buttons.filter { !$0.isHiddenInHA && $0.deviceClass.isUserActionable }.sorted(by: { $0.entityId < $1.entityId }).map {
                     ButtonCardViewModel(button: $0, controller: controller)
                 }
             },

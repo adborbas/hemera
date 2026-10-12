@@ -63,7 +63,7 @@ extension AutomationCardViewModel {
         ViewModelFactory.Registration(
             domain: AutomationEntity.domain,
             makeViewModelsForArea: { area in
-                area.automations.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.automations.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     AutomationCardViewModel(automation: $0, controller: controller)
                 }
             },

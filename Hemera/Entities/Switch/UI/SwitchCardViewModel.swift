@@ -66,7 +66,7 @@ extension SwitchCardViewModel {
         ViewModelFactory.Registration(
             domain: SwitchEntity.domain,
             makeViewModelsForArea: { area in
-                area.switches.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.switches.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     SwitchCardViewModel(switchEntity: $0, controller: controller)
                 }
             },

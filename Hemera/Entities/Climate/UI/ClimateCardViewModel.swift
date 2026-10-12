@@ -367,7 +367,7 @@ extension ClimateCardViewModel {
         ViewModelFactory.Registration(
             domain: ClimateEntity.domain,
             makeViewModelsForArea: { area in
-                area.climates.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.climates.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     ClimateCardViewModel(climate: $0, controller: controller)
                 }
             },

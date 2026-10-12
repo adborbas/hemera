@@ -21,6 +21,7 @@ final class EntityRegistry: Sendable {
         let assignDeviceId: @Sendable (String, String, ModelContext) -> Bool
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
         let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
+        let applyHAHidden: @Sendable (Set<String>, ModelContext) -> Void
         let fetchUnassignedIds: @Sendable (ModelContext) -> [String]
     }
 
@@ -54,6 +55,9 @@ final class EntityRegistry: Sendable {
                 },
                 clearAreas: { keptEntityIds, context in
                     type.clearAreaIfNotIn(keptEntityIds, in: context)
+                },
+                applyHAHidden: { hiddenEntityIds, context in
+                    type.applyHAHidden(hiddenEntityIds: hiddenEntityIds, in: context)
                 },
                 fetchUnassignedIds: { context in
                     // #Predicate must expand at concrete @Model type scope — not in
@@ -120,6 +124,18 @@ final class EntityRegistry: Sendable {
         let regs = registrations.withLock { Array($0.values) }
         for registration in regs {
             registration.clearAreas(keptEntityIds, context)
+        }
+    }
+
+    /**
+     Sets `isHiddenInHA` on all entities from Home Assistant's registry hidden set
+     (`hidden_by != nil`). Dispatches to each registered entity type. Called during
+     a full sync, only when the entity-registry fetch succeeded.
+    */
+    func applyHAHidden(_ hiddenEntityIds: Set<String>, in context: ModelContext) {
+        let regs = registrations.withLock { Array($0.values) }
+        for registration in regs {
+            registration.applyHAHidden(hiddenEntityIds, context)
         }
     }
 

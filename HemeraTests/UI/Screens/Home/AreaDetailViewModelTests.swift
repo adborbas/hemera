@@ -57,9 +57,10 @@ struct AreaDetailViewModelTests {
 
     // MARK: - Hidden Entity Filtering
 
-    private func insertLight(_ entityId: String, hidden: Bool) {
+    private func insertLight(_ entityId: String, hidden: Bool, haHidden: Bool = false) {
         let light = LightEntity(entityId: entityId, name: entityId, state: .off)
         light.isHidden = hidden
+        light.isHiddenInHA = haHidden
         light.area = area
         context.insert(light)
     }
@@ -117,6 +118,41 @@ struct AreaDetailViewModelTests {
         insertLight("light.a", hidden: false)
 
         #expect(viewModel.hasHiddenEntities(for: area) == false)
+    }
+
+    // HA-hidden is the highest-priority filter: the entity never appears, not in
+    // the normal grid and not even in Show/Hide mode (unlike our local isHidden).
+    @Test
+    func sections_haHiddenEntity_excludedEvenInHideMode() {
+        insertLight("light.visible", hidden: false)
+        insertLight("light.ha_hidden", hidden: false, haHidden: true)
+
+        #expect(sectionEntityIds(includingHidden: false) == ["light.visible"])
+        #expect(sectionEntityIds(includingHidden: true) == ["light.visible"])
+    }
+
+    // A HA-hidden entity must not count toward the local all-items-hidden placeholder.
+    @Test
+    func hasHiddenEntities_ignoresHAHidden() {
+        insertLight("light.ha_hidden", hidden: false, haHidden: true)
+
+        #expect(viewModel.hasHiddenEntities(for: area) == false)
+    }
+
+    // Syncing HA's hidden set both marks newly-hidden entities and clears ones
+    // the user un-hid in Home Assistant, so visibility tracks HA on every sync.
+    @Test
+    func applyHAHidden_marksAndClears() {
+        let newlyHidden = LightEntity(entityId: "light.a", name: "a", state: .off)
+        let previouslyHidden = LightEntity(entityId: "light.b", name: "b", state: .off)
+        previouslyHidden.isHiddenInHA = true
+        context.insert(newlyHidden)
+        context.insert(previouslyHidden)
+
+        LightEntity.applyHAHidden(hiddenEntityIds: ["light.a"], in: context)
+
+        #expect(newlyHidden.isHiddenInHA == true)
+        #expect(previouslyHidden.isHiddenInHA == false)
     }
 
     // MARK: - Home Tile Delegation

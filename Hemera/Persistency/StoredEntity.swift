@@ -38,6 +38,14 @@ protocol StoredEntity: PersistentModel {
     */
     var isHidden: Bool { get set }
 
+    /**
+     Whether Home Assistant marks this entity hidden (`hidden_by` in the entity
+     registry). A highest-priority, read-only filter: HA-hidden entities are
+     dropped from the Areas tab entirely — not even shown in Show/Hide mode. Our
+     local `isHidden` only ever applies to entities HA still considers visible.
+    */
+    var isHiddenInHA: Bool { get set }
+
     /// Returns a predicate matching a single entity by its entityId.
     ///
     /// Each concrete `@Model` type must implement this so that `#Predicate` expands
@@ -149,6 +157,29 @@ extension StoredEntity {
         }
         for entity in allEntities where !serverEntityIds.contains(entity.entityId) {
             entity.isAvailable = false
+        }
+    }
+
+    /**
+     Sets `isHiddenInHA` from the set of entity IDs Home Assistant marks hidden
+     (`hidden_by != nil`). Writes only on change to avoid spurious observation.
+     Called during a full sync and only when the entity-registry fetch succeeded,
+     so a transient failure never clears HA-hidden state.
+    */
+    static func applyHAHidden(hiddenEntityIds: Set<String>, in context: ModelContext) {
+        let descriptor = FetchDescriptor<Self>()
+        let allEntities: [Self]
+        do {
+            allEntities = try context.fetch(descriptor)
+        } catch {
+            Log.warning("Failed to fetch \(Self.domain) entities for HA-hidden sync", cause: error)
+            return
+        }
+        for entity in allEntities {
+            let hidden = hiddenEntityIds.contains(entity.entityId)
+            if entity.isHiddenInHA != hidden {
+                entity.isHiddenInHA = hidden
+            }
         }
     }
 

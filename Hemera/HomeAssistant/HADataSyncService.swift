@@ -153,6 +153,12 @@ final class HADataSyncService {
         let serverEntityIds = Set(payload.entities.map(\.entityId))
         entityRegistry.markMissingEntitiesAsUnavailable(serverEntityIds: serverEntityIds, in: mainContext)
 
+        // Apply Home Assistant's own hidden flag only when the registry fetch
+        // succeeded, so a transient failure never clears persisted HA-hidden state.
+        if let hiddenEntityIds = payload.hiddenEntityIds {
+            entityRegistry.applyHAHidden(hiddenEntityIds, in: mainContext)
+        }
+
         /**
          Remove Home tiles whose entity is entirely gone from the server. Keyed on
          presence in the sync (not `isAvailable`), so a merely-`"unavailable"` entity
@@ -262,6 +268,10 @@ final class HADataSyncService {
         let entities: [HAEntity]
         let areaMappings: [AreaMapping]
         let deviceMappings: [DeviceMapping]
+        /// Entity IDs Home Assistant marks hidden (`hidden_by`), or `nil` when the
+        /// entity-registry fetch failed — `nil` skips applying so a transient
+        /// failure never clears persisted HA-hidden state.
+        let hiddenEntityIds: Set<String>?
         let areaSortOrder: [String: Int]
         let areaIcons: [String: String]
         /**
@@ -288,13 +298,15 @@ final class HADataSyncService {
 
         async let entitiesTask = conn.send(statesRequest)
         async let areaMappingsTask = restClient.fetchAreaMappings()
-        async let deviceMappingsTask = fetchDeviceMappings()
+        async let entityRegistryTask = fetchEntityRegistry()
         async let areaRegistryTask = fetchAreaRegistry()
         async let floorRegistryTask = fetchFloorRegistry()
 
-        let (entities, deviceMappings, areaRegistry, floorRegistry) = try await (
-            entitiesTask, deviceMappingsTask, areaRegistryTask, floorRegistryTask
+        let (entities, entityRegistryResult, areaRegistry, floorRegistry) = try await (
+            entitiesTask, entityRegistryTask, areaRegistryTask, floorRegistryTask
         )
+        let deviceMappings = entityRegistryResult.mappings
+        let hiddenEntityIds = entityRegistryResult.hiddenEntityIds
 
         /**
          Degrade area mapping like the other registry fetches: a failure yields
@@ -321,6 +333,7 @@ final class HADataSyncService {
             entities: entities,
             areaMappings: areaMappings,
             deviceMappings: deviceMappings,
+            hiddenEntityIds: hiddenEntityIds,
             areaSortOrder: areaSortOrder,
             areaIcons: areaIcons,
             areaMappingsFetchSucceeded: fetchedAreaMappings != nil,
@@ -332,25 +345,37 @@ final class HADataSyncService {
 
     // MARK: - Registry Fetching
 
-    /// Fetches entity-to-device mappings from the HA entity registry.
-    /// Returns an empty array on failure so sync can proceed without device linking.
-    private func fetchDeviceMappings() async -> [DeviceMapping] {
+    /**
+     Fetches the entity registry once: entity→device mappings for device linking,
+     and the set of entity IDs Home Assistant marks hidden (`hidden_by != nil`).
+     `hiddenEntityIds` is `nil` on failure so a transient error never clears
+     persisted HA-hidden state; device mappings degrade to `[]`.
+    */
+    private func fetchEntityRegistry() async -> (mappings: [DeviceMapping], hiddenEntityIds: Set<String>?) {
         do {
             let request = HARequest(type: .webSocket("config/entity_registry/list"), data: [:])
             let response = try await conn.send(request)
 
-            guard case let .array(entries) = response else { return [] }
+            guard case let .array(entries) = response else { return ([], nil) }
 
-            return entries.compactMap { entry -> DeviceMapping? in
+            var mappings: [DeviceMapping] = []
+            var hiddenEntityIds: Set<String> = []
+            for entry in entries {
                 guard case let .dictionary(dict) = entry,
-                      let entityId = dict["entity_id"] as? String,
-                      let deviceId = dict["device_id"] as? String
-                else { return nil }
-                return DeviceMapping(entityId: entityId, deviceId: deviceId)
+                      let entityId = dict["entity_id"] as? String
+                else { continue }
+                if let deviceId = dict["device_id"] as? String {
+                    mappings.append(DeviceMapping(entityId: entityId, deviceId: deviceId))
+                }
+                // `hidden_by` is a non-null string ("user"/"integration") when hidden.
+                if dict["hidden_by"] as? String != nil {
+                    hiddenEntityIds.insert(entityId)
+                }
             }
+            return (mappings, hiddenEntityIds)
         } catch {
-            Log.error("Failed to fetch entity registry — proceeding without device linking", cause: error)
-            return []
+            Log.error("Failed to fetch entity registry — proceeding without device linking or HA-hidden filtering", cause: error)
+            return ([], nil)
         }
     }
 

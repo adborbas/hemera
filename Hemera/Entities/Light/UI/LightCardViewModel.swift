@@ -165,7 +165,7 @@ extension LightCardViewModel {
         ViewModelFactory.Registration(
             domain: LightEntity.domain,
             makeViewModelsForArea: { area in
-                area.lights.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.lights.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     LightCardViewModel(light: $0, controller: controller)
                 }
             },

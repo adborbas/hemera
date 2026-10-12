@@ -191,6 +191,22 @@ struct AreasViewModelTests {
         #expect(vm.displayedAreas(from: [area]).map(\.areaId) == ["den"])
     }
 
+    // HA-hidden entities don't count toward reachability: an area whose entities
+    // are all hidden in Home Assistant is dropped entirely (highest-priority filter).
+    @Test
+    func displayedAreas_areaWithOnlyHAHiddenEntities_isFiltered() {
+        let area = AreaEntity(areaId: "den", name: "Den")
+        let light = LightEntity(entityId: "light.den", name: "Den Lamp", state: .off)
+        light.isHiddenInHA = true
+        light.area = area
+        context.insert(area)
+        context.insert(light)
+
+        let vm = makeViewModel()
+
+        #expect(vm.displayedAreas(from: [area]).isEmpty)
+    }
+
     // A single visible entity is enough to keep the area on the list, even when
     // its siblings are hidden.
     @Test

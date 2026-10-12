@@ -17,6 +17,7 @@ final class CoverEntity: StoredEntity {
     var deviceId: String?
     var isAvailable: Bool = true
     var isHidden: Bool = false
+    var isHiddenInHA: Bool = false
     var area: AreaEntity?
     var preferredControlMode: String?
 

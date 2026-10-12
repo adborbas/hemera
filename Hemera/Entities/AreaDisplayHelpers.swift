@@ -20,8 +20,8 @@ struct AreaStatusIcon: Identifiable, Hashable {
 enum AreaDisplayHelpers {
 
     static func climateSummary(from sensors: [SensorEntity]) -> (String?, String?) {
-        let temp = sensors.first { $0.deviceClass == "temperature" }
-        let humidity = sensors.first { $0.deviceClass == "humidity" }
+        let temp = sensors.first { $0.deviceClass == "temperature" && !$0.isHiddenInHA }
+        let humidity = sensors.first { $0.deviceClass == "humidity" && !$0.isHiddenInHA }
 
         let tempStr = temp.flatMap { Double($0.state) }
             .map { (value: Double) -> String in
@@ -40,9 +40,10 @@ enum AreaDisplayHelpers {
     static func statusIcons(from area: AreaEntity) -> [AreaStatusIcon] {
         var icons: [AreaStatusIcon] = []
 
-        // Status indicators must ignore user-hidden entities, mirroring the grid.
-        let lights = area.lights.filter { !$0.isHidden }
-        let covers = area.covers.filter { !$0.isHidden }
+        // Status indicators must ignore HA-hidden and locally-hidden entities,
+        // mirroring the grid.
+        let lights = area.lights.filter { !$0.isHidden && !$0.isHiddenInHA }
+        let covers = area.covers.filter { !$0.isHidden && !$0.isHiddenInHA }
 
         if !lights.isEmpty {
             let anyOn = lights.contains { $0.state == .on && $0.isAvailable }
@@ -57,7 +58,7 @@ enum AreaDisplayHelpers {
         }
 
         let relevantSensors = area.binarySensors.filter {
-            !$0.isHidden && [.motion, .door, .window].contains($0.deviceClass)
+            !$0.isHidden && !$0.isHiddenInHA && [.motion, .door, .window].contains($0.deviceClass)
         }
         if !relevantSensors.isEmpty {
             let activeSensor = relevantSensors.first { $0.state == .on && $0.isAvailable }

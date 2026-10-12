@@ -68,7 +68,7 @@ extension BinarySensorCardViewModel {
         ViewModelFactory.Registration(
             domain: BinarySensorEntity.domain,
             makeViewModelsForArea: { area in
-                area.binarySensors.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.binarySensors.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     BinarySensorCardViewModel(binarySensor: $0)
                 }
             },
