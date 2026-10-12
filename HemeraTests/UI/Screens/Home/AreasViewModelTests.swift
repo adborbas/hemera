@@ -174,6 +174,41 @@ struct AreasViewModelTests {
         #expect(displayed.map(\.areaId) == ["living_room"])
     }
 
+    // An area whose every entity is user-hidden must drop off the Areas list —
+    // otherwise its card would open an empty detail grid.
+    @Test
+    func displayedAreas_areaWithAllEntitiesHidden_isFiltered() {
+        let area = AreaEntity(areaId: "den", name: "Den")
+        let light = LightEntity(entityId: "light.den", name: "Den Lamp", state: .off)
+        light.isHidden = true
+        light.area = area
+        context.insert(area)
+        context.insert(light)
+
+        let vm = makeViewModel()
+
+        #expect(vm.displayedAreas(from: [area]).isEmpty)
+    }
+
+    // A single visible entity is enough to keep the area on the list, even when
+    // its siblings are hidden.
+    @Test
+    func displayedAreas_areaWithSomeVisibleEntities_isIncluded() {
+        let area = AreaEntity(areaId: "den", name: "Den")
+        let hidden = LightEntity(entityId: "light.den_hidden", name: "Hidden", state: .off)
+        hidden.isHidden = true
+        hidden.area = area
+        let visible = LightEntity(entityId: "light.den_visible", name: "Visible", state: .off)
+        visible.area = area
+        context.insert(area)
+        context.insert(hidden)
+        context.insert(visible)
+
+        let vm = makeViewModel()
+
+        #expect(vm.displayedAreas(from: [area]).map(\.areaId) == ["den"])
+    }
+
     @Test
     func displayedAreas_emptyArea_isFiltered() {
         let empty = AreaEntity(areaId: "empty", name: "Empty")

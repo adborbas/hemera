@@ -13,6 +13,10 @@ final class BinarySensorCardViewModel: Identifiable {
     var isOn: Bool { binarySensor.state == .on }
     var isAvailable: Bool { binarySensor.isAvailable }
     var deviceId: String? { binarySensor.deviceId }
+    var isHidden: Bool {
+        get { binarySensor.isHidden }
+        set { binarySensor.isHidden = newValue }
+    }
 
     init(binarySensor: BinarySensorEntity) {
         self.id = binarySensor.entityId

@@ -40,20 +40,24 @@ enum AreaDisplayHelpers {
     static func statusIcons(from area: AreaEntity) -> [AreaStatusIcon] {
         var icons: [AreaStatusIcon] = []
 
-        if !area.lights.isEmpty {
-            let anyOn = area.lights.contains { $0.state == .on && $0.isAvailable }
+        // Status indicators must ignore user-hidden entities, mirroring the grid.
+        let lights = area.lights.filter { !$0.isHidden }
+        let covers = area.covers.filter { !$0.isHidden }
+
+        if !lights.isEmpty {
+            let anyOn = lights.contains { $0.state == .on && $0.isAvailable }
             icons.append(AreaStatusIcon(category: .light, iconName: "lightbulb.fill", isActive: anyOn, activeColor: .yellow))
         }
 
-        if let firstCover = area.covers.first {
-            let anyOpen = area.covers.contains { ($0.state == .open || $0.state == .opening) && $0.isAvailable }
+        if let firstCover = covers.first {
+            let anyOpen = covers.contains { ($0.state == .open || $0.state == .opening) && $0.isAvailable }
             let symbolPair = firstCover.deviceClass.symbolPair
             let iconName = anyOpen ? symbolPair.open : symbolPair.closed
             icons.append(AreaStatusIcon(category: .cover, iconName: iconName, isActive: anyOpen, activeColor: .blue))
         }
 
         let relevantSensors = area.binarySensors.filter {
-            [.motion, .door, .window].contains($0.deviceClass)
+            !$0.isHidden && [.motion, .door, .window].contains($0.deviceClass)
         }
         if !relevantSensors.isEmpty {
             let activeSensor = relevantSensors.first { $0.state == .on && $0.isAvailable }

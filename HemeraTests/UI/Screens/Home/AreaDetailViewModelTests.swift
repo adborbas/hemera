@@ -36,6 +36,16 @@ struct AreaDetailViewModelTests {
         )
         haWebViewPresenter = HAWebViewPresenter(authManager: authManager)
         let factory = ViewModelFactory(context: context, container: container)
+        let controller = MockController()
+        factory.registerAllDomains(
+            lightController: controller,
+            coverController: controller,
+            sceneController: controller,
+            switchController: controller,
+            buttonController: controller,
+            automationController: controller,
+            climateController: controller
+        )
         viewModel = AreaDetailViewModel(
             destination: .area(area),
             isDemoMode: false,
@@ -43,6 +53,53 @@ struct AreaDetailViewModelTests {
             haWebViewPresenter: haWebViewPresenter,
             viewModelFactory: factory
         )
+    }
+
+    // MARK: - Hidden Entity Filtering
+
+    private func insertLight(_ entityId: String, hidden: Bool) {
+        let light = LightEntity(entityId: entityId, name: entityId, state: .off)
+        light.isHidden = hidden
+        light.area = area
+        context.insert(light)
+    }
+
+    private func sectionEntityIds(includingHidden: Bool) -> Set<String> {
+        Set(viewModel.sections(for: area, includingHidden: includingHidden)
+            .flatMap { $0.vmsByTileId.values.map(\.id) })
+    }
+
+    // Hidden entities must be absent from the normal grid — that is the whole
+    // point of hiding; a hidden light should never render in the area detail.
+    @Test
+    func sections_whenNotIncludingHidden_dropsHiddenEntities() {
+        insertLight("light.visible", hidden: false)
+        insertLight("light.hidden", hidden: true)
+
+        #expect(sectionEntityIds(includingHidden: false) == ["light.visible"])
+    }
+
+    // In Show/Hide mode the grid must still surface hidden entities, otherwise
+    // there would be no way to un-hide one once it is hidden.
+    @Test
+    func sections_whenIncludingHidden_keepsHiddenEntities() {
+        insertLight("light.visible", hidden: false)
+        insertLight("light.hidden", hidden: true)
+
+        #expect(sectionEntityIds(includingHidden: true) == ["light.visible", "light.hidden"])
+    }
+
+    // Toggling via the card view model must write through to the backing @Model,
+    // since the hide flag lives on the entity and drives filtering + persistence.
+    @Test
+    func isHidden_setViaCardViewModel_writesThroughToEntity() {
+        let light = LightEntity(entityId: "light.lamp", name: "Lamp", state: .off)
+        context.insert(light)
+        let vm = LightCardViewModel(light: light, controller: MockController())
+
+        #expect(vm.isHidden == false)
+        vm.isHidden = true
+        #expect(light.isHidden == true)
     }
 
     // MARK: - Home Tile Delegation

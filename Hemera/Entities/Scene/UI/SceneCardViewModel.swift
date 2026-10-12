@@ -11,6 +11,10 @@ final class SceneCardViewModel: Identifiable {
     var name: String { scene.name }
     var isAvailable: Bool { scene.isAvailable }
     var deviceId: String? { scene.deviceId }
+    var isHidden: Bool {
+        get { scene.isHidden }
+        set { scene.isHidden = newValue }
+    }
 
     var iconName: String {
         if let icon = scene.icon,

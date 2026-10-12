@@ -13,6 +13,10 @@ final class SwitchCardViewModel: Identifiable {
     var isOn: Bool { switchEntity.isOn }
     var isAvailable: Bool { switchEntity.isAvailable }
     var deviceId: String? { switchEntity.deviceId }
+    var isHidden: Bool {
+        get { switchEntity.isHidden }
+        set { switchEntity.isHidden = newValue }
+    }
     var deviceClass: SwitchEntity.DeviceClass { switchEntity.deviceClass }
 
     var iconName: String {

@@ -12,6 +12,7 @@ final class SceneEntity: StoredEntity {
     var icon: String?
     var deviceId: String?
     var isAvailable: Bool = true
+    var isHidden: Bool = false
     var area: AreaEntity?
 
     convenience init(entityId: String) {

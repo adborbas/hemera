@@ -14,6 +14,7 @@ final class AutomationEntity: StoredEntity {
     var icon: String?
     var deviceId: String?
     var isAvailable: Bool = true
+    var isHidden: Bool = false
     var area: AreaEntity?
 
     var isOn: Bool { state == .on }

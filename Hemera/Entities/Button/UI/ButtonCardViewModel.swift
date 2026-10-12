@@ -12,6 +12,10 @@ final class ButtonCardViewModel: Identifiable {
     var name: String { button.name }
     var isAvailable: Bool { button.isAvailable }
     var deviceId: String? { button.deviceId }
+    var isHidden: Bool {
+        get { button.isHidden }
+        set { button.isHidden = newValue }
+    }
     var requiresConfirmation: Bool { button.deviceClass.requiresConfirmation }
 
     var iconName: String {

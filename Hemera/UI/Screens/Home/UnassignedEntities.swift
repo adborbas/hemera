@@ -6,21 +6,21 @@ import SwiftUI
 /// (entity-ID list). Keeping the predicates in one place avoids drift.
 struct UnassignedEntities<Content: View>: View {
 
-    @Query(filter: #Predicate<LightEntity> { $0.area == nil && $0.isAvailable == true }, sort: \LightEntity.entityId)
+    @Query(filter: #Predicate<LightEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \LightEntity.entityId)
     private var lights: [LightEntity]
-    @Query(filter: #Predicate<CoverEntity> { $0.area == nil && $0.isAvailable == true }, sort: \CoverEntity.entityId)
+    @Query(filter: #Predicate<CoverEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \CoverEntity.entityId)
     private var covers: [CoverEntity]
-    @Query(filter: #Predicate<SceneEntity> { $0.area == nil && $0.isAvailable == true }, sort: \SceneEntity.entityId)
+    @Query(filter: #Predicate<SceneEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \SceneEntity.entityId)
     private var scenes: [SceneEntity]
-    @Query(filter: #Predicate<SwitchEntity> { $0.area == nil && $0.isAvailable == true }, sort: \SwitchEntity.entityId)
+    @Query(filter: #Predicate<SwitchEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \SwitchEntity.entityId)
     private var switches: [SwitchEntity]
-    @Query(filter: #Predicate<ButtonEntity> { $0.area == nil && $0.isAvailable == true }, sort: \ButtonEntity.entityId)
+    @Query(filter: #Predicate<ButtonEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \ButtonEntity.entityId)
     private var buttons: [ButtonEntity]
-    @Query(filter: #Predicate<AutomationEntity> { $0.area == nil && $0.isAvailable == true }, sort: \AutomationEntity.entityId)
+    @Query(filter: #Predicate<AutomationEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \AutomationEntity.entityId)
     private var automations: [AutomationEntity]
-    @Query(filter: #Predicate<BinarySensorEntity> { $0.area == nil && $0.isAvailable == true }, sort: \BinarySensorEntity.entityId)
+    @Query(filter: #Predicate<BinarySensorEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \BinarySensorEntity.entityId)
     private var binarySensors: [BinarySensorEntity]
-    @Query(filter: #Predicate<ClimateEntity> { $0.area == nil && $0.isAvailable == true }, sort: \ClimateEntity.entityId)
+    @Query(filter: #Predicate<ClimateEntity> { $0.area == nil && $0.isAvailable == true && $0.isHidden == false }, sort: \ClimateEntity.entityId)
     private var climates: [ClimateEntity]
 
     let content: (UnassignedEntitiesSummary) -> Content

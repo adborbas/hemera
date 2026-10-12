@@ -24,6 +24,7 @@ final class LightEntity: StoredEntity {
     var isOn: Bool { state == .on }
     var deviceId: String?
     var isAvailable: Bool = true
+    var isHidden: Bool = false
     var area: AreaEntity?
 
     convenience init(entityId: String) {

@@ -10,6 +10,7 @@ struct AreaDetailView: View {
     @Namespace private var overlayTransition
     @State private var showClimateSubtitle = true
     @State private var overlayItem: OverlayItem?
+    @State private var isHideMode = false
 
     var body: some View {
         Group {
@@ -21,21 +22,30 @@ struct AreaDetailView: View {
                     overlayItem: $overlayItem,
                     showClimateSubtitle: $showClimateSubtitle,
                     overlayTransition: overlayTransition,
-                    horizontalSizeClass: horizontalSizeClass
+                    horizontalSizeClass: horizontalSizeClass,
+                    isHideMode: $isHideMode
                 )
             case .unassigned:
                 UnassignedContentView(
                     viewModel: viewModel,
                     overlayItem: $overlayItem,
                     overlayTransition: overlayTransition,
-                    horizontalSizeClass: horizontalSizeClass
+                    horizontalSizeClass: horizontalSizeClass,
+                    isHideMode: $isHideMode
                 )
             }
         }
         .navigationTitle(viewModel.areaName)
         .navigationBarTitleDisplayMode(.large)
+        .animation(Mortar.Motion.springNormal, value: isHideMode)
         .toolbar {
-            if !viewModel.isDemoMode, !viewModel.isVirtualArea {
+            if isHideMode {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(Localization.done) {
+                        withAnimation { isHideMode = false }
+                    }
+                }
+            } else if !viewModel.isDemoMode, !viewModel.isVirtualArea {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
@@ -74,6 +84,7 @@ private struct AreaContentView: View {
     @Binding var showClimateSubtitle: Bool
     let overlayTransition: Namespace.ID
     let horizontalSizeClass: UserInterfaceSizeClass?
+    @Binding var isHideMode: Bool
 
     private var climateLabel: String? {
         let (temp, humidity) = AreaDisplayHelpers.climateSummary(from: area.sensors)
@@ -102,7 +113,7 @@ private struct AreaContentView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(viewModel.sections(for: area).enumerated()), id: \.element.id) { index, section in
+                    ForEach(Array(viewModel.sections(for: area, includingHidden: isHideMode).enumerated()), id: \.element.id) { index, section in
                         AreaDetailSection(
                             section: section,
                             viewModel: viewModel,
@@ -110,7 +121,8 @@ private struct AreaContentView: View {
                             overlayTransition: overlayTransition,
                             columns: columns,
                             containerWidth: proxy.size.width,
-                            isFirst: index == 0
+                            isFirst: index == 0,
+                            isHideMode: $isHideMode
                         )
                     }
                 }
@@ -131,6 +143,7 @@ private struct UnassignedContentView: View {
     @Binding var overlayItem: OverlayItem?
     let overlayTransition: Namespace.ID
     let horizontalSizeClass: UserInterfaceSizeClass?
+    @Binding var isHideMode: Bool
 
     var body: some View {
         UnassignedEntities { unassigned in
@@ -142,7 +155,7 @@ private struct UnassignedContentView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(viewModel.sections(forUnassignedEntityIds: unassigned.entityIds).enumerated()), id: \.element.id) { index, section in
+                        ForEach(Array(viewModel.sections(forUnassignedEntityIds: unassigned.entityIds, includingHidden: isHideMode).enumerated()), id: \.element.id) { index, section in
                             AreaDetailSection(
                                 section: section,
                                 viewModel: viewModel,
@@ -150,7 +163,8 @@ private struct UnassignedContentView: View {
                                 overlayTransition: overlayTransition,
                                 columns: columns,
                                 containerWidth: proxy.size.width,
-                                isFirst: index == 0
+                                isFirst: index == 0,
+                                isHideMode: $isHideMode
                             )
                         }
                     }
@@ -171,6 +185,7 @@ private struct AreaDetailSection: View {
     let columns: Int
     let containerWidth: CGFloat
     let isFirst: Bool
+    @Binding var isHideMode: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -192,29 +207,41 @@ private struct AreaDetailSection: View {
     @ViewBuilder
     private func tileView(for tile: Tile) -> some View {
         if let vm = section.vmsByTileId[tile.id] {
-            vm.makeCardView()
-                .matchedTransitionSource(id: vm.id, in: overlayTransition)
-                .onTapGesture {
-                    if let target = viewModel.viewModelFactory.handleCardTap(entityId: vm.id) {
-                        overlayItem = OverlayItem(id: target.id, viewModel: target)
-                    }
-                }
-                .contextMenu {
-                    if !viewModel.isOnHome(entityId: vm.id) {
-                        Button {
-                            viewModel.addToHome(entityId: vm.id)
-                        } label: {
-                            Label(Localization.addToHome, systemImage: "plus")
+            if isHideMode {
+                hideModeTile(for: vm)
+            } else {
+                vm.makeCardView()
+                    .matchedTransitionSource(id: vm.id, in: overlayTransition)
+                    .onTapGesture {
+                        if let target = viewModel.viewModelFactory.handleCardTap(entityId: vm.id) {
+                            overlayItem = OverlayItem(id: target.id, viewModel: target)
                         }
                     }
-                    if !viewModel.isDemoMode {
+                    .contextMenu {
                         Button {
-                            viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId)
+                            withAnimation(Mortar.Motion.springNormal) {
+                                isHideMode = true
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
-                            Label(Localization.openInHomeAssistant, systemImage: "globe")
+                            Label(Localization.showHideItems, systemImage: "eye.slash")
+                        }
+                        if !viewModel.isOnHome(entityId: vm.id) {
+                            Button {
+                                viewModel.addToHome(entityId: vm.id)
+                            } label: {
+                                Label(Localization.addToHome, systemImage: "plus")
+                            }
+                        }
+                        if !viewModel.isDemoMode {
+                            Button {
+                                viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId)
+                            } label: {
+                                Label(Localization.openInHomeAssistant, systemImage: "globe")
+                            }
                         }
                     }
-                }
+            }
         } else {
             EntityCard {
                 CardIcon(iconName: "minus", backgroundColor: PlatformColor.systemGray3)
@@ -222,6 +249,61 @@ private struct AreaDetailSection: View {
                 CardLabel(title: tile.title, subtitle: "")
             }
         }
+    }
+
+    /**
+     A card in Show/Hide mode. The card body is inert (`allowsHitTesting(false)`
+     so its own controls never fire); the whole tile instead toggles the entity's
+     hidden state on tap. Hidden tiles dim and show an eye-slash badge.
+    */
+    @ViewBuilder
+    private func hideModeTile(for vm: any EntityCardViewModel) -> some View {
+        vm.makeCardView()
+            .allowsHitTesting(false)
+            .opacity(vm.isHidden ? 0.4 : 1)
+            .overlay(alignment: .bottomTrailing) {
+                HideToggleButton(isHidden: vm.isHidden) {
+                    vm.isHidden.toggle()
+                }
+            }
+            .animation(Mortar.Motion.springNormal, value: vm.isHidden)
+    }
+}
+
+// MARK: - Hide Toggle Button
+
+/**
+ Toggle control shown in Show/Hide mode, positioned and styled like the Home
+ layout resize button. Its icon shows the action it performs — an eye-slash on a
+ shown entity (tap to hide), an open eye on a hidden one (tap to show). The
+ current state is conveyed by the tile dimming, not the icon.
+*/
+private struct HideToggleButton: View {
+    let isHidden: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(
+                isHidden ? Localization.show : Localization.hide,
+                systemImage: isHidden ? "eye" : "eye.slash"
+            )
+            .labelStyle(.iconOnly)
+            .contentTransition(.symbolEffect(.replace))
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: Mortar.IconSize.s, height: Mortar.IconSize.s)
+            .background(
+                Circle()
+                    .fill(.thinMaterial)
+                    .environment(\.colorScheme, .dark)
+            )
+            // Minimum tap target (HIG) around the smaller visible circle.
+            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .transition(.scale.combined(with: .opacity))
     }
 }
 
@@ -231,11 +313,20 @@ private extension AreaDetailView {
     enum Localization {
         static let moreOptions = String(localized: "More Options", comment: "Toolbar button to show additional actions for an area")
         static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
+        static let done = String(localized: "Done", comment: "Toolbar button that exits the show/hide-items editing mode for an area")
+    }
+}
+
+private extension HideToggleButton {
+    enum Localization {
+        static let hide = String(localized: "Hide", comment: "Accessibility label for the button that hides a currently-shown entity in show/hide mode")
+        static let show = String(localized: "Show", comment: "Accessibility label for the button that reveals a currently-hidden entity in show/hide mode")
     }
 }
 
 private extension AreaDetailSection {
     enum Localization {
+        static let showHideItems = String(localized: "Show/Hide Items", comment: "Context menu action that enters a mode for hiding or revealing entities in an area")
         static let addToHome = String(localized: "Add to Home", comment: "Context menu action to pin an entity to the Home screen")
         static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
     }

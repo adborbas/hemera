@@ -79,6 +79,10 @@ final class LightCardViewModel: Identifiable {
     var isOn: Bool { light.isOn }
     var isAvailable: Bool { light.isAvailable }
     var deviceId: String? { light.deviceId }
+    var isHidden: Bool {
+        get { light.isHidden }
+        set { light.isHidden = newValue }
+    }
 
     var iconName: String {
         if let icon = light.icon,

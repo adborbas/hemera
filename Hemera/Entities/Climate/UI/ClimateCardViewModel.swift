@@ -12,6 +12,10 @@ final class ClimateCardViewModel: Identifiable {
     var name: String { climate.name }
     var isAvailable: Bool { climate.isAvailable }
     var deviceId: String? { climate.deviceId }
+    var isHidden: Bool {
+        get { climate.isHidden }
+        set { climate.isHidden = newValue }
+    }
 
     private let cooldown: CommitCooldown
     private let controller: ClimateControlling

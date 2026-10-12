@@ -33,6 +33,7 @@ final class ClimateEntity: StoredEntity {
     var icon: String?
     var deviceId: String?
     var isAvailable: Bool = true
+    var isHidden: Bool = false
     var area: AreaEntity?
 
     var supportedFeatures: SupportedFeatures {

@@ -24,6 +24,10 @@ final class CoverCardViewModel: Identifiable {
     var name: String { cover.name }
     var isAvailable: Bool { cover.isAvailable }
     var deviceId: String? { cover.deviceId }
+    var isHidden: Bool {
+        get { cover.isHidden }
+        set { cover.isHidden = newValue }
+    }
     var position: Int? { cover.currentPosition }
     var state: CoverEntity.State { cover.state }
 

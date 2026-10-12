@@ -13,6 +13,10 @@ final class AutomationCardViewModel: Identifiable {
     var isOn: Bool { automation.isOn }
     var isAvailable: Bool { automation.isAvailable }
     var deviceId: String? { automation.deviceId }
+    var isHidden: Bool {
+        get { automation.isHidden }
+        set { automation.isHidden = newValue }
+    }
     var lastTriggered: Date? { automation.lastTriggered }
 
     var iconName: String {
