@@ -10,6 +10,10 @@ struct SectionGrid<Content: View>: View {
     let containerWidth: CGFloat
     @Binding var isEditing: Bool
     var onReorder: (([Tile.ID]) -> Void)?
+    /// When true, tile reflow and insertion/removal animate even outside drag
+    /// editing. Used by the Areas Show/Hide grid, which never drag-edits but
+    /// wants hidden items to grow/fade into place as they are revealed or removed.
+    var animatesTileChanges: Bool = false
     let content: (Tile) -> Content
 
     @State private var engine: TileGridEngine?
@@ -111,7 +115,7 @@ struct SectionGrid<Content: View>: View {
                 .frame(width: size.width, height: size.height)
                 .offset(x: visualOrigin.x, y: visualOrigin.y)
                 .animation(
-                    isDragging || !isEditing ? nil : Mortar.Motion.springSnappy,
+                    isDragging || (!isEditing && !animatesTileChanges) ? nil : Mortar.Motion.springSnappy,
                     value: CGRect(origin: visualOrigin, size: size)
                 )
                 .scaleEffect(isDragging ? 1.03 : 1.0)
@@ -119,6 +123,7 @@ struct SectionGrid<Content: View>: View {
                 .zIndex(isDragging ? 1 : 0)
                 .highPriorityGesture(dragGesture(for: placement.id, metrics: metrics))
                 .allowsHitTesting(snapshot.draggingID == nil || isDragging)
+                .transition(animatesTileChanges ? .opacity : .identity)
         }
     }
 

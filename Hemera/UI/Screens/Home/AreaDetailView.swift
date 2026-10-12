@@ -37,12 +37,11 @@ struct AreaDetailView: View {
         }
         .navigationTitle(viewModel.areaName)
         .navigationBarTitleDisplayMode(.large)
-        .animation(Mortar.Motion.springNormal, value: isHideMode)
         .toolbar {
             if isHideMode {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Localization.done) {
-                        withAnimation { isHideMode = false }
+                        isHideMode = false
                     }
                 }
             } else if !viewModel.isDemoMode, !viewModel.isVirtualArea {
@@ -199,6 +198,9 @@ private struct AreaDetailSection: View {
                 columns: columns,
                 containerWidth: containerWidth,
                 isEditing: .constant(false),
+                // Animate reflow + fade/scale tiles in and out as Show/Hide mode
+                // reveals or removes hidden items (the grid is never drag-editing here).
+                animatesTileChanges: true,
                 content: { tile in tileView(for: tile) }
             )
         }
@@ -219,9 +221,7 @@ private struct AreaDetailSection: View {
                     }
                     .contextMenu {
                         Button {
-                            withAnimation(Mortar.Motion.springNormal) {
-                                isHideMode = true
-                            }
+                            isHideMode = true
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             Label(Localization.showHideItems, systemImage: "eye.slash")
