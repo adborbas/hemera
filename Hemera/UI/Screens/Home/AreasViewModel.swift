@@ -77,20 +77,21 @@ final class AreasViewModel {
 
     // MARK: - Grid Filtering
 
-    /// Areas that have at least one visible entity (or climate data) to display.
-    /// Empty areas — and areas whose every entity is user-hidden — are dropped
-    /// from the grid. Climate-sensor data still keeps an area, since sensors are
-    /// not user-hideable.
+    /**
+     Areas with at least one entity (or climate data) to display. Empty areas are
+     dropped; an area whose entities are all hidden still shows (with no status
+     icons) so it stays reachable to reveal hidden items.
+    */
     func displayedAreas(from areas: [AreaEntity]) -> [AreaEntity] {
         areas.filter { area in
-            area.lights.contains { !$0.isHidden }
-                || area.covers.contains { !$0.isHidden }
-                || area.scenes.contains { !$0.isHidden }
-                || area.switches.contains { !$0.isHidden }
-                || area.buttons.contains { !$0.isHidden }
-                || area.automations.contains { !$0.isHidden }
-                || area.binarySensors.contains { !$0.isHidden }
-                || area.climates.contains { !$0.isHidden }
+            !area.lights.isEmpty
+                || !area.covers.isEmpty
+                || !area.scenes.isEmpty
+                || !area.switches.isEmpty
+                || !area.buttons.isEmpty
+                || !area.automations.isEmpty
+                || !area.binarySensors.isEmpty
+                || !area.climates.isEmpty
                 || hasClimateData(in: area)
         }
     }

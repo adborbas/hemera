@@ -174,10 +174,11 @@ struct AreasViewModelTests {
         #expect(displayed.map(\.areaId) == ["living_room"])
     }
 
-    // An area whose every entity is user-hidden must drop off the Areas list —
-    // otherwise its card would open an empty detail grid.
+    // An area whose entities are all hidden stays on the list so it remains
+    // reachable — the detail view then offers a CTA to reveal them. Dropping it
+    // would be a permanent dead-end since hiding is a local-only preference.
     @Test
-    func displayedAreas_areaWithAllEntitiesHidden_isFiltered() {
+    func displayedAreas_areaWithAllEntitiesHidden_staysForRecovery() {
         let area = AreaEntity(areaId: "den", name: "Den")
         let light = LightEntity(entityId: "light.den", name: "Den Lamp", state: .off)
         light.isHidden = true
@@ -187,7 +188,7 @@ struct AreasViewModelTests {
 
         let vm = makeViewModel()
 
-        #expect(vm.displayedAreas(from: [area]).isEmpty)
+        #expect(vm.displayedAreas(from: [area]).map(\.areaId) == ["den"])
     }
 
     // A single visible entity is enough to keep the area on the list, even when

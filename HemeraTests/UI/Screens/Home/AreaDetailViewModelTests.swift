@@ -102,6 +102,23 @@ struct AreaDetailViewModelTests {
         #expect(light.isHidden == true)
     }
 
+    // Drives the all-items-hidden placeholder: true when the area still has
+    // hidden entities to reveal, false otherwise.
+    @Test
+    func hasHiddenEntities_whenAnyHidden_isTrue() {
+        insertLight("light.visible", hidden: false)
+        insertLight("light.hidden", hidden: true)
+
+        #expect(viewModel.hasHiddenEntities(for: area) == true)
+    }
+
+    @Test
+    func hasHiddenEntities_whenNoneHidden_isFalse() {
+        insertLight("light.a", hidden: false)
+
+        #expect(viewModel.hasHiddenEntities(for: area) == false)
+    }
+
     // MARK: - Home Tile Delegation
 
     @Test

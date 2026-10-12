@@ -55,19 +55,33 @@ struct UnassignedEntitiesSummary {
     let binarySensors: [BinarySensorEntity]
     let climates: [ClimateEntity]
 
-    /// Whether the virtual "Other" area should appear in the Areas list.
-    /// Discounts user-hidden entities — an all-hidden Other area is dropped —
-    /// while `entityIds` still carries hidden entities so Show/Hide mode can
-    /// reveal them in the detail grid.
+    /**
+     Whether the virtual "Other" area has any entities at all. It stays in the
+     Areas list even when every entity is hidden, so the all-items-hidden
+     placeholder can offer a way back into Show/Hide mode. `entityIds` likewise
+     carries hidden entities so Show/Hide mode can reveal them.
+    */
     var hasAny: Bool {
-        lights.contains { !$0.isHidden }
-            || covers.contains { !$0.isHidden }
-            || scenes.contains { !$0.isHidden }
-            || switches.contains { !$0.isHidden }
-            || buttons.contains { !$0.isHidden }
-            || automations.contains { !$0.isHidden }
-            || binarySensors.contains { !$0.isHidden }
-            || climates.contains { !$0.isHidden }
+        !lights.isEmpty
+            || !covers.isEmpty
+            || !scenes.isEmpty
+            || !switches.isEmpty
+            || !buttons.isEmpty
+            || !automations.isEmpty
+            || !binarySensors.isEmpty
+            || !climates.isEmpty
+    }
+
+    /// Whether any unassigned entity is hidden — drives the all-items-hidden placeholder.
+    var hasHidden: Bool {
+        lights.contains { $0.isHidden }
+            || covers.contains { $0.isHidden }
+            || scenes.contains { $0.isHidden }
+            || switches.contains { $0.isHidden }
+            || buttons.contains { $0.isHidden }
+            || automations.contains { $0.isHidden }
+            || binarySensors.contains { $0.isHidden }
+            || climates.contains { $0.isHidden }
     }
 
     var entityIds: [String] {

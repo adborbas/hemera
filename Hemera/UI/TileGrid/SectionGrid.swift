@@ -10,9 +10,11 @@ struct SectionGrid<Content: View>: View {
     let containerWidth: CGFloat
     @Binding var isEditing: Bool
     var onReorder: (([Tile.ID]) -> Void)?
-    /// When true, tile reflow and insertion/removal animate even outside drag
-    /// editing. Used by the Areas Show/Hide grid, which never drag-edits but
-    /// wants hidden items to grow/fade into place as they are revealed or removed.
+    /**
+     When true, tile reflow and insertion/removal animate even outside drag
+     editing. Used by the Areas Show/Hide grid, which never drag-edits but wants
+     hidden items to fade into place as they are revealed or removed.
+    */
     var animatesTileChanges: Bool = false
     let content: (Tile) -> Content
 

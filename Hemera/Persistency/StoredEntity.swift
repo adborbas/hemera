@@ -29,11 +29,13 @@ protocol StoredEntity: PersistentModel {
     /// the entity was not present in the last full sync from the server.
     var isAvailable: Bool { get set }
 
-    /// Whether the user has hidden this entity from the Areas tab.
-    ///
-    /// Local-only Hemera preference — unrelated to Home Assistant's own entity
-    /// visibility. Hidden entities are dropped from the area-detail grid and the
-    /// Areas list, but remain fully functional elsewhere (e.g. pinned Home tiles).
+    /**
+     Whether the user has hidden this entity from the Areas tab.
+
+     Local-only Hemera preference — unrelated to Home Assistant's own entity
+     visibility. Hidden entities are dropped from the area-detail grid, but remain
+     fully functional elsewhere (e.g. pinned Home tiles).
+    */
     var isHidden: Bool { get set }
 
     /// Returns a predicate matching a single entity by its entityId.
