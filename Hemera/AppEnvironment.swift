@@ -61,6 +61,7 @@ private extension AppEnvironment {
         registry.register(LightEntity.self)
         registry.register(CoverEntity.self)
         registry.register(SceneEntity.self)
+        registry.register(ScriptEntity.self)
         registry.register(SensorEntity.self)
         registry.register(BinarySensorEntity.self)
         registry.register(SwitchEntity.self)

@@ -16,7 +16,7 @@ struct AreaDetailViewModelTests {
 
     init() {
         let schema = Schema([
-            LightEntity.self, CoverEntity.self, SceneEntity.self, SensorEntity.self,
+            LightEntity.self, CoverEntity.self, SceneEntity.self, ScriptEntity.self, SensorEntity.self,
             SwitchEntity.self, ButtonEntity.self, AutomationEntity.self, BinarySensorEntity.self,
             ClimateEntity.self, AreaEntity.self, FloorEntity.self, HomeTile.self
         ])
@@ -41,6 +41,7 @@ struct AreaDetailViewModelTests {
             lightController: controller,
             coverController: controller,
             sceneController: controller,
+            scriptController: controller,
             switchController: controller,
             buttonController: controller,
             automationController: controller,

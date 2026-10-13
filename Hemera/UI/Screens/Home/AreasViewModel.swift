@@ -88,6 +88,7 @@ final class AreasViewModel {
             area.lights.contains { !$0.isHiddenInHA }
                 || area.covers.contains { !$0.isHiddenInHA }
                 || area.scenes.contains { !$0.isHiddenInHA }
+                || area.scripts.contains { !$0.isHiddenInHA }
                 || area.switches.contains { !$0.isHiddenInHA }
                 || area.buttons.contains { !$0.isHiddenInHA }
                 || area.automations.contains { !$0.isHiddenInHA }

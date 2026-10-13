@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Aggregates the eight unassigned-by-domain `@Query` results used by both
+/// Aggregates the nine unassigned-by-domain `@Query` results used by both
 /// the Areas grid (presence check) and the unassigned detail view
 /// (entity-ID list). Keeping the predicates in one place avoids drift.
 struct UnassignedEntities<Content: View>: View {
@@ -12,6 +12,8 @@ struct UnassignedEntities<Content: View>: View {
     private var covers: [CoverEntity]
     @Query(filter: #Predicate<SceneEntity> { $0.area == nil && $0.isAvailable == true && $0.isHiddenInHA == false }, sort: \SceneEntity.entityId)
     private var scenes: [SceneEntity]
+    @Query(filter: #Predicate<ScriptEntity> { $0.area == nil && $0.isAvailable == true && $0.isHiddenInHA == false }, sort: \ScriptEntity.entityId)
+    private var scripts: [ScriptEntity]
     @Query(filter: #Predicate<SwitchEntity> { $0.area == nil && $0.isAvailable == true && $0.isHiddenInHA == false }, sort: \SwitchEntity.entityId)
     private var switches: [SwitchEntity]
     @Query(filter: #Predicate<ButtonEntity> { $0.area == nil && $0.isAvailable == true && $0.isHiddenInHA == false }, sort: \ButtonEntity.entityId)
@@ -35,6 +37,7 @@ struct UnassignedEntities<Content: View>: View {
                 lights: lights,
                 covers: covers,
                 scenes: scenes,
+                scripts: scripts,
                 switches: switches,
                 buttons: buttons,
                 automations: automations,
@@ -49,6 +52,7 @@ struct UnassignedEntitiesSummary {
     let lights: [LightEntity]
     let covers: [CoverEntity]
     let scenes: [SceneEntity]
+    let scripts: [ScriptEntity]
     let switches: [SwitchEntity]
     let buttons: [ButtonEntity]
     let automations: [AutomationEntity]
@@ -65,6 +69,7 @@ struct UnassignedEntitiesSummary {
         !lights.isEmpty
             || !covers.isEmpty
             || !scenes.isEmpty
+            || !scripts.isEmpty
             || !switches.isEmpty
             || !buttons.isEmpty
             || !automations.isEmpty
@@ -77,6 +82,7 @@ struct UnassignedEntitiesSummary {
         lights.contains { $0.isHidden }
             || covers.contains { $0.isHidden }
             || scenes.contains { $0.isHidden }
+            || scripts.contains { $0.isHidden }
             || switches.contains { $0.isHidden }
             || buttons.contains { $0.isHidden }
             || automations.contains { $0.isHidden }
@@ -89,6 +95,7 @@ struct UnassignedEntitiesSummary {
         ids += lights.map(\.entityId)
         ids += covers.map(\.entityId)
         ids += scenes.map(\.entityId)
+        ids += scripts.map(\.entityId)
         ids += switches.map(\.entityId)
         ids += buttons.map(\.entityId)
         ids += automations.map(\.entityId)

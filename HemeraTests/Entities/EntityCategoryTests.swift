@@ -11,6 +11,7 @@ struct EntityCategoryTests {
         #expect(EntityCategory.from(entityId: "switch.coffee") == .controls)
         #expect(EntityCategory.from(entityId: "button.restart") == .controls)
         #expect(EntityCategory.from(entityId: "scene.movie_night") == .controls)
+        #expect(EntityCategory.from(entityId: "script.movie_time") == .controls)
         #expect(EntityCategory.from(entityId: "automation.motion_lights") == .controls)
         #expect(EntityCategory.from(entityId: "binary_sensor.motion") == .sensors)
     }
