@@ -269,18 +269,18 @@ private struct AreaDetailSection: View {
                         }
                     }
                     .contextMenu {
-                        if !viewModel.isDemoMode {
-                            Button {
-                                onEnterHideMode()
-                            } label: {
-                                Label(Localization.showHideItems, systemImage: "eye.slash")
-                            }
-                        }
                         if !viewModel.isOnHome(entityId: vm.id) {
                             Button {
                                 viewModel.addToHome(entityId: vm.id)
                             } label: {
                                 Label(Localization.addToHome, systemImage: "plus")
+                            }
+                        }
+                        if !viewModel.isDemoMode {
+                            Button {
+                                onEnterHideMode()
+                            } label: {
+                                Label(Localization.showHideItems, systemImage: "eye.slash")
                             }
                         }
                         if !viewModel.isDemoMode {
