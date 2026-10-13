@@ -24,6 +24,10 @@ final class CoverCardViewModel: Identifiable {
     var name: String { cover.name }
     var isAvailable: Bool { cover.isAvailable }
     var deviceId: String? { cover.deviceId }
+    var isHidden: Bool {
+        get { cover.isHidden }
+        set { cover.isHidden = newValue }
+    }
     var position: Int? { cover.currentPosition }
     var state: CoverEntity.State { cover.state }
 
@@ -246,7 +250,7 @@ extension CoverCardViewModel {
         ViewModelFactory.Registration(
             domain: CoverEntity.domain,
             makeViewModelsForArea: { area in
-                area.covers.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.covers.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     CoverCardViewModel(cover: $0, controller: controller)
                 }
             },

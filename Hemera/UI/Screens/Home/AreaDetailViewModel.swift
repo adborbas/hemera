@@ -48,18 +48,32 @@ final class AreaDetailViewModel {
 
     // MARK: - Categorization
 
-    /// Builds categorized sections for a real area by enumerating the area's
-    /// relationships through the factory's session-scoped cache.
-    func sections(for area: AreaEntity) -> [CategorizedSection] {
+    /**
+     Builds categorized sections for a real area by enumerating the area's
+     relationships through the factory's session-scoped cache. Hidden entities
+     are dropped unless `includingHidden` is true (the Show/Hide mode, where they
+     must stay visible so they can be un-hidden).
+    */
+    func sections(for area: AreaEntity, includingHidden: Bool) -> [CategorizedSection] {
         let cardVMs = viewModelFactory.makeViewModels(for: area)
-        return CategorizedSection.build(from: cardVMs)
+        return CategorizedSection.build(from: visible(cardVMs, includingHidden: includingHidden))
+    }
+
+    /// Whether the area has at least one hidden entity — drives the all-items-hidden
+    /// placeholder so the user can re-enter Show/Hide mode to reveal them.
+    func hasHiddenEntities(for area: AreaEntity) -> Bool {
+        viewModelFactory.makeViewModels(for: area).contains { $0.isHidden }
     }
 
     /// Builds categorized sections for the virtual unassigned area. The view
     /// supplies the entity IDs from its per-domain `@Query` results.
-    func sections(forUnassignedEntityIds entityIds: [String]) -> [CategorizedSection] {
+    func sections(forUnassignedEntityIds entityIds: [String], includingHidden: Bool) -> [CategorizedSection] {
         let cardVMs = entityIds.compactMap { viewModelFactory.makeViewModel(forEntityId: $0) }
-        return CategorizedSection.build(from: cardVMs)
+        return CategorizedSection.build(from: visible(cardVMs, includingHidden: includingHidden))
+    }
+
+    private func visible(_ vms: [any EntityCardViewModel], includingHidden: Bool) -> [any EntityCardViewModel] {
+        includingHidden ? vms : vms.filter { !$0.isHidden }
     }
 
     // MARK: - Layout

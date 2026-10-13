@@ -32,17 +32,20 @@ struct UnassignedEntities<Content: View>: View {
     }
 
     var body: some View {
+        // HA-hidden entities are filtered here in Swift rather than in the
+        // `@Query` predicates: a third predicate clause pushed the SwiftData
+        // `#Predicate` type-checker past its time budget on clean builds.
         content(
             UnassignedEntitiesSummary(
-                lights: lights,
-                covers: covers,
-                scenes: scenes,
-                scripts: scripts,
-                switches: switches,
-                buttons: buttons,
-                automations: automations,
-                binarySensors: binarySensors,
-                climates: climates
+                lights: lights.filter { !$0.isHiddenInHA },
+                covers: covers.filter { !$0.isHiddenInHA },
+                scenes: scenes.filter { !$0.isHiddenInHA },
+                scripts: scripts.filter { !$0.isHiddenInHA },
+                switches: switches.filter { !$0.isHiddenInHA },
+                buttons: buttons.filter { !$0.isHiddenInHA },
+                automations: automations.filter { !$0.isHiddenInHA },
+                binarySensors: binarySensors.filter { !$0.isHiddenInHA },
+                climates: climates.filter { !$0.isHiddenInHA }
             )
         )
     }
@@ -59,6 +62,12 @@ struct UnassignedEntitiesSummary {
     let binarySensors: [BinarySensorEntity]
     let climates: [ClimateEntity]
 
+    /**
+     Whether the virtual "Other" area has any entities at all. It stays in the
+     Areas list even when every entity is hidden, so the all-items-hidden
+     placeholder can offer a way back into Show/Hide mode. `entityIds` likewise
+     carries hidden entities so Show/Hide mode can reveal them.
+    */
     var hasAny: Bool {
         !lights.isEmpty
             || !covers.isEmpty
@@ -69,6 +78,19 @@ struct UnassignedEntitiesSummary {
             || !automations.isEmpty
             || !binarySensors.isEmpty
             || !climates.isEmpty
+    }
+
+    /// Whether any unassigned entity is hidden — drives the all-items-hidden placeholder.
+    var hasHidden: Bool {
+        lights.contains { $0.isHidden }
+            || covers.contains { $0.isHidden }
+            || scenes.contains { $0.isHidden }
+            || scripts.contains { $0.isHidden }
+            || switches.contains { $0.isHidden }
+            || buttons.contains { $0.isHidden }
+            || automations.contains { $0.isHidden }
+            || binarySensors.contains { $0.isHidden }
+            || climates.contains { $0.isHidden }
     }
 
     var entityIds: [String] {

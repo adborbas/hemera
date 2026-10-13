@@ -77,19 +77,23 @@ final class AreasViewModel {
 
     // MARK: - Grid Filtering
 
-    /// Areas that have at least one entity (or climate data) to display.
-    /// Empty areas are hidden from the grid.
+    /**
+     Areas with at least one HA-visible entity (or climate data) to display.
+     Empty areas — and areas whose entities are all hidden in Home Assistant — are
+     dropped. An area whose entities are only locally hidden still shows (with no
+     status icons) so it stays reachable to reveal them.
+    */
     func displayedAreas(from areas: [AreaEntity]) -> [AreaEntity] {
         areas.filter { area in
-            !area.lights.isEmpty
-                || !area.covers.isEmpty
-                || !area.scenes.isEmpty
-                || !area.scripts.isEmpty
-                || !area.switches.isEmpty
-                || !area.buttons.isEmpty
-                || !area.automations.isEmpty
-                || !area.binarySensors.isEmpty
-                || !area.climates.isEmpty
+            area.lights.contains { !$0.isHiddenInHA }
+                || area.covers.contains { !$0.isHiddenInHA }
+                || area.scenes.contains { !$0.isHiddenInHA }
+                || area.scripts.contains { !$0.isHiddenInHA }
+                || area.switches.contains { !$0.isHiddenInHA }
+                || area.buttons.contains { !$0.isHiddenInHA }
+                || area.automations.contains { !$0.isHiddenInHA }
+                || area.binarySensors.contains { !$0.isHiddenInHA }
+                || area.climates.contains { !$0.isHiddenInHA }
                 || hasClimateData(in: area)
         }
     }

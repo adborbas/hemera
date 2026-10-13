@@ -12,6 +12,10 @@ final class ClimateCardViewModel: Identifiable {
     var name: String { climate.name }
     var isAvailable: Bool { climate.isAvailable }
     var deviceId: String? { climate.deviceId }
+    var isHidden: Bool {
+        get { climate.isHidden }
+        set { climate.isHidden = newValue }
+    }
 
     private let cooldown: CommitCooldown
     private let controller: ClimateControlling
@@ -363,7 +367,7 @@ extension ClimateCardViewModel {
         ViewModelFactory.Registration(
             domain: ClimateEntity.domain,
             makeViewModelsForArea: { area in
-                area.climates.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.climates.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     ClimateCardViewModel(climate: $0, controller: controller)
                 }
             },

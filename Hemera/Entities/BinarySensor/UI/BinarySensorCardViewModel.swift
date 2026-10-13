@@ -13,6 +13,10 @@ final class BinarySensorCardViewModel: Identifiable {
     var isOn: Bool { binarySensor.state == .on }
     var isAvailable: Bool { binarySensor.isAvailable }
     var deviceId: String? { binarySensor.deviceId }
+    var isHidden: Bool {
+        get { binarySensor.isHidden }
+        set { binarySensor.isHidden = newValue }
+    }
 
     init(binarySensor: BinarySensorEntity) {
         self.id = binarySensor.entityId
@@ -64,7 +68,7 @@ extension BinarySensorCardViewModel {
         ViewModelFactory.Registration(
             domain: BinarySensorEntity.domain,
             makeViewModelsForArea: { area in
-                area.binarySensors.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.binarySensors.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     BinarySensorCardViewModel(binarySensor: $0)
                 }
             },

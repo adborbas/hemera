@@ -15,6 +15,12 @@ protocol EntityCardViewModel: AnyObject, Observable, Identifiable where ID == St
     var isAvailable: Bool { get }
     var deviceId: String? { get }
 
+    /**
+     User's local hide preference for this entity (Areas tab only). Settable so
+     Show/Hide mode can toggle it; writes through to the backing `@Model`.
+    */
+    var isHidden: Bool { get set }
+
     /// Creates the card view for this entity.
     @ViewBuilder
     func makeCardView() -> AnyView

@@ -12,6 +12,10 @@ final class ScriptCardViewModel: Identifiable {
     var isAvailable: Bool { script.isAvailable }
     var isRunning: Bool { script.isRunning }
     var deviceId: String? { script.deviceId }
+    var isHidden: Bool {
+        get { script.isHidden }
+        set { script.isHidden = newValue }
+    }
 
     var iconName: String {
         if let icon = script.icon,
@@ -53,7 +57,7 @@ extension ScriptCardViewModel {
         ViewModelFactory.Registration(
             domain: ScriptEntity.domain,
             makeViewModelsForArea: { area in
-                area.scripts.sorted(by: { $0.entityId < $1.entityId }).map {
+                area.scripts.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
                     ScriptCardViewModel(script: $0, controller: controller)
                 }
             },

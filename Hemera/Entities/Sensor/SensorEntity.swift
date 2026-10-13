@@ -15,6 +15,8 @@ final class SensorEntity: StoredEntity {
     var icon: String?
     var deviceId: String?
     var isAvailable: Bool = true
+    var isHidden: Bool = false
+    var isHiddenInHA: Bool = false
     var area: AreaEntity?
 
     convenience init(entityId: String) {
