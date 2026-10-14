@@ -63,32 +63,12 @@ final class ServerURLViewModel {
 // MARK: - Private
 
 private extension ServerURLViewModel {
-    /**
-     Mirrors the normalisation in `ServerSelectionViewModel.connectManual()` — bare hosts
-     default to `http`, since a LAN or VPN address usually has no scheme typed.
-    */
     var normalisedURL: URL? {
-        Self.normalised(urlText)
+        ServerAddress.normalised(urlText)
     }
 
     var normalisedCurrentURL: URL? {
-        currentURL.flatMap { Self.normalised($0.absoluteString) }
-    }
-
-    static func normalised(_ input: String) -> URL? {
-        let trimmed = input
-            .trimmingCharacters(in: .whitespaces)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard !trimmed.isEmpty else { return nil }
-
-        let urlString = trimmed.contains("://") ? trimmed : "http://\(trimmed)"
-        guard let components = URLComponents(string: urlString),
-              let host = components.host, !host.isEmpty,
-              let scheme = components.scheme, ["http", "https"].contains(scheme.lowercased()),
-              let url = components.url else {
-            return nil
-        }
-        return url
+        currentURL.flatMap { ServerAddress.normalised($0.absoluteString) }
     }
 
     enum Localization {

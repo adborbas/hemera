@@ -53,16 +53,7 @@ final class ServerSelectionViewModel {
 
     @discardableResult
     func connectManual() -> Bool {
-        let trimmed = manualURL.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        var urlString = trimmed
-        if !urlString.contains("://") {
-            urlString = "http://\(urlString)"
-        }
-
-        guard let components = URLComponents(string: urlString),
-              let host = components.host, !host.isEmpty,
-              let scheme = components.scheme, ["http", "https"].contains(scheme.lowercased()),
-              let url = components.url else {
+        guard let url = ServerAddress.normalised(manualURL) else {
             errorMessage = Localization.invalidURLWithExample
             return false
         }
