@@ -8,6 +8,7 @@ import UIKit
 
 public enum PlatformColor {
     public static var secondarySystemBackground: Color { Color(UIColor.secondarySystemBackground) }
+    public static var tertiarySystemBackground: Color { Color(UIColor.tertiarySystemBackground) }
     public static var systemGray: Color { Color(UIColor.systemGray) }
     public static var systemGray2: Color { Color(UIColor.systemGray2) }
     public static var systemGray3: Color { Color(UIColor.systemGray3) }
@@ -18,6 +19,7 @@ public enum PlatformColor {
 #else
 public enum PlatformColor {
     public static var secondarySystemBackground: Color { Color.gray.opacity(0.15) }
+    public static var tertiarySystemBackground: Color { Color.gray.opacity(0.1) }
     public static var systemGray: Color { Color.gray }
     public static var systemGray2: Color { Color.gray.opacity(0.7) }
     public static var systemGray3: Color { Color.gray.opacity(0.5) }

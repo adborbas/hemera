@@ -5,6 +5,7 @@ struct ServerSelectionView: View {
 
     @Bindable var viewModel: ServerSelectionViewModel
     @State private var activeSheet: ActiveSheet?
+    @State private var showManualEntry = false
     @State private var isExchangingToken = false
 
     var body: some View {
@@ -20,6 +21,9 @@ struct ServerSelectionView: View {
         }
         .navigationTitle(Localization.title)
         .navigationBarTitleDisplayMode(.large)
+        .navigationDestination(isPresented: $showManualEntry) {
+            ManualEntryView(viewModel: viewModel)
+        }
         .onAppear { viewModel.startDiscovery() }
         .onDisappear { viewModel.stopDiscovery() }
         .alert(Localization.unencryptedTitle, isPresented: $viewModel.showHTTPWarning) {
@@ -50,10 +54,6 @@ struct ServerSelectionView: View {
             }
         }) { sheet in
             switch sheet {
-            case .manualEntry:
-                ManualEntrySheet(viewModel: viewModel) {
-                    activeSheet = nil
-                }
             case .oAuth(let session):
                 NavigationStack {
                     OAuthWebView(url: session.authorizeURL, redirectURI: session.redirectURI) { callbackURL in
@@ -164,7 +164,7 @@ struct ServerSelectionView: View {
             subtitle: Localization.enterManuallySubtitle,
             action: {
                 viewModel.prepareManualEntry()
-                activeSheet = .manualEntry
+                showManualEntry = true
             }
         ) {
             DisclosureIndicator()
@@ -176,12 +176,10 @@ struct ServerSelectionView: View {
 
 private extension ServerSelectionView {
     enum ActiveSheet: Identifiable {
-        case manualEntry
         case oAuth(OAuthFlowManager.AuthSession)
 
         var id: String {
             switch self {
-            case .manualEntry: "manualEntry"
             case .oAuth: "oAuth"
             }
         }

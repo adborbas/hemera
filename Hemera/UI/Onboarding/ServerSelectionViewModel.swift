@@ -147,6 +147,7 @@ final class ServerSelectionViewModel {
         func addOnChangeHandler(_ handler: @escaping (AuthState, AuthChangeReason) -> Void) {}
         func didAuthenticate(with creds: ServerCredentials) {}
         func validAccessToken() async throws -> String { "mock" }
+        func updateServerURL(to url: URL) async throws {}
         func logout() {}
     }
     #endif

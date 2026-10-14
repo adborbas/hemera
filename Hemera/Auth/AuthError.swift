@@ -7,4 +7,8 @@ enum AuthError: Error {
     case noAuthCode
     case unknownCallback
     case invalidServerURL
+    /// The candidate address answered, but did not recognise this session's refresh token.
+    case differentServer
+    /// The candidate address could not be reached at all.
+    case serverUnreachable
 }

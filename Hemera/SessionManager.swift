@@ -8,17 +8,23 @@ protocol ConnectionRetrying: AnyObject {
     func retryConnection()
 }
 
+@MainActor
+protocol ServerURLChanging: AnyObject {
+    func changeServerURL(to url: URL) async throws
+}
+
 /// Manages session lifecycle: HA connections, demo sessions, and teardown.
 ///
 /// Pure wiring — creates session-scoped objects and registers them on ServiceLocator.
 /// No presentation knowledge.
 @MainActor
-final class SessionManager: ConnectionRetrying {
+final class SessionManager: ConnectionRetrying, ServerURLChanging {
 
     // Session-scoped (nil when not authenticated / no demo)
     private(set) var connectionManager: HAConnectionManager?
     private var syncService: HADataSyncService?
     private var demoContainer: ModelContainer?
+    private var serverURLHolder: ServerURLHolder?
 
     private var isResyncing = false
     private var wasBackgrounded = false
@@ -53,6 +59,18 @@ final class SessionManager: ConnectionRetrying {
             Log.info("Resuming session for returning user")
             startSession()
         }
+    }
+
+    /**
+     Re-points the live session at a different address for the same instance.
+
+     Deliberately not a teardown + restart: `tearDownSession()` calls `wipeLocalData()`, which
+     would delete the user's Home layout. Only the URL and the socket change here.
+    */
+    func changeServerURL(to url: URL) async throws {
+        try await authManager.updateServerURL(to: url)
+        serverURLHolder?.update(to: url)
+        retryConnection()
     }
 
     /// Re-attempts the WebSocket connection (e.g. after a timeout).
@@ -161,13 +179,15 @@ private extension SessionManager {
         }
 
         let errorNotifier = ErrorNotifier()
+        let urlHolder = ServerURLHolder(creds.serverURL)
+        serverURLHolder = urlHolder
         let connectionManager = HAConnectionManager(
-            serverURL: creds.serverURL,
+            urlProvider: { urlHolder.current },
             tokenProvider: tokenProvider
         )
         let serviceCaller = HAServiceCaller(connection: connectionManager.connection)
         let restClient = HARESTClient(
-            urlProvider: { creds.serverURL },
+            urlProvider: { urlHolder.current },
             tokenProvider: tokenProvider
         )
 
@@ -227,6 +247,7 @@ private extension SessionManager {
         connectionManager?.disconnect()
         connectionManager = nil
         syncService = nil
+        serverURLHolder = nil
         isResyncing = false
         wasBackgrounded = false
         clearServiceLocator()
