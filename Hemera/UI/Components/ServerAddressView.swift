@@ -1,25 +1,6 @@
 import SwiftUI
 import Mortar
 
-/**
- What happens when an address is submitted.
-
- The two screens diverge entirely here — onboarding starts an OAuth flow, settings validates
- the address and persists it — so each reports what became of the attempt rather than the
- view inferring it.
-*/
-@MainActor
-protocol ServerAddressHandling: AnyObject, Observable {
-    var text: String { get set }
-    var mode: ServerAddressMode { get }
-    var isBusy: Bool { get }
-    var canSubmit: Bool { get }
-    var errorMessage: String? { get }
-
-    /// Returns whether the address was accepted. On rejection the handler shows why via `errorMessage`.
-    func submit() async -> Bool
-}
-
 /// Where the commit action sits — a presentation choice, not a behavioural one.
 enum ServerAddressActionPlacement: Equatable {
     /// Full-width button at the bottom: the primary action of a first-run screen.
