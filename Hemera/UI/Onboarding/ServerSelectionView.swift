@@ -22,7 +22,18 @@ struct ServerSelectionView: View {
         .navigationTitle(Localization.title)
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $showManualEntry) {
-            ManualEntryView(viewModel: viewModel)
+            ServerAddressView(
+                text: $viewModel.manualURL,
+                mode: .initial,
+                isBusy: viewModel.isConnecting,
+                canSubmit: viewModel.canConnect,
+                errorMessage: viewModel.errorMessage,
+                placement: .prominent,
+                // Succeed or fail, stay put: a failure keeps its inline error visible and
+                // a success presents the OAuth sheet over this screen.
+                onSubmit: { viewModel.connectManual() }
+            )
+            .onDisappear { viewModel.errorMessage = nil }
         }
         .onAppear { viewModel.startDiscovery() }
         .onDisappear { viewModel.stopDiscovery() }

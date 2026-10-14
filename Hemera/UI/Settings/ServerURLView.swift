@@ -1,50 +1,26 @@
 import SwiftUI
-import Mortar
 
-/**
- Pushed detail editor, matching how iOS settings hierarchies edit a value: back discards,
- the trailing action commits.
-*/
+/// Owns the view model and the pop-on-success that a `navigationDestination` closure cannot.
 struct ServerURLView: View {
 
     @State var viewModel: ServerURLViewModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: Mortar.Spacing.xl) {
-            ServerAddressForm(
-                text: $viewModel.urlText,
-                mode: viewModel.mode,
-                errorMessage: viewModel.errorMessage,
-                onSubmit: save
-            )
-
-            Spacer()
-        }
-        .padding(Mortar.Spacing.xl)
-        .navigationTitle(viewModel.mode.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                if viewModel.isSaving {
-                    ProgressView()
-                } else {
-                    Button(viewModel.mode.actionTitle, action: save)
-                        .disabled(!viewModel.canSave)
-                }
-            }
-        }
+        ServerAddressView(
+            text: $viewModel.urlText,
+            mode: viewModel.mode,
+            isBusy: viewModel.isSaving,
+            canSubmit: viewModel.canSave,
+            errorMessage: viewModel.errorMessage,
+            placement: .toolbar,
+            onSubmit: { Task { await viewModel.save() } }
+        )
         .onChange(of: viewModel.didSave) { _, didSave in
             if didSave { dismiss() }
         }
     }
-
-    private func save() {
-        Task { await viewModel.save() }
-    }
 }
-
-// MARK: - Preview
 
 #if DEBUG
 private final class PreviewURLChanger: ServerURLChanging {
