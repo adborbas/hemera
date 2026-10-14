@@ -15,10 +15,10 @@ struct ServerURLViewModelTests {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://box.tailnet.ts.net:8123"
 
-        await viewModel.save()
+        let result = await viewModel.save()
 
         #expect(spy.changeCalls == [URL(string: "http://box.tailnet.ts.net:8123")!])
-        #expect(viewModel.didSave)
+        #expect(result == .finished)
         #expect(viewModel.errorMessage == nil)
     }
 
@@ -33,9 +33,9 @@ struct ServerURLViewModelTests {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://someone-elses-ha.example.com:8123"
 
-        await viewModel.save()
+        let result = await viewModel.save()
 
-        #expect(!viewModel.didSave)
+        #expect(result == .failed)
         #expect(viewModel.errorMessage != nil)
     }
 
@@ -45,9 +45,9 @@ struct ServerURLViewModelTests {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://192.168.1.5:8123"
 
-        await viewModel.save()
+        let result = await viewModel.save()
 
-        #expect(!viewModel.didSave)
+        #expect(result == .failed)
         #expect(viewModel.errorMessage != nil)
     }
 
@@ -59,7 +59,7 @@ struct ServerURLViewModelTests {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "192.168.1.5:8123"
 
-        await viewModel.save()
+        _ = await viewModel.save()
 
         #expect(spy.changeCalls == [URL(string: "http://192.168.1.5:8123")!])
     }
@@ -74,7 +74,7 @@ struct ServerURLViewModelTests {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://box.tailnet.ts.net:8123"
 
-        await viewModel.save()
+        _ = await viewModel.save()
 
         #expect(spy.changeCalls.count == 1)
         #expect(viewModel.errorMessage == nil)
@@ -85,8 +85,9 @@ struct ServerURLViewModelTests {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "   "
 
-        await viewModel.save()
+        let result = await viewModel.save()
 
+        #expect(result == .failed)
         #expect(spy.changeCalls.isEmpty)
         #expect(viewModel.errorMessage != nil)
     }

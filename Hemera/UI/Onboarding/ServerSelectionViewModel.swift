@@ -157,7 +157,8 @@ final class ServerSelectionViewModel {
 // MARK: - ServerAddressSubmitting
 
 extension ServerSelectionViewModel: ServerAddressSubmitting {
-    func submit() async {
-        connectManual()
+    /// Never `.finished`: a valid address hands over to the OAuth sheet presented over this screen.
+    func submit() async -> ServerAddressSubmitResult {
+        connectManual() ? .continued : .failed
     }
 }

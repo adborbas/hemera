@@ -9,7 +9,6 @@ final class ServerURLViewModel {
     var urlText: String
     private(set) var isSaving = false
     private(set) var errorMessage: String?
-    private(set) var didSave = false
 
     let mode: ServerAddressMode
     private let urlChanger: any ServerURLChanging
@@ -37,10 +36,10 @@ final class ServerURLViewModel {
         !isSaving && mode.allowsSubmitting(urlText)
     }
 
-    func save() async {
+    func save() async -> ServerAddressSubmitResult {
         guard let candidate = ServerAddress.normalised(urlText) else {
             errorMessage = Localization.invalidURL
-            return
+            return .failed
         }
         errorMessage = nil
         isSaving = true
@@ -48,7 +47,7 @@ final class ServerURLViewModel {
 
         do {
             try await urlChanger.changeServerURL(to: candidate)
-            didSave = true
+            return .finished
         } catch AuthError.differentServer {
             errorMessage = Localization.differentServer
         } catch AuthError.serverUnreachable {
@@ -56,13 +55,14 @@ final class ServerURLViewModel {
         } catch {
             errorMessage = Localization.genericFailure
         }
+        return .failed
     }
 }
 
 // MARK: - ServerAddressSubmitting
 
 extension ServerURLViewModel: ServerAddressSubmitting {
-    func submit() async {
+    func submit() async -> ServerAddressSubmitResult {
         await save()
     }
 }

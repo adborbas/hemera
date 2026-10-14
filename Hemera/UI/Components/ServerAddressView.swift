@@ -1,16 +1,26 @@
 import SwiftUI
 import Mortar
 
+/// What a submission turned out to be, so the screen can react without knowing which task it is.
+enum ServerAddressSubmitResult {
+    /// The address was accepted and there is nothing left to do here.
+    case finished
+    /// Accepted, but the work carries on elsewhere — onboarding hands over to the OAuth flow.
+    case continued
+    /// Rejected; the handler is now showing why.
+    case failed
+}
+
 /**
  What happens when an address is submitted.
 
  The two screens diverge entirely here — onboarding starts an OAuth flow, settings validates
- the address and persists it — so the view knows only that submitting is async and may fail
- into the handler's own error state.
+ the address and persists it — so each reports what became of the attempt rather than the
+ view inferring it.
 */
 @MainActor
 protocol ServerAddressSubmitting {
-    func submit() async
+    func submit() async -> ServerAddressSubmitResult
 }
 
 /// Where the commit action sits — a presentation choice, not a behavioural one.
@@ -39,6 +49,7 @@ struct ServerAddressView: View {
     let handler: any ServerAddressSubmitting
 
     @FocusState private var isAddressFieldFocused: Bool
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: Mortar.Spacing.xl) {
@@ -80,7 +91,17 @@ struct ServerAddressView: View {
     }
 
     private func submit() {
-        Task { await handler.submit() }
+        Task {
+            switch await handler.submit() {
+            case .finished:
+                dismiss()
+            case .continued:
+                break
+            case .failed:
+                // Put the cursor back so the address can be corrected without tapping in again.
+                isAddressFieldFocused = true
+            }
+        }
     }
 
     private var inputSection: some View {

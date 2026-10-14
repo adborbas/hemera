@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Owns the view model and the pop-on-success that a `navigationDestination` closure cannot.
+/// Owns the view model, which a `navigationDestination` closure cannot.
 struct ServerURLView: View {
 
     @State var viewModel: ServerURLViewModel
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ServerAddressView(
@@ -16,9 +15,6 @@ struct ServerURLView: View {
             placement: .toolbar,
             handler: viewModel
         )
-        .onChange(of: viewModel.didSave) { _, didSave in
-            if didSave { dismiss() }
-        }
     }
 }
 
