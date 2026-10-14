@@ -51,18 +51,13 @@ final class ServerSelectionViewModel {
         discovery.stopDiscovery()
     }
 
+    var canConnect: Bool {
+        !isConnecting && ServerAddressMode.initial.allowsSubmitting(manualURL)
+    }
+
     @discardableResult
     func connectManual() -> Bool {
-        let trimmed = manualURL.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        var urlString = trimmed
-        if !urlString.contains("://") {
-            urlString = "http://\(urlString)"
-        }
-
-        guard let components = URLComponents(string: urlString),
-              let host = components.host, !host.isEmpty,
-              let scheme = components.scheme, ["http", "https"].contains(scheme.lowercased()),
-              let url = components.url else {
+        guard let url = ServerAddress.normalised(manualURL) else {
             errorMessage = Localization.invalidURLWithExample
             return false
         }
@@ -147,6 +142,7 @@ final class ServerSelectionViewModel {
         func addOnChangeHandler(_ handler: @escaping (AuthState, AuthChangeReason) -> Void) {}
         func didAuthenticate(with creds: ServerCredentials) {}
         func validAccessToken() async throws -> String { "mock" }
+        func updateServerURL(to url: URL) async throws {}
         func logout() {}
     }
     #endif
@@ -155,5 +151,24 @@ final class ServerSelectionViewModel {
         static let invalidURLWithExample = String(localized: "Please enter a valid URL (e.g. http://192.168.1.100:8123)", comment: "Validation error when the manually entered server URL is malformed")
         static let invalidURL = String(localized: "Invalid server URL.", comment: "Error message when OAuth preparation fails for the given server URL")
         static let authFailed = String(localized: "Authentication failed. Please try again.", comment: "Error message shown when OAuth login fails")
+    }
+}
+
+// MARK: - ServerAddressHandling
+
+/// Forwards to this view model's own vocabulary — it does far more than address entry.
+extension ServerSelectionViewModel: ServerAddressHandling {
+    var text: String {
+        get { manualURL }
+        set { manualURL = newValue }
+    }
+
+    var mode: ServerAddressMode { .initial }
+    var isBusy: Bool { isConnecting }
+    var canSubmit: Bool { canConnect }
+
+    func submit() async -> Bool {
+        // `connectManual` only reports that the address parsed; preparing OAuth can still fail.
+        connectManual() && errorMessage == nil
     }
 }

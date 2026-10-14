@@ -25,7 +25,7 @@ struct HADataSyncBufferingTests {
         EntityRegistry.shared.register(LightEntity.self)
 
         let url = URL(string: "http://localhost:8123")!
-        let connectionManager = HAConnectionManager(serverURL: url, tokenProvider: { "" })
+        let connectionManager = HAConnectionManager(urlProvider: { url }, tokenProvider: { "" })
         let restClient = HARESTClient(urlProvider: { url }, tokenProvider: { "" })
         service = HADataSyncService(
             connectionManager: connectionManager,

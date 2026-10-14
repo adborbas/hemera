@@ -17,11 +17,15 @@ final class HAConnectionManager {
 
     private var hasConnectedBefore = false
 
-    init(serverURL: URL, tokenProvider: @escaping @Sendable () async throws -> String) {
+    /**
+     `urlProvider` is resolved by HAKit on every connection attempt, so a URL change
+     followed by `disconnect()` + `connect()` moves the socket without rebuilding the session.
+    */
+    init(urlProvider: @escaping @Sendable () -> URL, tokenProvider: @escaping @Sendable () async throws -> String) {
         let haConfig = HAConnectionConfiguration(
             connectionInfo: {
                 // HAKit will append /api/websocket automatically
-                try? HAConnectionInfo(url: serverURL)
+                try? HAConnectionInfo(url: urlProvider())
             },
             fetchAuthToken: { completion in
                 Task {

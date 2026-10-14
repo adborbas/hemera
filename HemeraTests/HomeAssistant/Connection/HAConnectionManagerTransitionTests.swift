@@ -11,7 +11,7 @@ import Testing
 struct HAConnectionManagerTransitionTests {
 
     private func makeManager() -> HAConnectionManager {
-        HAConnectionManager(serverURL: URL(string: "http://localhost:8123")!, tokenProvider: { "" })
+        HAConnectionManager(urlProvider: { URL(string: "http://localhost:8123")! }, tokenProvider: { "" })
     }
 
     @Test

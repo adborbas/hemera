@@ -18,6 +18,7 @@ protocol AuthManaging: AnyObject {
     func addOnChangeHandler(_ handler: @escaping (AuthState, AuthChangeReason) -> Void)
     func didAuthenticate(with creds: ServerCredentials)
     func validAccessToken() async throws -> String
+    func updateServerURL(to url: URL) async throws
     func logout()
 }
 
@@ -30,10 +31,18 @@ final class AuthManager: AuthManaging {
 
     private let keychainStore: any KeychainStoring
     private let tokenRefresher: TokenRefresher
+    private let refreshToken: @Sendable (_ refreshToken: String, _ clientId: String, _ serverURL: URL) async throws -> TokenResponse
     private var onChangeHandlers: [(AuthState, AuthChangeReason) -> Void] = []
 
-    init(keychainStore: any KeychainStoring, userDefaults: UserDefaults = .standard) {
+    init(
+        keychainStore: any KeychainStoring,
+        userDefaults: UserDefaults = .standard,
+        refreshToken: @escaping @Sendable (String, String, URL) async throws -> TokenResponse = {
+            try await TokenClient.refresh(refreshToken: $0, clientId: $1, serverURL: $2)
+        }
+    ) {
         self.keychainStore = keychainStore
+        self.refreshToken = refreshToken
         self.tokenRefresher = TokenRefresher(keychainStore: keychainStore)
 
         Self.clearKeychainIfReinstalled(keychainStore: keychainStore, userDefaults: userDefaults)
@@ -66,6 +75,53 @@ final class AuthManager: AuthManaging {
             performLogout(reason: .sessionExpired)
             throw AuthError.sessionExpired
         }
+    }
+
+    /**
+     Re-points Hemera at a different address for the *same* instance, keeping the session.
+
+     Proves the candidate before persisting it by refreshing the token against it: a success
+     means the address is reachable, serves the instance that issued this refresh token, and
+     accepts auth. `TokenClient` is called directly rather than via `validAccessToken()` so an
+     `invalid_grant` is read as "wrong server" instead of reaching `performLogout`, which would
+     revoke the still-valid token and wipe the Keychain.
+
+     Validation deliberately never touches the current `serverURL` — the usual reason to change
+     the address is that the old one is unreachable.
+    */
+    func updateServerURL(to url: URL) async throws {
+        guard let creds = credentials else { throw AuthError.notAuthenticated }
+        guard url != creds.serverURL else { return }
+
+        let response: TokenResponse
+        do {
+            response = try await refreshToken(
+                creds.refreshToken,
+                creds.clientId, // pinned to the original URL — see ServerCredentials
+                url
+            )
+        } catch AuthError.sessionExpired {
+            // invalid_grant from an address that answered: a different instance, not an expired session.
+            Log.warning("Server URL change rejected — \(url.host() ?? "address") does not recognise this session")
+            throw AuthError.differentServer
+        } catch {
+            Log.warning("Server URL change failed — \(url.host() ?? "address") unreachable", cause: error)
+            throw AuthError.serverUnreachable
+        }
+
+        /**
+         Re-read rather than reusing the pre-await snapshot: a token refresh may have
+         completed while this was in flight, and writing `creds` back would revert it.
+        */
+        guard var updated = credentials else { throw AuthError.notAuthenticated }
+        updated.serverURL = url
+        updated.accessToken = response.access_token
+        updated.refreshToken = response.refresh_token ?? updated.refreshToken
+        updated.tokenExpiresAt = Date().addingTimeInterval(TimeInterval(response.expires_in))
+
+        try keychainStore.saveCredentials(updated)
+        credentials = updated
+        Log.info("Server URL changed to \(url.host() ?? "unknown")")
     }
 
     func didAuthenticate(with creds: ServerCredentials) {

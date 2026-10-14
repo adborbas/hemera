@@ -48,6 +48,12 @@ struct SettingsView: View {
                 switch route {
                 case .kioskMode:
                     KioskModeView(screenManager: viewModel.screenManager)
+                case .serverURL:
+                    ServerAddressView(handler: ServerURLViewModel(), placement: .toolbar) {
+                        if !viewModel.path.isEmpty {
+                            viewModel.path.removeLast()
+                        }
+                    }
                 }
             }
             .navigationTitle(Localization.settings)
@@ -109,7 +115,9 @@ struct SettingsView: View {
     private var serverInfoSection: some View {
         Section(Localization.server) {
             if let url = viewModel.serverURL {
-                LabeledContent(Localization.url, value: url.absoluteString)
+                NavigationLink(value: SettingsViewModel.Route.serverURL) {
+                    LabeledContent(Localization.url, value: url.absoluteString)
+                }
                 if let haVersion = viewModel.haVersion {
                     LabeledContent(Localization.version, value: haVersion)
                 }
@@ -129,15 +137,14 @@ struct SettingsView: View {
 
     private var logoutSection: some View {
         Section {
-            Button(role: .destructive) {
+            Button {
                 viewModel.logoutTapped()
             } label: {
-                HStack {
-                    Spacer()
-                    Text(Localization.logOut)
-                    Spacer()
-                }
+                Text(Localization.logOut)
             }
+            .buttonStyle(.mortarDestructive(width: .fullWidth))
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
         }
     }
 

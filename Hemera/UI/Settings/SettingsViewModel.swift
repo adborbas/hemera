@@ -6,6 +6,7 @@ final class SettingsViewModel {
 
     enum Route: Hashable {
         case kioskMode
+        case serverURL
     }
 
     var path = NavigationPath()

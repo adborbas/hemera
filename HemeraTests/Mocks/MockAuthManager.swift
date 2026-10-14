@@ -9,6 +9,8 @@ final class MockAuthManager: AuthManaging {
     var didAuthenticateCallCount = 0
     var logoutCallCount = 0
     var validAccessTokenResult: Result<String, Error> = .success("mock-token")
+    var updateServerURLResult: Result<Void, Error> = .success(())
+    var updateServerURLCalls: [URL] = []
 
     private var onChangeHandlers: [(AuthState, AuthChangeReason) -> Void] = []
 
@@ -25,6 +27,12 @@ final class MockAuthManager: AuthManaging {
 
     func validAccessToken() async throws -> String {
         try validAccessTokenResult.get()
+    }
+
+    func updateServerURL(to url: URL) async throws {
+        updateServerURLCalls.append(url)
+        try updateServerURLResult.get()
+        credentials?.serverURL = url
     }
 
     func logout() {
