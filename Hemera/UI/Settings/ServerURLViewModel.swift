@@ -76,8 +76,8 @@ private extension ServerURLViewModel {
             comment: "Validation error when the entered server address is malformed"
         )
         static let differentServer = String(
-            localized: "This address reaches a different Home Assistant. Hemera kept your current address so you stay signed in.",
-            comment: "Error shown when the new server address serves a different Home Assistant instance than the one the user is signed in to"
+            localized: "This is a different Home Assistant. Your current server is unchanged — to use this one, log out and sign in to it.",
+            comment: "Error shown when the entered address serves a different Home Assistant than the one the user is signed in to. Explains that the session is intact and that switching servers requires logging out first."
         )
         static let unreachable = String(
             localized: "Couldn't reach this address. Check it's correct and that you're connected to a network that can reach it.",
