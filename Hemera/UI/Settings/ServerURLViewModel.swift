@@ -11,21 +11,22 @@ final class ServerURLViewModel {
     private(set) var errorMessage: String?
     private(set) var didSave = false
 
-    private let currentURL: URL?
+    let mode: ServerAddressMode
     private let urlChanger: any ServerURLChanging
 
     // MARK: - Init
 
-    init(currentURL: URL?, urlChanger: any ServerURLChanging) {
-        self.currentURL = currentURL
+    init(mode: ServerAddressMode, urlChanger: any ServerURLChanging) {
+        self.mode = mode
         self.urlChanger = urlChanger
-        self.urlText = currentURL?.absoluteString ?? ""
+        self.urlText = mode.initialText
     }
 
     convenience init() {
         let sl = ServiceLocator.shared
+        let current = sl.authManager.credentials?.serverURL
         self.init(
-            currentURL: sl.authManager.credentials?.serverURL,
+            mode: current.map { .edit(current: $0) } ?? .initial,
             urlChanger: sl.sessionManager
         )
     }
@@ -33,13 +34,11 @@ final class ServerURLViewModel {
     // MARK: - Public Methods
 
     var canSave: Bool {
-        guard !isSaving, let candidate = normalisedURL else { return false }
-        // Compare like with like: the stored URL may carry a trailing slash the typed one won't.
-        return candidate != normalisedCurrentURL
+        !isSaving && mode.allowsSubmitting(urlText)
     }
 
     func save() async {
-        guard let candidate = normalisedURL else {
+        guard let candidate = ServerAddress.normalised(urlText) else {
             errorMessage = Localization.invalidURL
             return
         }
@@ -60,17 +59,9 @@ final class ServerURLViewModel {
     }
 }
 
-// MARK: - Private
+// MARK: - Localization
 
 private extension ServerURLViewModel {
-    var normalisedURL: URL? {
-        ServerAddress.normalised(urlText)
-    }
-
-    var normalisedCurrentURL: URL? {
-        currentURL.flatMap { ServerAddress.normalised($0.absoluteString) }
-    }
-
     enum Localization {
         static let invalidURL = String(
             localized: "Please enter a valid URL (e.g. http://192.168.1.100:8123)",

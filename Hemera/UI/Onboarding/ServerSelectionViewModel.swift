@@ -51,6 +51,10 @@ final class ServerSelectionViewModel {
         discovery.stopDiscovery()
     }
 
+    var canConnect: Bool {
+        !isConnecting && ServerAddressMode.initial.allowsSubmitting(manualURL)
+    }
+
     @discardableResult
     func connectManual() -> Bool {
         guard let url = ServerAddress.normalised(manualURL) else {

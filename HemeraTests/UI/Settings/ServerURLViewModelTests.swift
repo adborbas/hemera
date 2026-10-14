@@ -6,12 +6,13 @@ import Testing
 struct ServerURLViewModelTests {
 
     private let current = URL(string: "http://homeassistant.local:8123")!
+    private var editMode: ServerAddressMode { .edit(current: current) }
 
     // MARK: - Saving
 
     @Test func save_whenAccepted_recordsNewURLAndDismisses() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: spy)
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://box.tailnet.ts.net:8123"
 
         await viewModel.save()
@@ -29,7 +30,7 @@ struct ServerURLViewModelTests {
     @Test func save_whenAddressServesDifferentInstance_doesNotSaveAndKeepsSession() async {
         let spy = SpyURLChanger()
         spy.result = .failure(AuthError.differentServer)
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: spy)
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://someone-elses-ha.example.com:8123"
 
         await viewModel.save()
@@ -41,7 +42,7 @@ struct ServerURLViewModelTests {
     @Test func save_whenAddressUnreachable_reportsReachabilityNotExpiry() async {
         let spy = SpyURLChanger()
         spy.result = .failure(AuthError.serverUnreachable)
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: spy)
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://192.168.1.5:8123"
 
         await viewModel.save()
@@ -55,7 +56,7 @@ struct ServerURLViewModelTests {
     /// LAN and VPN addresses are typically typed without a scheme.
     @Test func save_withSchemelessHost_defaultsToHTTP() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: spy)
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "192.168.1.5:8123"
 
         await viewModel.save()
@@ -70,7 +71,7 @@ struct ServerURLViewModelTests {
     */
     @Test func save_withPlainHTTPAddress_isAccepted() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: spy)
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "http://box.tailnet.ts.net:8123"
 
         await viewModel.save()
@@ -81,7 +82,7 @@ struct ServerURLViewModelTests {
 
     @Test func save_withMalformedInput_reportsInvalidAndDoesNotCallChanger() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: spy)
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.urlText = "   "
 
         await viewModel.save()
@@ -93,7 +94,7 @@ struct ServerURLViewModelTests {
     // MARK: - canSave
 
     @Test func canSave_withUnchangedURL_isFalse() {
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: SpyURLChanger())
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: SpyURLChanger())
         #expect(!viewModel.canSave)
     }
 
@@ -104,14 +105,14 @@ struct ServerURLViewModelTests {
     */
     @Test func canSave_whenStoredURLHasTrailingSlash_isFalseForSameAddress() {
         let viewModel = ServerURLViewModel(
-            currentURL: URL(string: "http://homeassistant.local:8123/")!,
+            mode: .edit(current: URL(string: "http://homeassistant.local:8123/")!),
             urlChanger: SpyURLChanger()
         )
         #expect(!viewModel.canSave)
     }
 
     @Test func canSave_withChangedURL_isTrue() {
-        let viewModel = ServerURLViewModel(currentURL: current, urlChanger: SpyURLChanger())
+        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: SpyURLChanger())
         viewModel.urlText = "http://192.168.1.5:8123"
         #expect(viewModel.canSave)
     }

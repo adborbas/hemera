@@ -12,7 +12,7 @@ import Mortar
 struct ServerAddressForm: View {
 
     @Binding var text: String
-    let footer: String
+    let mode: ServerAddressMode
     let errorMessage: String?
     let onSubmit: () -> Void
 
@@ -39,7 +39,7 @@ struct ServerAddressForm: View {
                 )
                 .onSubmit(onSubmit)
 
-            Text(footer)
+            Text(mode.footer)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.leading, Mortar.Spacing.xs)
