@@ -19,7 +19,13 @@ enum ServerAddressSubmitResult {
  view inferring it.
 */
 @MainActor
-protocol ServerAddressSubmitting {
+protocol ServerAddressHandling: AnyObject, Observable {
+    var text: String { get set }
+    var mode: ServerAddressMode { get }
+    var isBusy: Bool { get }
+    var canSubmit: Bool { get }
+    var errorMessage: String? { get }
+
     func submit() async -> ServerAddressSubmitResult
 }
 
@@ -40,13 +46,8 @@ enum ServerAddressActionPlacement: Equatable {
 */
 struct ServerAddressView: View {
 
-    @Binding var text: String
-    let mode: ServerAddressMode
-    let isBusy: Bool
-    let canSubmit: Bool
-    let errorMessage: String?
+    @State var handler: any ServerAddressHandling
     let placement: ServerAddressActionPlacement
-    let handler: any ServerAddressSubmitting
 
     @FocusState private var isAddressFieldFocused: Bool
     @Environment(\.dismiss) private var dismiss
@@ -60,28 +61,28 @@ struct ServerAddressView: View {
             if placement == .prominent {
                 Button(action: submit) {
                     HStack {
-                        Text(mode.actionTitle)
-                        if isBusy {
+                        Text(handler.mode.actionTitle)
+                        if handler.isBusy {
                             Spacer()
                             ProgressView()
                         }
                     }
                 }
                 .buttonStyle(.mortarPrimary(width: .fullWidth))
-                .disabled(!canSubmit || isBusy)
+                .disabled(!handler.canSubmit || handler.isBusy)
             }
         }
         .padding(Mortar.Spacing.xl)
-        .navigationTitle(mode.title)
+        .navigationTitle(handler.mode.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if placement == .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    if isBusy {
+                    if handler.isBusy {
                         ProgressView()
                     } else {
-                        Button(mode.actionTitle, action: submit)
-                            .disabled(!canSubmit)
+                        Button(handler.mode.actionTitle, action: submit)
+                            .disabled(!handler.canSubmit)
                     }
                 }
             }
@@ -112,7 +113,7 @@ struct ServerAddressView: View {
                 .textCase(.uppercase)
                 .padding(.leading, Mortar.Spacing.xs)
 
-            TextField(Localization.urlPlaceholder, text: $text)
+            TextField(Localization.urlPlaceholder, text: $handler.text)
                 .textContentType(.URL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -125,12 +126,12 @@ struct ServerAddressView: View {
                 )
                 .onSubmit(submit)
 
-            Text(mode.footer)
+            Text(handler.mode.footer)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.leading, Mortar.Spacing.xs)
 
-            if let errorMessage {
+            if let errorMessage = handler.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(Color.error)
                     .font(.caption)

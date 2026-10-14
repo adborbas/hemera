@@ -154,9 +154,19 @@ final class ServerSelectionViewModel {
     }
 }
 
-// MARK: - ServerAddressSubmitting
+// MARK: - ServerAddressHandling
 
-extension ServerSelectionViewModel: ServerAddressSubmitting {
+/// Forwards to this view model's own vocabulary — it does far more than address entry.
+extension ServerSelectionViewModel: ServerAddressHandling {
+    var text: String {
+        get { manualURL }
+        set { manualURL = newValue }
+    }
+
+    var mode: ServerAddressMode { .initial }
+    var isBusy: Bool { isConnecting }
+    var canSubmit: Bool { canConnect }
+
     /// Never `.finished`: a valid address hands over to the OAuth sheet presented over this screen.
     func submit() async -> ServerAddressSubmitResult {
         connectManual() ? .continued : .failed

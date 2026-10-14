@@ -13,9 +13,9 @@ struct ServerURLViewModelTests {
     @Test func save_whenAccepted_recordsNewURLAndDismisses() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
-        viewModel.urlText = "http://box.tailnet.ts.net:8123"
+        viewModel.text = "http://box.tailnet.ts.net:8123"
 
-        let result = await viewModel.save()
+        let result = await viewModel.submit()
 
         #expect(spy.changeCalls == [URL(string: "http://box.tailnet.ts.net:8123")!])
         #expect(result == .finished)
@@ -31,9 +31,9 @@ struct ServerURLViewModelTests {
         let spy = SpyURLChanger()
         spy.result = .failure(AuthError.differentServer)
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
-        viewModel.urlText = "http://someone-elses-ha.example.com:8123"
+        viewModel.text = "http://someone-elses-ha.example.com:8123"
 
-        let result = await viewModel.save()
+        let result = await viewModel.submit()
 
         #expect(result == .failed)
         #expect(viewModel.errorMessage != nil)
@@ -43,9 +43,9 @@ struct ServerURLViewModelTests {
         let spy = SpyURLChanger()
         spy.result = .failure(AuthError.serverUnreachable)
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
-        viewModel.urlText = "http://192.168.1.5:8123"
+        viewModel.text = "http://192.168.1.5:8123"
 
-        let result = await viewModel.save()
+        let result = await viewModel.submit()
 
         #expect(result == .failed)
         #expect(viewModel.errorMessage != nil)
@@ -57,9 +57,9 @@ struct ServerURLViewModelTests {
     @Test func save_withSchemelessHost_defaultsToHTTP() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
-        viewModel.urlText = "192.168.1.5:8123"
+        viewModel.text = "192.168.1.5:8123"
 
-        _ = await viewModel.save()
+        _ = await viewModel.submit()
 
         #expect(spy.changeCalls == [URL(string: "http://192.168.1.5:8123")!])
     }
@@ -72,9 +72,9 @@ struct ServerURLViewModelTests {
     @Test func save_withPlainHTTPAddress_isAccepted() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
-        viewModel.urlText = "http://box.tailnet.ts.net:8123"
+        viewModel.text = "http://box.tailnet.ts.net:8123"
 
-        _ = await viewModel.save()
+        _ = await viewModel.submit()
 
         #expect(spy.changeCalls.count == 1)
         #expect(viewModel.errorMessage == nil)
@@ -83,9 +83,9 @@ struct ServerURLViewModelTests {
     @Test func save_withMalformedInput_reportsInvalidAndDoesNotCallChanger() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
-        viewModel.urlText = "   "
+        viewModel.text = "   "
 
-        let result = await viewModel.save()
+        let result = await viewModel.submit()
 
         #expect(result == .failed)
         #expect(spy.changeCalls.isEmpty)
@@ -94,9 +94,9 @@ struct ServerURLViewModelTests {
 
     // MARK: - canSave
 
-    @Test func canSave_withUnchangedURL_isFalse() {
+    @Test func canSubmit_withUnchangedURL_isFalse() {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: SpyURLChanger())
-        #expect(!viewModel.canSave)
+        #expect(!viewModel.canSubmit)
     }
 
     /**
@@ -104,18 +104,18 @@ struct ServerURLViewModelTests {
      Comparing raw-to-normalised made an untouched field look edited, so Save was tappable
      and would "change" the address to the one already in use.
     */
-    @Test func canSave_whenStoredURLHasTrailingSlash_isFalseForSameAddress() {
+    @Test func canSubmit_whenStoredURLHasTrailingSlash_isFalseForSameAddress() {
         let viewModel = ServerURLViewModel(
             mode: .edit(current: URL(string: "http://homeassistant.local:8123/")!),
             urlChanger: SpyURLChanger()
         )
-        #expect(!viewModel.canSave)
+        #expect(!viewModel.canSubmit)
     }
 
-    @Test func canSave_withChangedURL_isTrue() {
+    @Test func canSubmit_withChangedURL_isTrue() {
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: SpyURLChanger())
-        viewModel.urlText = "http://192.168.1.5:8123"
-        #expect(viewModel.canSave)
+        viewModel.text = "http://192.168.1.5:8123"
+        #expect(viewModel.canSubmit)
     }
 }
 

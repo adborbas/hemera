@@ -6,11 +6,11 @@ final class ServerURLViewModel {
 
     // MARK: - Properties
 
-    var urlText: String
-    private(set) var isSaving = false
+    var text: String
+    private(set) var isBusy = false
     private(set) var errorMessage: String?
 
-    let mode: ServerAddressMode
+    private(set) var mode: ServerAddressMode
     private let urlChanger: any ServerURLChanging
 
     // MARK: - Init
@@ -18,7 +18,7 @@ final class ServerURLViewModel {
     init(mode: ServerAddressMode, urlChanger: any ServerURLChanging) {
         self.mode = mode
         self.urlChanger = urlChanger
-        self.urlText = mode.initialText
+        self.text = mode.initialText
     }
 
     convenience init() {
@@ -32,18 +32,18 @@ final class ServerURLViewModel {
 
     // MARK: - Public Methods
 
-    var canSave: Bool {
-        !isSaving && mode.allowsSubmitting(urlText)
+    var canSubmit: Bool {
+        !isBusy && mode.allowsSubmitting(text)
     }
 
     func save() async -> ServerAddressSubmitResult {
-        guard let candidate = ServerAddress.normalised(urlText) else {
+        guard let candidate = ServerAddress.normalised(text) else {
             errorMessage = Localization.invalidURL
             return .failed
         }
         errorMessage = nil
-        isSaving = true
-        defer { isSaving = false }
+        isBusy = true
+        defer { isBusy = false }
 
         do {
             try await urlChanger.changeServerURL(to: candidate)
@@ -59,9 +59,9 @@ final class ServerURLViewModel {
     }
 }
 
-// MARK: - ServerAddressSubmitting
+// MARK: - ServerAddressHandling
 
-extension ServerURLViewModel: ServerAddressSubmitting {
+extension ServerURLViewModel: ServerAddressHandling {
     func submit() async -> ServerAddressSubmitResult {
         await save()
     }
