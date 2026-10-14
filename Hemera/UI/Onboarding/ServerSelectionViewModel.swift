@@ -153,3 +153,11 @@ final class ServerSelectionViewModel {
         static let authFailed = String(localized: "Authentication failed. Please try again.", comment: "Error message shown when OAuth login fails")
     }
 }
+
+// MARK: - ServerAddressSubmitting
+
+extension ServerSelectionViewModel: ServerAddressSubmitting {
+    func submit() async {
+        connectManual()
+    }
+}

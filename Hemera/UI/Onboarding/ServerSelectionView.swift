@@ -31,7 +31,7 @@ struct ServerSelectionView: View {
                 placement: .prominent,
                 // Succeed or fail, stay put: a failure keeps its inline error visible and
                 // a success presents the OAuth sheet over this screen.
-                onSubmit: { viewModel.connectManual() }
+                handler: viewModel
             )
             .onDisappear { viewModel.errorMessage = nil }
         }

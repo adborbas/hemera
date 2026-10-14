@@ -1,6 +1,18 @@
 import SwiftUI
 import Mortar
 
+/**
+ What happens when an address is submitted.
+
+ The two screens diverge entirely here — onboarding starts an OAuth flow, settings validates
+ the address and persists it — so the view knows only that submitting is async and may fail
+ into the handler's own error state.
+*/
+@MainActor
+protocol ServerAddressSubmitting {
+    func submit() async
+}
+
 /// Where the commit action sits — a presentation choice, not a behavioural one.
 enum ServerAddressActionPlacement: Equatable {
     /// Full-width button at the bottom: the primary action of a first-run screen.
@@ -24,7 +36,7 @@ struct ServerAddressView: View {
     let canSubmit: Bool
     let errorMessage: String?
     let placement: ServerAddressActionPlacement
-    let onSubmit: () -> Void
+    let handler: any ServerAddressSubmitting
 
     @FocusState private var isAddressFieldFocused: Bool
 
@@ -35,7 +47,7 @@ struct ServerAddressView: View {
             Spacer()
 
             if placement == .prominent {
-                Button(action: onSubmit) {
+                Button(action: submit) {
                     HStack {
                         Text(mode.actionTitle)
                         if isBusy {
@@ -57,7 +69,7 @@ struct ServerAddressView: View {
                     if isBusy {
                         ProgressView()
                     } else {
-                        Button(mode.actionTitle, action: onSubmit)
+                        Button(mode.actionTitle, action: submit)
                             .disabled(!canSubmit)
                     }
                 }
@@ -65,6 +77,10 @@ struct ServerAddressView: View {
         }
         // Typing is the only reason this screen opens, so skip the extra tap.
         .onAppear { isAddressFieldFocused = true }
+    }
+
+    private func submit() {
+        Task { await handler.submit() }
     }
 
     private var inputSection: some View {
@@ -86,7 +102,7 @@ struct ServerAddressView: View {
                     RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
                         .fill(PlatformColor.tertiarySystemBackground)
                 )
-                .onSubmit(onSubmit)
+                .onSubmit(submit)
 
             Text(mode.footer)
                 .font(.caption)

@@ -14,7 +14,7 @@ struct ServerURLView: View {
             canSubmit: viewModel.canSave,
             errorMessage: viewModel.errorMessage,
             placement: .toolbar,
-            onSubmit: { Task { await viewModel.save() } }
+            handler: viewModel
         )
         .onChange(of: viewModel.didSave) { _, didSave in
             if didSave { dismiss() }

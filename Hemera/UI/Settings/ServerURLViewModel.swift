@@ -59,6 +59,14 @@ final class ServerURLViewModel {
     }
 }
 
+// MARK: - ServerAddressSubmitting
+
+extension ServerURLViewModel: ServerAddressSubmitting {
+    func submit() async {
+        await save()
+    }
+}
+
 // MARK: - Localization
 
 private extension ServerURLViewModel {
