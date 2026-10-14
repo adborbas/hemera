@@ -36,10 +36,10 @@ final class ServerURLViewModel {
         !isBusy && mode.allowsSubmitting(text)
     }
 
-    func save() async -> ServerAddressSubmitResult {
+    func save() async -> Bool {
         guard let candidate = ServerAddress.normalised(text) else {
             errorMessage = Localization.invalidURL
-            return .failed
+            return false
         }
         errorMessage = nil
         isBusy = true
@@ -47,7 +47,7 @@ final class ServerURLViewModel {
 
         do {
             try await urlChanger.changeServerURL(to: candidate)
-            return .succeeded
+            return true
         } catch AuthError.differentServer {
             errorMessage = Localization.differentServer
         } catch AuthError.serverUnreachable {
@@ -55,14 +55,14 @@ final class ServerURLViewModel {
         } catch {
             errorMessage = Localization.genericFailure
         }
-        return .failed
+        return false
     }
 }
 
 // MARK: - ServerAddressHandling
 
 extension ServerURLViewModel: ServerAddressHandling {
-    func submit() async -> ServerAddressSubmitResult {
+    func submit() async -> Bool {
         await save()
     }
 }

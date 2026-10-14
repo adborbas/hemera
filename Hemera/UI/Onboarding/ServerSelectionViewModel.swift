@@ -167,7 +167,7 @@ extension ServerSelectionViewModel: ServerAddressHandling {
     var isBusy: Bool { isConnecting }
     var canSubmit: Bool { canConnect }
 
-    func submit() async -> ServerAddressSubmitResult {
-        connectManual() ? .succeeded : .failed
+    func submit() async -> Bool {
+        connectManual()
     }
 }

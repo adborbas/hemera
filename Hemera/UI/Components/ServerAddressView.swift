@@ -1,13 +1,6 @@
 import SwiftUI
 import Mortar
 
-/// Whether a handler accepted the address.
-enum ServerAddressSubmitResult {
-    case succeeded
-    /// Rejected; the handler is now showing why, via `errorMessage`.
-    case failed
-}
-
 /**
  What happens when an address is submitted.
 
@@ -23,7 +16,8 @@ protocol ServerAddressHandling: AnyObject, Observable {
     var canSubmit: Bool { get }
     var errorMessage: String? { get }
 
-    func submit() async -> ServerAddressSubmitResult
+    /// Returns whether the address was accepted. On rejection the handler shows why via `errorMessage`.
+    func submit() async -> Bool
 }
 
 /// Where the commit action sits — a presentation choice, not a behavioural one.
@@ -91,10 +85,9 @@ struct ServerAddressView: View {
 
     private func submit() {
         Task {
-            switch await handler.submit() {
-            case .succeeded:
+            if await handler.submit() {
                 onFinished()
-            case .failed:
+            } else {
                 // Put the cursor back so the address can be corrected without tapping in again.
                 isAddressFieldFocused = true
             }
