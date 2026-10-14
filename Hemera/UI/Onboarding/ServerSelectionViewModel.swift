@@ -167,8 +167,7 @@ extension ServerSelectionViewModel: ServerAddressHandling {
     var isBusy: Bool { isConnecting }
     var canSubmit: Bool { canConnect }
 
-    /// Never `.finished`: a valid address hands over to the OAuth sheet presented over this screen.
     func submit() async -> ServerAddressSubmitResult {
-        connectManual() ? .continued : .failed
+        connectManual() ? .succeeded : .failed
     }
 }

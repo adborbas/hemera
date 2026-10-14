@@ -1,13 +1,10 @@
 import SwiftUI
 import Mortar
 
-/// What a submission turned out to be, so the screen can react without knowing which task it is.
+/// Whether a handler accepted the address.
 enum ServerAddressSubmitResult {
-    /// The address was accepted and there is nothing left to do here.
-    case finished
-    /// Accepted, but the work carries on elsewhere — onboarding hands over to the OAuth flow.
-    case continued
-    /// Rejected; the handler is now showing why.
+    case succeeded
+    /// Rejected; the handler is now showing why, via `errorMessage`.
     case failed
 }
 
@@ -48,9 +45,10 @@ struct ServerAddressView: View {
 
     @State var handler: any ServerAddressHandling
     let placement: ServerAddressActionPlacement
+    /// Called once the address is accepted. What that means is the caller's business.
+    var onFinished: () -> Void = {}
 
     @FocusState private var isAddressFieldFocused: Bool
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: Mortar.Spacing.xl) {
@@ -94,10 +92,8 @@ struct ServerAddressView: View {
     private func submit() {
         Task {
             switch await handler.submit() {
-            case .finished:
-                dismiss()
-            case .continued:
-                break
+            case .succeeded:
+                onFinished()
             case .failed:
                 // Put the cursor back so the address can be corrected without tapping in again.
                 isAddressFieldFocused = true

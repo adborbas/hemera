@@ -49,7 +49,9 @@ struct SettingsView: View {
                 case .kioskMode:
                     KioskModeView(screenManager: viewModel.screenManager)
                 case .serverURL:
-                    ServerAddressView(handler: ServerURLViewModel(), placement: .toolbar)
+                    ServerAddressView(handler: ServerURLViewModel(), placement: .toolbar) {
+                        viewModel.path.removeLast()
+                    }
                 }
             }
             .navigationTitle(Localization.settings)

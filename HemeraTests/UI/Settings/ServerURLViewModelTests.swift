@@ -18,7 +18,7 @@ struct ServerURLViewModelTests {
         let result = await viewModel.submit()
 
         #expect(spy.changeCalls == [URL(string: "http://box.tailnet.ts.net:8123")!])
-        #expect(result == .finished)
+        #expect(result == .succeeded)
         #expect(viewModel.errorMessage == nil)
     }
 

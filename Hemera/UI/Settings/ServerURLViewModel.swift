@@ -47,7 +47,7 @@ final class ServerURLViewModel {
 
         do {
             try await urlChanger.changeServerURL(to: candidate)
-            return .finished
+            return .succeeded
         } catch AuthError.differentServer {
             errorMessage = Localization.differentServer
         } catch AuthError.serverUnreachable {
