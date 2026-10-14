@@ -41,7 +41,7 @@ struct ServerSelectionView: View {
         .alert(
             Localization.connectionFailedTitle,
             isPresented: Binding(
-                get: { viewModel.errorMessage != nil && activeSheet == nil },
+                get: { viewModel.errorMessage != nil && activeSheet == nil && !showManualEntry },
                 set: { if !$0 { viewModel.errorMessage = nil } }
             )
         ) {

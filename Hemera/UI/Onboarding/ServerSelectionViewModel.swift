@@ -168,6 +168,7 @@ extension ServerSelectionViewModel: ServerAddressHandling {
     var canSubmit: Bool { canConnect }
 
     func submit() async -> Bool {
-        connectManual()
+        // `connectManual` only reports that the address parsed; preparing OAuth can still fail.
+        connectManual() && errorMessage == nil
     }
 }

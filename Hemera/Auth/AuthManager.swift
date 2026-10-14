@@ -31,10 +31,18 @@ final class AuthManager: AuthManaging {
 
     private let keychainStore: any KeychainStoring
     private let tokenRefresher: TokenRefresher
+    private let refreshToken: @Sendable (_ refreshToken: String, _ clientId: String, _ serverURL: URL) async throws -> TokenResponse
     private var onChangeHandlers: [(AuthState, AuthChangeReason) -> Void] = []
 
-    init(keychainStore: any KeychainStoring, userDefaults: UserDefaults = .standard) {
+    init(
+        keychainStore: any KeychainStoring,
+        userDefaults: UserDefaults = .standard,
+        refreshToken: @escaping @Sendable (String, String, URL) async throws -> TokenResponse = {
+            try await TokenClient.refresh(refreshToken: $0, clientId: $1, serverURL: $2)
+        }
+    ) {
         self.keychainStore = keychainStore
+        self.refreshToken = refreshToken
         self.tokenRefresher = TokenRefresher(keychainStore: keychainStore)
 
         Self.clearKeychainIfReinstalled(keychainStore: keychainStore, userDefaults: userDefaults)
@@ -87,10 +95,10 @@ final class AuthManager: AuthManaging {
 
         let response: TokenResponse
         do {
-            response = try await TokenClient.refresh(
-                refreshToken: creds.refreshToken,
-                clientId: creds.clientId, // pinned to the original URL — see ServerCredentials
-                serverURL: url
+            response = try await refreshToken(
+                creds.refreshToken,
+                creds.clientId, // pinned to the original URL — see ServerCredentials
+                url
             )
         } catch AuthError.sessionExpired {
             // invalid_grant from an address that answered: a different instance, not an expired session.
@@ -101,10 +109,14 @@ final class AuthManager: AuthManaging {
             throw AuthError.serverUnreachable
         }
 
-        var updated = creds
+        /**
+         Re-read rather than reusing the pre-await snapshot: a token refresh may have
+         completed while this was in flight, and writing `creds` back would revert it.
+        */
+        guard var updated = credentials else { throw AuthError.notAuthenticated }
         updated.serverURL = url
         updated.accessToken = response.access_token
-        updated.refreshToken = response.refresh_token ?? creds.refreshToken
+        updated.refreshToken = response.refresh_token ?? updated.refreshToken
         updated.tokenExpiresAt = Date().addingTimeInterval(TimeInterval(response.expires_in))
 
         try keychainStore.saveCredentials(updated)

@@ -8,6 +8,10 @@
 		<string>LaunchLogo</string>
 	</dict>
 	<key>NSAppTransportSecurity</key>
+	<!-- Users point Hemera at their own Home Assistant, often over plain HTTP on a LAN or a
+	     mesh VPN. ATS exception domains are static, so a user-entered host cannot be declared
+	     ahead of time and arbitrary loads is the only option. Do NOT add NSAllowsLocalNetworking
+	     alongside it: iOS ignores NSAllowsArbitraryLoads whenever that key is present. -->
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>

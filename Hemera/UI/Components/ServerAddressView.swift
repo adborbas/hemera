@@ -65,6 +65,8 @@ struct ServerAddressView: View {
     }
 
     private func submit() {
+        // The Return key reaches here too, where no `.disabled` applies.
+        guard handler.canSubmit, !handler.isBusy else { return }
         Task {
             if await handler.submit() {
                 onFinished()

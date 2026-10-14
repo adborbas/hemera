@@ -50,7 +50,9 @@ struct SettingsView: View {
                     KioskModeView(screenManager: viewModel.screenManager)
                 case .serverURL:
                     ServerAddressView(handler: ServerURLViewModel(), placement: .toolbar) {
-                        viewModel.path.removeLast()
+                        if !viewModel.path.isEmpty {
+                            viewModel.path.removeLast()
+                        }
                     }
                 }
             }

@@ -82,6 +82,81 @@ struct AuthManagerTests {
         #expect(store.clearAllCallCount == 0)
         #expect(manager.state == .authenticated)
     }
+
+    // MARK: - updateServerURL
+
+    /**
+     The whole point of validating before persisting: an address that answers but does not
+     recognise this session must cost the user nothing. HA returns `invalid_grant` for an
+     unknown refresh token, which the logout path reads as an expired session — that would
+     revoke a still-valid token and wipe the Keychain over a typo.
+    */
+    @Test
+    func updateServerURL_whenAddressRejectsTheToken_keepsSessionAndDoesNotClearKeychain() async {
+        let store = MockKeychainStore()
+        let manager = AuthManager(
+            keychainStore: store,
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in throw AuthError.sessionExpired }
+        )
+        let creds = makeCredentials()
+        manager.didAuthenticate(with: creds)
+        let clearsBefore = store.clearAllCallCount // init performs the first-run wipe
+
+        await #expect(throws: AuthError.differentServer) {
+            try await manager.updateServerURL(to: URL(string: "https://someone-else.example.com")!)
+        }
+
+        #expect(manager.state == .authenticated)
+        #expect(manager.credentials?.serverURL == creds.serverURL)
+        #expect(store.clearAllCallCount == clearsBefore)
+    }
+
+    /// A flaky network must not be mistaken for a dead session either.
+    @Test
+    func updateServerURL_whenAddressUnreachable_keepsSessionAndDoesNotClearKeychain() async {
+        let store = MockKeychainStore()
+        let manager = AuthManager(
+            keychainStore: store,
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in throw URLError(.cannotConnectToHost) }
+        )
+        let creds = makeCredentials()
+        manager.didAuthenticate(with: creds)
+        let clearsBefore = store.clearAllCallCount // init performs the first-run wipe
+
+        await #expect(throws: AuthError.serverUnreachable) {
+            try await manager.updateServerURL(to: URL(string: "http://192.168.1.254:8123")!)
+        }
+
+        #expect(manager.state == .authenticated)
+        #expect(manager.credentials?.serverURL == creds.serverURL)
+        #expect(store.clearAllCallCount == clearsBefore)
+    }
+
+    /// `clientId` stays pinned to the URL it was minted with, or future refreshes fail.
+    @Test
+    func updateServerURL_whenAccepted_persistsNewURLAndKeepsClientId() async throws {
+        let store = MockKeychainStore()
+        let manager = AuthManager(
+            keychainStore: store,
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in
+                TokenResponse(access_token: "new-access", refresh_token: nil, expires_in: 1800, token_type: "Bearer")
+            }
+        )
+        let creds = makeCredentials()
+        manager.didAuthenticate(with: creds)
+        let newURL = URL(string: "http://box.tailnet.ts.net:8123")!
+
+        try await manager.updateServerURL(to: newURL)
+
+        #expect(manager.credentials?.serverURL == newURL)
+        #expect(manager.credentials?.clientId == creds.clientId)
+        #expect(manager.credentials?.accessToken == "new-access")
+        #expect(manager.credentials?.refreshToken == creds.refreshToken)
+        #expect(store.savedCredentials?.serverURL == newURL)
+    }
 }
 
 // MARK: - Helpers
