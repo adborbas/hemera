@@ -38,6 +38,19 @@ struct IconTranslations: Codable, Sendable, Equatable {
     /// Domain-wide fallback key used by Home Assistant when an entity has no matching `device_class`.
     static let domainFallbackKey = "_"
 
+    /**
+     Overlays `other` a domain at a time, keeping domains it does not mention.
+
+     Home Assistant only returns translations for integrations it has loaded, so a server that is
+     not currently running `climate` would otherwise strip icons the bundle already had out from
+     under any stale entities of that domain. Within a domain the server is authoritative, so its
+     entry replaces the bundled one wholesale rather than merging device classes — that would
+     resurrect classes HA has since dropped.
+    */
+    func merging(_ other: IconTranslations) -> IconTranslations {
+        IconTranslations(resources: resources.merging(other.resources) { _, new in new })
+    }
+
     func entry(domain: String, deviceClass: String?) -> Entry? {
         guard let domainEntries = resources[domain] else { return nil }
         if let deviceClass, let match = domainEntries[deviceClass] { return match }

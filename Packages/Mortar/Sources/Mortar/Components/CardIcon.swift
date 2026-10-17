@@ -15,10 +15,13 @@ public struct CardIcon: View {
 
     /**
      Draws a Material Design Icon by name, e.g. `"mdi:lightbulb"`.
-     - Parameter fallback: drawn when `icon` resolves to nothing, so no card shows a bare circle.
+
+     - Parameter fallback: drawn when `icon` is nil or resolves to no glyph, so no card shows a bare
+       circle. Home Assistant leaves an area's icon null until someone sets one, so nil is the
+       common case, not the edge one.
     */
     public init(icon: String?, fallback: String? = nil, backgroundColor: Color, onTap: (() -> Void)? = nil) {
-        self.source = icon.map { .mdi(name: $0, fallback: fallback) }
+        self.source = (icon ?? fallback).map { .mdi(name: $0, fallback: fallback) }
         self.backgroundColor = backgroundColor
         self.onTap = onTap
     }

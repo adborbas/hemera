@@ -190,6 +190,13 @@ private extension AreasView {
 
 private struct AreaCardView: View {
     @Bindable var area: AreaEntity
+
+    /**
+     Scaled, unlike the glyph inside `CardIcon`: these badges sit in the same slot as the
+     `.subheadline` climate label, so they have to grow with it rather than stay pinned.
+    */
+    @ScaledMetric(relativeTo: .subheadline) private var statusIconSize = Mortar.IconSize.xs
+
     private var statusIcons: [AreaStatusIcon] {
         AreaDisplayHelpers.statusIcons(from: area)
     }
@@ -221,7 +228,7 @@ private struct AreaCardView: View {
                     HStack(spacing: Mortar.Spacing.s) {
                         ForEach(statusIcons) { icon in
                             if let name = icon.iconName {
-                                MDIIcon(name: name, size: Mortar.IconSize.xs)
+                                MDIIcon(name: name, size: statusIconSize)
                                     .foregroundStyle(icon.isActive ? icon.activeColor : .gray)
                             }
                         }

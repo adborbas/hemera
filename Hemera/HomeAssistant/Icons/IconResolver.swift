@@ -20,16 +20,20 @@ final class IconResolver: IconResolving {
 
     private(set) var translations: IconTranslations
 
+    /// Kept so each update overlays the bundled snapshot rather than the previous server's response.
+    private let baseline: IconTranslations
+
     // MARK: - Init
 
     init(translations: IconTranslations) {
         self.translations = translations
+        self.baseline = translations
     }
 
     // MARK: - Public Methods
 
     func update(_ translations: IconTranslations) {
-        self.translations = translations
+        self.translations = baseline.merging(translations)
     }
 
     /**

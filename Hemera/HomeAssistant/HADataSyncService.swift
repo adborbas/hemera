@@ -144,7 +144,7 @@ final class HADataSyncService {
     /// cold start and the UI stays responsive. Entity upserts that match an
     /// existing `@Model` mutate it in place, firing `@Observable` for any
     /// card view that already references it.
-    private func applySyncPayload(_ payload: SyncPayload) async {
+    func applySyncPayload(_ payload: SyncPayload) async {
         if let iconTranslations = payload.iconTranslations {
             iconResolver.update(iconTranslations)
         }
@@ -271,7 +271,7 @@ final class HADataSyncService {
 
     // MARK: - Fetch
 
-    private struct SyncPayload {
+    struct SyncPayload {
         let entities: [HAEntity]
         let areaMappings: [AreaMapping]
         let deviceMappings: [DeviceMapping]
