@@ -127,22 +127,15 @@ final class ClimateCardViewModel: Identifiable {
     static let warmColor: Color = .warm
     static let coolColor: Color = .cool
 
-    /**
-     Icon for the card, preferring what the thermostat is actually *doing* over what it is set to.
-
-     Home Assistant's `climate` icon translations contain only a domain default (`mdi:thermostat`)
-     plus a `state_attributes.hvac_action` map — there is no per-mode `state` map — so the mode
-     fallback below has no equivalent in HA's data and has to stay hardcoded. It keeps heat/cool/dry
-     differentiation on thermostats that report no `hvac_action`, which most do not.
-    */
+    /// Prefers what the thermostat is actually *doing* over what it is set to.
     var iconName: String? {
         if let icon = climate.icon, let override = MDIIconName.normalised(icon) {
             return override
         }
 
         /**
-         `.idle` deliberately falls through to the mode: HA maps idle to `mdi:clock-outline`, which
-         tells the user nothing about whether the thermostat is set to heat or cool.
+         `.idle` falls through to the mode: HA maps it to `mdi:clock-outline`, which says nothing
+         about whether the thermostat is set to heat or cool.
         */
         if let action = hvacAction, action != .idle,
            let actionIcon = iconResolver.attributeIconName(
@@ -318,11 +311,8 @@ final class ClimateCardViewModel: Identifiable {
 
 extension ClimateCardViewModel {
     /**
-     Mode-to-icon mapping, used when the thermostat reports no `hvac_action`.
-
-     Hardcoded because Home Assistant publishes no per-mode icons for `climate` — its icon
-     translations only cover `hvac_action`. Names are MDI, matching what HA's own frontend uses for
-     the equivalent HVAC modes elsewhere. `nil` defers to the domain default (`mdi:thermostat`).
+     The one icon table HA has no equivalent for: `climate` translations cover `hvac_action` only,
+     no per-mode `state` map. Used when a thermostat reports no action, which most do not.
     */
     private static func modeIcon(_ mode: ClimateEntity.HVACMode) -> String? {
         switch mode {

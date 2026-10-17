@@ -35,10 +35,7 @@ struct IconResolverTests {
 
     // MARK: - Precedence
 
-    /**
-     The entity's own `icon` attribute is a deliberate user or integration override, so it has to win
-     over anything the translations say — this is the first branch of HA's own `getEntityIcon`.
-    */
+    /// A user's explicit `icon` override must win, as it does in HA's own `getEntityIcon`.
     @Test func iconName_entityIconOverride_winsOverTranslations() {
         #expect(resolver().iconName(domain: "cover", deviceClass: "garage", state: "closed",
                                     entityIcon: "mdi:rocket") == "rocket")
@@ -52,10 +49,7 @@ struct IconResolverTests {
         #expect(resolver().iconName(domain: "cover", deviceClass: "garage", state: "closed") == "garage")
     }
 
-    /**
-     An unmodelled device_class must fall through to the domain-wide `_` entry rather than resolving
-     to nothing, otherwise every class Hemera does not know about renders blank.
-    */
+    /// Without the `_` fallthrough every device_class Hemera doesn't model would render blank.
     @Test func iconName_unknownDeviceClass_fallsBackToDomainEntry() {
         #expect(resolver().iconName(domain: "cover", deviceClass: "awning", state: "closed") == "window-closed")
     }
@@ -82,8 +76,8 @@ struct IconResolverTests {
     }
 
     /**
-     HA's `hvac_action` entry defaults to `mdi:circle-medium`, a placeholder dot. Returning it would
-     put a grey blob on the card, so an unmatched value must resolve to nil and let the caller choose.
+     HA's `hvac_action` default is `mdi:circle-medium` — returning it would put a grey blob on
+     the card, so an unmatched value must defer to the caller.
     */
     @Test func attributeIconName_unmatchedValue_returnsNilRatherThanPlaceholderDot() {
         #expect(resolver().attributeIconName(domain: "climate", attribute: "hvac_action",
@@ -97,9 +91,8 @@ struct IconResolverTests {
     // MARK: - Observation
 
     /**
-     Translations land after the first paint, so cards only pick them up if the resolver emits an
-     observation change. Asserting the resolved name alone would pass even with a plain class, which
-     is exactly the regression this guards: the icons would render only after some unrelated redraw.
+     Asserting the resolved name alone would pass without `@Observable`; cards would then update
+     only on an unrelated redraw.
     */
     @Test func update_emitsObservationChange() {
         let resolver = IconResolver(translations: IconTranslations(resources: [:]))
@@ -118,9 +111,8 @@ struct IconResolverTests {
     }
 
     /**
-     Call sites hold the resolver as `any IconResolving`, and an existential is the one thing in the
-     observation path that could plausibly swallow the change notification. If it did, every card
-     would stay pinned to the bundled snapshot for the whole session with nothing to show for it.
+     Call sites hold `any IconResolving`; if the existential swallowed the notification every
+     card would stay on the bundled snapshot all session.
     */
     @Test func update_emitsObservationChange_throughExistential() {
         let resolver = IconResolver(translations: IconTranslations(resources: [:]))

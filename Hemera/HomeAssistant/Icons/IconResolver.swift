@@ -2,11 +2,9 @@ import Mortar
 import Foundation
 
 /**
- Resolves Material Design Icon names for entities using Home Assistant's own icon translations.
+ Resolves Material Design Icon names using Home Assistant's own icon translations.
 
- Reference type on purpose: the server's translations replace the bundled snapshot once the sync
- delivers them, and `@Observable` is what lets the cards whose icon changed re-render. A value type
- would leave every card showing the snapshot until some unrelated state change.
+ `@Observable` so cards re-render when the sync replaces the bundled snapshot with the server's.
 */
 @Observable
 @MainActor
@@ -15,11 +13,8 @@ final class IconResolver: IconResolving {
     // MARK: - Properties
 
     /**
-     The app-wide resolver.
-
-     Icon translations are Home Assistant core's own `icons.json` data, not user or server data —
-     two servers on the same core version return identical payloads — so one app-lifetime instance
-     is the right scope. `@MainActor` isolation makes this a safe static without `nonisolated(unsafe)`.
+     App-lifetime: translations are HA core's own `icons.json`, identical across servers on a
+     given core version, so there is nothing session-scoped to keep apart.
     */
     static let shared = IconResolver(translations: .bundled())
 
@@ -38,12 +33,8 @@ final class IconResolver: IconResolving {
     }
 
     /**
-     Bare MDI name for an entity, mirroring the precedence in Home Assistant's frontend
-     (`src/data/icons.ts`, `getEntityIcon`): the entity's own `icon` attribute wins, then its
-     `device_class` entry, then the domain-wide fallback, preferring a state match over the default.
-
-     Following HA's order exactly is the point of the whole feature — diverging means users see
-     different icons in Hemera than on the dashboard they already know.
+     Precedence must match the frontend's `getEntityIcon` (`src/data/icons.ts`) exactly — diverging
+     means users see different icons here than on the dashboard they already know.
     */
     func iconName(
         forDomain domain: String,
@@ -59,11 +50,8 @@ final class IconResolver: IconResolving {
     }
 
     /**
-     Bare MDI name for a specific entity attribute, such as climate's `hvac_action`.
-
-     Deliberately never falls back to the attribute entry's own `default`: Home Assistant ships
-     `mdi:circle-medium` there, a placeholder dot that is meaningless as an entity card icon. Callers
-     decide their own fallback.
+     Never falls back to the attribute's own `default` — HA ships `mdi:circle-medium` there, a
+     placeholder dot. Callers pick their own fallback.
     */
     func attributeIconName(
         forDomain domain: String,

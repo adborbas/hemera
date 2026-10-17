@@ -15,9 +15,7 @@ public struct CardIcon: View {
 
     /**
      Draws a Material Design Icon by name, e.g. `"mdi:lightbulb"`.
-
-     - Parameter fallback: drawn when `icon` resolves to nothing, so a card never shows a bare circle
-       for an icon that can never arrive.
+     - Parameter fallback: drawn when `icon` resolves to nothing, so no card shows a bare circle.
     */
     public init(icon: String?, fallback: String? = nil, backgroundColor: Color, onTap: (() -> Void)? = nil) {
         self.source = icon.map { .mdi(name: $0, fallback: fallback) }
@@ -46,16 +44,17 @@ public struct CardIcon: View {
             .allowsHitTesting(onTap != nil)
     }
 
-    /// Renders nothing but the circle when the name resolves to no glyph — an icon from a custom
-    /// pack, or one this version of Material Design Icons doesn't contain.
+    /**
+     Renders nothing but the circle when the name resolves to no glyph — an icon from a custom
+     pack, or one this version of Material Design Icons doesn't contain.
+    */
     @ViewBuilder
     private var icon: some View {
         switch source {
         case let .mdi(name, fallback):
             /**
-             Drawn at the inner size, not the circle's own: an MDI glyph fills its 24x24 viewBox
-             almost edge to edge, so sizing it to the circle's diameter pushes the artwork past the
-             circle's rim. `.s` keeps roughly the inset the SF Symbol path had.
+             Inner size, not the circle's: an MDI glyph fills its viewBox edge to edge, so the
+             full diameter would push artwork past the rim.
             */
             MDIIcon(name: name, fallback: fallback, size: Mortar.IconSize.s)
         case let .systemImage(name):

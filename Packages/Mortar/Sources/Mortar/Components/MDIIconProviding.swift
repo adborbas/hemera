@@ -5,16 +5,9 @@ public struct MDIGlyph: Hashable, Sendable {
     let character: Character
 }
 
-/**
- Supplies Material Design Icon glyphs by name.
-
- The only thing views know about where icons come from. They ask for a name; whether it was resolved
- from the bundled font or something else entirely is the provider's business, so swapping the source
- never reaches a call site.
-*/
+/// Supplies Material Design Icon glyphs by name, so swapping the source never reaches a call site.
 public protocol MDIIconProviding: Sendable {
 
-    /// The glyph for a Home Assistant icon name (`"mdi:garage"`), or `nil` if it cannot be resolved.
     func glyph(named name: String) -> MDIGlyph?
 }
 

@@ -1,10 +1,6 @@
 import SwiftUI
 
-/**
- Draws a Material Design Icon by name, tinted by the current foreground style.
-
- Takes a name rather than a glyph so call sites never learn where icons come from.
-*/
+/// Draws a Material Design Icon by name, tinted by the current foreground style.
 public struct MDIIcon: View {
 
     private let name: String
@@ -14,8 +10,8 @@ public struct MDIIcon: View {
     @Environment(\.mdiIconProvider) private var provider
 
     /**
-     - Parameter fallback: drawn when `name` cannot be resolved at all — a custom icon pack, or a
-       name this version of Material Design Icons does not contain. `nil` draws nothing instead.
+     - Parameter fallback: drawn when `name` resolves to nothing — a custom pack, or a name this
+       version of MDI lacks. `nil` draws nothing.
     */
     public init(name: String, fallback: String? = nil, size: CGFloat) {
         self.name = name
@@ -31,15 +27,11 @@ public struct MDIIcon: View {
         if let glyph {
             Text(String(glyph.character))
                 /**
-                 `fixedSize` rather than `size`, which scales with Dynamic Type: these glyphs sit
-                 inside fixed-diameter containers like `CardIcon`'s circle, so scaling the artwork
-                 without scaling its container makes the glyph overflow the rim.
+                 Not `size:`, which scales with Dynamic Type and overflows the fixed-diameter
+                 containers these sit in, like `CardIcon`'s circle.
                 */
                 .font(.custom(MDIIconFont.fontName, fixedSize: size))
-                /// Material Design Icon glyphs fill their em box, so a square frame of the same
-                /// point size bounds the artwork and keeps layout deterministic.
                 .frame(width: size, height: size)
-                /// The label comes from the surrounding card, so the glyph itself is decorative.
                 .accessibilityHidden(true)
         }
     }
