@@ -29,6 +29,7 @@ final class HADataSyncService {
     private let mainContext: ModelContext
     private let entityRegistry: EntityRegistry
     private let errorNotifier: ErrorNotifier?
+    private let iconResolver: IconResolver
     private let onSyncComplete: @MainActor () -> Void
 
     private var stateChangedToken: HACancellable?
@@ -71,6 +72,7 @@ final class HADataSyncService {
         mainContext: ModelContext,
         entityRegistry: EntityRegistry,
         errorNotifier: ErrorNotifier? = nil,
+        iconResolver: IconResolver,
         onSyncComplete: @MainActor @escaping () -> Void
     ) {
         self.connectionManager = connectionManager
@@ -78,6 +80,7 @@ final class HADataSyncService {
         self.mainContext = mainContext
         self.entityRegistry = entityRegistry
         self.errorNotifier = errorNotifier
+        self.iconResolver = iconResolver
         self.onSyncComplete = onSyncComplete
     }
 
@@ -141,7 +144,11 @@ final class HADataSyncService {
     /// cold start and the UI stays responsive. Entity upserts that match an
     /// existing `@Model` mutate it in place, firing `@Observable` for any
     /// card view that already references it.
-    private func applySyncPayload(_ payload: SyncPayload) async {
+    func applySyncPayload(_ payload: SyncPayload) async {
+        if let iconTranslations = payload.iconTranslations {
+            iconResolver.update(iconTranslations)
+        }
+
         for (index, entity) in payload.entities.enumerated() {
             entityRegistry.upsert(from: entity, in: mainContext)
             if (index + 1).isMultiple(of: Self.yieldBatchSize) {
@@ -264,7 +271,7 @@ final class HADataSyncService {
 
     // MARK: - Fetch
 
-    private struct SyncPayload {
+    struct SyncPayload {
         let entities: [HAEntity]
         let areaMappings: [AreaMapping]
         let deviceMappings: [DeviceMapping]
@@ -289,6 +296,8 @@ final class HADataSyncService {
         let floorSortOrder: [String: Int]
         /// `areaId → floorId` for areas that Home Assistant assigns to a floor.
         let areaFloorIds: [String: String]
+        /// Home Assistant's icon translations, or `nil` when neither the server nor the cache had any.
+        let iconTranslations: IconTranslations?
     }
 
     private func fetchSyncPayload() async throws -> SyncPayload {
@@ -301,9 +310,10 @@ final class HADataSyncService {
         async let entityRegistryTask = fetchEntityRegistry()
         async let areaRegistryTask = fetchAreaRegistry()
         async let floorRegistryTask = fetchFloorRegistry()
+        async let iconTranslationsTask = fetchIconTranslations()
 
-        let (entities, entityRegistryResult, areaRegistry, floorRegistry) = try await (
-            entitiesTask, entityRegistryTask, areaRegistryTask, floorRegistryTask
+        let (entities, entityRegistryResult, areaRegistry, floorRegistry, iconTranslations) = try await (
+            entitiesTask, entityRegistryTask, areaRegistryTask, floorRegistryTask, iconTranslationsTask
         )
         let deviceMappings = entityRegistryResult.mappings
         let hiddenEntityIds = entityRegistryResult.hiddenEntityIds
@@ -339,8 +349,46 @@ final class HADataSyncService {
             areaMappingsFetchSucceeded: fetchedAreaMappings != nil,
             floors: floorRegistry,
             floorSortOrder: floorSortOrder,
-            areaFloorIds: areaFloorIds
+            areaFloorIds: areaFloorIds,
+            iconTranslations: iconTranslations
         )
+    }
+
+    // MARK: - Icon Translations
+
+    /**
+     Domains whose icon translations Hemera actually renders. Passed explicitly because omitting
+     `integration` makes Home Assistant return every loaded component, and `sensor` alone is ~10 KB
+     of device classes we never draw a card for.
+    */
+    private static let iconTranslationDomains = [
+        "light", "switch", "cover", "climate", "binary_sensor",
+        "scene", "script", "automation", "button"
+    ]
+
+    /**
+     Fetches Home Assistant's icon translations.
+
+     Returns `nil` on failure so the resolver keeps what it already has — the bundled seed at worst —
+     rather than blanking every icon on a transient error.
+    */
+    private func fetchIconTranslations() async -> IconTranslations? {
+        do {
+            let request = HARequest(
+                type: .webSocket("frontend/get_icons"),
+                data: ["category": "entity_component", "integration": Self.iconTranslationDomains]
+            )
+            let response = try await conn.send(request)
+
+            guard let translations = IconTranslations(haData: response) else {
+                Log.warning("frontend/get_icons returned no usable icon translations — keeping current map")
+                return nil
+            }
+            return translations
+        } catch {
+            Log.error("Failed to fetch icon translations — keeping current map", cause: error)
+            return nil
+        }
     }
 
     // MARK: - Registry Fetching

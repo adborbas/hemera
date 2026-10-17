@@ -12,7 +12,7 @@ struct AutomationCardViewModelTests {
     @Test
     func onState_properties() {
         let vm = makeViewModel(state: .on)
-        #expect(vm.iconName == "gearshape.2.fill")
+        #expect(vm.iconName == "robot")
         #expect(vm.iconBackgroundColor == .orange)
         #expect(vm.tintColor == .orange)
     }
@@ -22,7 +22,7 @@ struct AutomationCardViewModelTests {
     @Test
     func offState_properties() {
         let vm = makeViewModel(state: .off)
-        #expect(vm.iconName == "gearshape.2.fill")
+        #expect(vm.iconName == "robot-off")
         #expect(vm.iconBackgroundColor == PlatformColor.systemGray3)
         #expect(vm.tintColor == .orange)
     }
@@ -30,27 +30,27 @@ struct AutomationCardViewModelTests {
     // MARK: - HA Icon Override
 
     @Test
-    func iconName_withMappedIcon_usesMapping() {
+    func iconName_withEntityIconOverride_usesItVerbatim() {
         let automation = AutomationEntity(
             entityId: "automation.test",
             name: "Test",
             state: .on,
             icon: "mdi:lightbulb"
         )
-        let vm = AutomationCardViewModel(automation: automation, controller: StubAutomationControlling())
-        #expect(vm.iconName == "lightbulb.fill")
+        let vm = AutomationCardViewModel(automation: automation, controller: StubAutomationControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "lightbulb")
     }
 
     @Test
-    func iconName_withUnmappedIcon_fallsBackToDefault() {
+    func iconName_withUnsupportedIconPack_fallsBackToDefault() {
         let automation = AutomationEntity(
             entityId: "automation.test",
             name: "Test",
             state: .on,
-            icon: "mdi:nonexistent-xyz"
+            icon: "phu:gears"
         )
-        let vm = AutomationCardViewModel(automation: automation, controller: StubAutomationControlling())
-        #expect(vm.iconName == "gearshape.2.fill")
+        let vm = AutomationCardViewModel(automation: automation, controller: StubAutomationControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "robot")
     }
 
     // MARK: - Has Overlay
@@ -71,7 +71,7 @@ struct AutomationCardViewModelTests {
             state: state,
             lastTriggered: nil
         )
-        return AutomationCardViewModel(automation: automation, controller: StubAutomationControlling())
+        return AutomationCardViewModel(automation: automation, controller: StubAutomationControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 }
 

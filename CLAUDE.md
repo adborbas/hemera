@@ -137,6 +137,10 @@ Custom component library providing the visual foundation for the app. Always use
 12. Add demo data in `DemoDataProvider`.
 13. Add the protocol to `MockController` in tests.
 14. Add the new domain to `EntityCategory.from(domain:)` in `Hemera/Entities/EntityCategory.swift` so entities appear in the correct category section in area detail views.
+15. Add the domain to **both** icon lists so its icons resolve: `HADataSyncService.iconTranslationDomains`
+    (what `frontend/get_icons` is asked for) and `DOMAINS` in `scripts/update-ha-icon-translations.sh`.
+    Re-run that script and commit the regenerated `BundledIconTranslations.json`. Glyphs need nothing —
+    the full Material Design Icons set is vendored as a font (`scripts/update-mdi-icons.sh`).
 
 ### Adding a new screen
 

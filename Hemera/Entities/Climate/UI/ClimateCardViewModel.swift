@@ -19,6 +19,7 @@ final class ClimateCardViewModel: Identifiable {
 
     private let cooldown: CommitCooldown
     private let controller: ClimateControlling
+    private let iconResolver: any IconResolving
     private(set) var actionTask: Task<Void, Never>?
 
     // MARK: - HVAC State
@@ -126,11 +127,27 @@ final class ClimateCardViewModel: Identifiable {
     static let warmColor: Color = .warm
     static let coolColor: Color = .cool
 
-    var iconName: String {
-        if let action = hvacAction {
-            return iconForAction(action)
+    /// Prefers what the thermostat is actually *doing* over what it is set to.
+    var iconName: String? {
+        if let icon = climate.icon, let override = MDIIconName.normalised(icon) {
+            return override
         }
-        return iconForMode(hvacMode)
+
+        /**
+         `.idle` falls through to the mode: HA maps it to `mdi:clock-outline`, which says nothing
+         about whether the thermostat is set to heat or cool.
+        */
+        if let action = hvacAction, action != .idle,
+           let actionIcon = iconResolver.attributeIconName(
+               domain: ClimateEntity.domain,
+               attribute: "hvac_action",
+               value: action.rawValue
+           ) {
+            return actionIcon
+        }
+
+        return Self.modeIcon(hvacMode)
+            ?? iconResolver.iconName(domain: ClimateEntity.domain)
     }
 
     var iconBackgroundColor: Color {
@@ -187,11 +204,17 @@ final class ClimateCardViewModel: Identifiable {
 
     // MARK: - Init
 
-    init(climate: ClimateEntity, controller: ClimateControlling, cooldown: CommitCooldown? = nil) {
+    init(
+        climate: ClimateEntity,
+        controller: ClimateControlling,
+        iconResolver: any IconResolving = IconResolver.shared,
+        cooldown: CommitCooldown? = nil
+    ) {
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = climate.entityId
         self.climate = climate
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     // MARK: - Display Helpers
@@ -287,27 +310,18 @@ final class ClimateCardViewModel: Identifiable {
 // MARK: - Icon & Color Helpers
 
 extension ClimateCardViewModel {
-    private func iconForAction(_ action: ClimateEntity.HVACAction) -> String {
-        switch action {
-        case .off: "power"
-        case .preheating, .heating: "heat.waves"
-        case .cooling: "snowflake"
-        case .drying: "dehumidifier.fill"
-        case .fan: "fan.fill"
-        case .idle: iconForMode(hvacMode)
-        case .defrosting: "snowflake.slash"
-        }
-    }
-
-    private func iconForMode(_ mode: ClimateEntity.HVACMode) -> String {
+    /**
+     The one icon table HA has no equivalent for: `climate` translations cover `hvac_action` only,
+     no per-mode `state` map. Used when a thermostat reports no action, which most do not.
+    */
+    private static func modeIcon(_ mode: ClimateEntity.HVACMode) -> String? {
         switch mode {
         case .off: "power"
-        case .heat: "heat.waves"
+        case .heat: "fire"
         case .cool: "snowflake"
-        case .heatCool, .auto: "thermometer.medium"
-        case .dry: "dehumidifier.fill"
-        case .fanOnly: "fan.fill"
-        case .unknown, .unavailable: "questionmark.circle"
+        case .dry: "water-percent"
+        case .fanOnly: "fan"
+        case .heatCool, .auto, .unknown, .unavailable: nil
         }
     }
 

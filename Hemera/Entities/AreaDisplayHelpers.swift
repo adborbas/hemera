@@ -7,7 +7,8 @@ struct AreaStatusIcon: Identifiable, Hashable {
     }
 
     let category: Category
-    let iconName: String
+    /// Bare MDI name, or `nil` when the icon translations have not arrived yet.
+    let iconName: String?
     let isActive: Bool
     let activeColor: Color
 
@@ -37,7 +38,10 @@ enum AreaDisplayHelpers {
         return (tempStr, humStr)
     }
 
-    static func statusIcons(from area: AreaEntity) -> [AreaStatusIcon] {
+    static func statusIcons(
+        from area: AreaEntity,
+        iconResolver: any IconResolving = IconResolver.shared
+    ) -> [AreaStatusIcon] {
         var icons: [AreaStatusIcon] = []
 
         // Status indicators must ignore HA-hidden and locally-hidden entities,
@@ -47,13 +51,20 @@ enum AreaDisplayHelpers {
 
         if !lights.isEmpty {
             let anyOn = lights.contains { $0.state == .on && $0.isAvailable }
-            icons.append(AreaStatusIcon(category: .light, iconName: "lightbulb.fill", isActive: anyOn, activeColor: .yellow))
+            let iconName = iconResolver.iconName(
+                domain: LightEntity.domain,
+                state: anyOn ? LightEntity.State.on.rawValue : LightEntity.State.off.rawValue
+            )
+            icons.append(AreaStatusIcon(category: .light, iconName: iconName, isActive: anyOn, activeColor: .yellow))
         }
 
         if let firstCover = covers.first {
             let anyOpen = covers.contains { ($0.state == .open || $0.state == .opening) && $0.isAvailable }
-            let symbolPair = firstCover.deviceClass.symbolPair
-            let iconName = anyOpen ? symbolPair.open : symbolPair.closed
+            let iconName = iconResolver.iconName(
+                domain: CoverEntity.domain,
+                deviceClass: firstCover.deviceClass == .unknown ? nil : firstCover.deviceClass.rawValue,
+                state: anyOpen ? CoverEntity.State.open.rawValue : CoverEntity.State.closed.rawValue
+            )
             icons.append(AreaStatusIcon(category: .cover, iconName: iconName, isActive: anyOpen, activeColor: .blue))
         }
 
@@ -64,7 +75,11 @@ enum AreaDisplayHelpers {
             let activeSensor = relevantSensors.first { $0.state == .on && $0.isAvailable }
             let representative = activeSensor ?? relevantSensors[0]
             let isActive = activeSensor != nil
-            let iconName = representative.deviceClass.symbolName(isOn: isActive)
+            let iconName = iconResolver.iconName(
+                domain: BinarySensorEntity.domain,
+                deviceClass: representative.deviceClassRaw,
+                state: isActive ? BinarySensorEntity.State.on.rawValue : BinarySensorEntity.State.off.rawValue
+            )
             icons.append(AreaStatusIcon(category: .binarySensor, iconName: iconName, isActive: isActive, activeColor: .teal))
         }
 

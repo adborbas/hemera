@@ -97,7 +97,7 @@ struct AreaDetailViewModelTests {
     func isHidden_setViaCardViewModel_writesThroughToEntity() {
         let light = LightEntity(entityId: "light.lamp", name: "Lamp", state: .off)
         context.insert(light)
-        let vm = LightCardViewModel(light: light, controller: MockController())
+        let vm = LightCardViewModel(light: light, controller: MockController(), iconResolver: IconTranslationsFixture.resolver())
 
         #expect(vm.isHidden == false)
         vm.isHidden = true

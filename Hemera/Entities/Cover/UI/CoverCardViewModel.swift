@@ -45,6 +45,7 @@ final class CoverCardViewModel: Identifiable {
     private var pendingPosition: Int?
     private let cooldown: CommitCooldown
     private let controller: CoverControlling
+    private let iconResolver: any IconResolving
     private(set) var actionTask: Task<Void, Never>?
 
     var stateDescription: String {
@@ -84,8 +85,13 @@ final class CoverCardViewModel: Identifiable {
         }
     }
 
-    var iconName: String {
-        cover.deviceClass.symbolName(for: state)
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: CoverEntity.domain,
+            deviceClass: cover.deviceClass == .unknown ? nil : cover.deviceClass.rawValue,
+            state: state.rawValue,
+            entityIcon: cover.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -127,11 +133,13 @@ final class CoverCardViewModel: Identifiable {
 
     init(cover: CoverEntity,
          controller: CoverControlling,
+         iconResolver: any IconResolving = IconResolver.shared,
          cooldown: CommitCooldown? = nil) {
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = cover.entityId
         self.cover = cover
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     // MARK: - Actions
@@ -202,24 +210,6 @@ final class CoverCardViewModel: Identifiable {
         actionTask?.cancel()
         actionTask = Task {
             await controller.toggleCover(id)
-        }
-    }
-}
-
-fileprivate extension CoverEntity.DeviceClass {
-
-    func symbolName(for state: CoverEntity.State) -> String {
-        switch state {
-        case .open:
-            return symbolPair.open
-        case .closed:
-            return symbolPair.closed
-        case .opening, .closing:
-            return "stop.fill"
-        case .unknown:
-            return "questionmark.circle"
-        case .unavailable:
-            return "exclamationmark.circle"
         }
     }
 }

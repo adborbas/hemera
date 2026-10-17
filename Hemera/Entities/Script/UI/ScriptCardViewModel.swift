@@ -17,22 +17,24 @@ final class ScriptCardViewModel: Identifiable {
         set { script.isHidden = newValue }
     }
 
-    var iconName: String {
-        if let icon = script.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        return "play.circle.fill"
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: ScriptEntity.domain,
+            state: script.state.rawValue,
+            entityIcon: script.icon
+        )
     }
 
     var tintColor: Color { .purple }
 
     private let controller: ScriptControlling
+    private let iconResolver: any IconResolving
 
-    init(script: ScriptEntity, controller: ScriptControlling) {
+    init(script: ScriptEntity, controller: ScriptControlling, iconResolver: any IconResolving = IconResolver.shared) {
         self.id = script.entityId
         self.script = script
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     func run() {

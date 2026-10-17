@@ -12,7 +12,7 @@ struct LightCardViewModelTests {
     @Test
     func onState_properties() {
         let vm = makeViewModel(state: .on)
-        #expect(vm.iconName == "lightbulb.fill")
+        #expect(vm.iconName == "lightbulb")
         #expect(vm.iconBackgroundColor == .yellow)
         #expect(vm.tintColor == .yellow)
     }
@@ -22,7 +22,7 @@ struct LightCardViewModelTests {
     @Test
     func offState_properties() {
         let vm = makeViewModel(state: .off)
-        #expect(vm.iconName == "lightbulb.fill")
+        #expect(vm.iconName == "lightbulb-off")
         #expect(vm.iconBackgroundColor == PlatformColor.systemGray3)
         #expect(vm.tintColor == .yellow)
     }
@@ -30,17 +30,18 @@ struct LightCardViewModelTests {
     // MARK: - HA Icon Override
 
     @Test
-    func iconName_withMappedIcon_usesMapping() {
+    func iconName_withEntityIconOverride_usesItVerbatim() {
         let light = LightEntity(entityId: "light.test", name: "Test", state: .on, icon: "mdi:ceiling-light")
-        let vm = LightCardViewModel(light: light, controller: StubLightControlling())
-        #expect(vm.iconName == "chandelier.fill")
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "ceiling-light")
     }
 
     @Test
-    func iconName_withUnmappedIcon_fallsBackToDefault() {
-        let light = LightEntity(entityId: "light.test", name: "Test", state: .on, icon: "mdi:nonexistent-xyz")
-        let vm = LightCardViewModel(light: light, controller: StubLightControlling())
-        #expect(vm.iconName == "lightbulb.fill")
+    /// An icon from a pack we can't fetch must not shadow Home Assistant's own translation.
+    func iconName_withUnsupportedIconPack_fallsBackToTranslations() {
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .on, icon: "phu:floor-lamp")
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "lightbulb")
     }
 
     // MARK: - Brightness Cooldown
@@ -49,7 +50,7 @@ struct LightCardViewModelTests {
     func brightness_whileSuppressed_returnsPending_thenModelAfterExpiry() async {
         let cooldown = CommitCooldown(duration: 0.05)
         let light = LightEntity(entityId: "light.test", name: "Test", state: .on, brightness: 100)
-        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), cooldown: cooldown)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver(), cooldown: cooldown)
 
         #expect(vm.brightness == 100)
 
@@ -71,7 +72,7 @@ struct LightCardViewModelTests {
         // Long window so the cooldown stays suppressed for the whole test.
         let cooldown = CommitCooldown(duration: 1)
         let light = LightEntity(entityId: "light.test", name: "Test", state: .on, brightness: 100)
-        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), cooldown: cooldown)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver(), cooldown: cooldown)
 
         // Brightness commit that the server never confirms (model stays 100).
         vm.setBrightness(to: 200)
@@ -148,7 +149,7 @@ struct LightCardViewModelTests {
 
     private func makeViewModel(state: LightEntity.State) -> LightCardViewModel {
         let light = LightEntity(entityId: "light.test", name: "Test", state: state)
-        return LightCardViewModel(light: light, controller: StubLightControlling())
+        return LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 
     private func makeViewModel(
@@ -164,7 +165,7 @@ struct LightCardViewModelTests {
             maxMireds: maxMireds,
             supportedColorModes: supportedColorModes
         )
-        return LightCardViewModel(light: light, controller: StubLightControlling())
+        return LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 }
 

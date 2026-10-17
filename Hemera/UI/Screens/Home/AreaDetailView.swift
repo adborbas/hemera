@@ -294,7 +294,7 @@ private struct AreaDetailSection: View {
             }
         } else {
             EntityCard {
-                CardIcon(iconName: "minus", backgroundColor: PlatformColor.systemGray3)
+                CardIcon(systemImage: "minus", backgroundColor: PlatformColor.systemGray3)
             } label: {
                 CardLabel(title: tile.title, subtitle: "")
             }

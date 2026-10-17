@@ -19,15 +19,13 @@ final class SwitchCardViewModel: Identifiable {
     }
     var deviceClass: SwitchEntity.DeviceClass { switchEntity.deviceClass }
 
-    var iconName: String {
-        if let icon = switchEntity.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        switch deviceClass {
-        case .outlet: return "powerplug.fill"
-        case .switch: return "power"
-        }
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: SwitchEntity.domain,
+            deviceClass: deviceClass.rawValue,
+            state: switchEntity.state.rawValue,
+            entityIcon: switchEntity.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -37,12 +35,14 @@ final class SwitchCardViewModel: Identifiable {
     var tintColor: Color { .green }
 
     private let controller: SwitchControlling
+    private let iconResolver: any IconResolving
     private(set) var controllerTask: Task<Void, Never>?
 
-    init(switchEntity: SwitchEntity, controller: SwitchControlling) {
+    init(switchEntity: SwitchEntity, controller: SwitchControlling, iconResolver: any IconResolving = IconResolver.shared) {
         self.id = switchEntity.entityId
         self.switchEntity = switchEntity
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     func toggle() {

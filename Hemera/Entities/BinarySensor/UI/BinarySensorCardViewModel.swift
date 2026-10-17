@@ -18,20 +18,21 @@ final class BinarySensorCardViewModel: Identifiable {
         set { binarySensor.isHidden = newValue }
     }
 
-    init(binarySensor: BinarySensorEntity) {
+    private let iconResolver: any IconResolving
+
+    init(binarySensor: BinarySensorEntity, iconResolver: any IconResolving = IconResolver.shared) {
+        self.iconResolver = iconResolver
         self.id = binarySensor.entityId
         self.binarySensor = binarySensor
     }
 
-    var iconName: String {
-        switch binarySensor.state {
-        case .unknown:
-            return "questionmark.circle"
-        case .unavailable:
-            return "exclamationmark.circle"
-        case .on, .off:
-            return binarySensor.deviceClass.symbolName(isOn: isOn)
-        }
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: BinarySensorEntity.domain,
+            deviceClass: binarySensor.deviceClassRaw,
+            state: binarySensor.state.rawValue,
+            entityIcon: binarySensor.icon
+        )
     }
 
     var tintColor: Color {

@@ -16,20 +16,18 @@ final class SceneCardViewModel: Identifiable {
         set { scene.isHidden = newValue }
     }
 
-    var iconName: String {
-        if let icon = scene.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        return "play.circle.fill"
+    var iconName: String? {
+        iconResolver.iconName(domain: SceneEntity.domain, entityIcon: scene.icon)
     }
 
     private let controller: SceneControlling
+    private let iconResolver: any IconResolving
 
-    init(scene: SceneEntity, controller: SceneControlling) {
+    init(scene: SceneEntity, controller: SceneControlling, iconResolver: any IconResolving = IconResolver.shared) {
         self.id = scene.entityId
         self.scene = scene
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     func activate() {

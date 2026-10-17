@@ -84,12 +84,12 @@ final class LightCardViewModel: Identifiable {
         set { light.isHidden = newValue }
     }
 
-    var iconName: String {
-        if let icon = light.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        return "lightbulb.fill"
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: LightEntity.domain,
+            state: light.state.rawValue,
+            entityIcon: light.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -100,8 +100,15 @@ final class LightCardViewModel: Identifiable {
 
     private let cooldown: CommitCooldown
     private let controller: LightControlling
+    private let iconResolver: any IconResolving
 
-    init(light: LightEntity, controller: LightControlling, cooldown: CommitCooldown? = nil) {
+    init(
+        light: LightEntity,
+        controller: LightControlling,
+        iconResolver: any IconResolving = IconResolver.shared,
+        cooldown: CommitCooldown? = nil
+    ) {
+        self.iconResolver = iconResolver
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = light.entityId
         self.light = light

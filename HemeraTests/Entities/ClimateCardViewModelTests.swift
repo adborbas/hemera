@@ -15,12 +15,12 @@ struct ClimateCardViewModelTests {
 
     @Test func iconName_actionHeating() {
         let vm = makeViewModel(hvacAction: .heating)
-        #expect(vm.iconName == "heat.waves")
+        #expect(vm.iconName == "fire")
     }
 
     @Test func iconName_actionPreheating() {
         let vm = makeViewModel(hvacAction: .preheating)
-        #expect(vm.iconName == "heat.waves")
+        #expect(vm.iconName == "heat-wave")
     }
 
     @Test func iconName_actionCooling() {
@@ -30,29 +30,29 @@ struct ClimateCardViewModelTests {
 
     @Test func iconName_actionDrying() {
         let vm = makeViewModel(hvacAction: .drying)
-        #expect(vm.iconName == "dehumidifier.fill")
+        #expect(vm.iconName == "water-percent")
     }
 
     @Test func iconName_actionFan() {
         let vm = makeViewModel(hvacAction: .fan)
-        #expect(vm.iconName == "fan.fill")
+        #expect(vm.iconName == "fan")
     }
 
     @Test func iconName_actionIdle_usesModesIcon() {
         let vm = makeViewModel(state: .heat, hvacAction: .idle)
-        #expect(vm.iconName == "heat.waves")
+        #expect(vm.iconName == "fire")
     }
 
     @Test func iconName_actionDefrosting() {
         let vm = makeViewModel(hvacAction: .defrosting)
-        #expect(vm.iconName == "snowflake.slash")
+        #expect(vm.iconName == "snowflake-melt")
     }
 
     // MARK: - Icon Name (Fallback to Mode)
 
     @Test func iconName_noAction_modeHeat() {
         let vm = makeViewModel(state: .heat)
-        #expect(vm.iconName == "heat.waves")
+        #expect(vm.iconName == "fire")
     }
 
     @Test func iconName_noAction_modeCool() {
@@ -67,17 +67,17 @@ struct ClimateCardViewModelTests {
 
     @Test func iconName_noAction_modeHeatCool() {
         let vm = makeViewModel(state: .heatCool)
-        #expect(vm.iconName == "thermometer.medium")
+        #expect(vm.iconName == "thermostat")
     }
 
     @Test func iconName_noAction_modeDry() {
         let vm = makeViewModel(state: .dry)
-        #expect(vm.iconName == "dehumidifier.fill")
+        #expect(vm.iconName == "water-percent")
     }
 
     @Test func iconName_noAction_modeFanOnly() {
         let vm = makeViewModel(state: .fanOnly)
-        #expect(vm.iconName == "fan.fill")
+        #expect(vm.iconName == "fan")
     }
 
     // MARK: - Active State
@@ -330,7 +330,7 @@ struct ClimateCardViewModelTests {
             hvacModesRaw: ["off", "heat"],
             supportedFeaturesRaw: ClimateEntity.SupportedFeatures.targetTemperature.rawValue
         )
-        let vm = ClimateCardViewModel(climate: climate, controller: SpyClimateControlling(), cooldown: cooldown)
+        let vm = ClimateCardViewModel(climate: climate, controller: SpyClimateControlling(), iconResolver: IconTranslationsFixture.resolver(), cooldown: cooldown)
 
         #expect(vm.targetTemperature == 20)
 
@@ -379,7 +379,7 @@ struct ClimateCardViewModelTests {
         return ClimateCardViewModel(
             climate: climate,
             controller: controller ?? SpyClimateControlling()
-        )
+        , iconResolver: IconTranslationsFixture.resolver())
     }
 }
 

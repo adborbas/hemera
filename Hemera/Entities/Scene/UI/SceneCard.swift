@@ -8,7 +8,7 @@ struct SceneCard: View {
     var body: some View {
         EntityCard {
             CardIcon(
-                iconName: isActivating ? "checkmark.circle.fill" : viewModel.iconName,
+                icon: isActivating ? "mdi:check-circle" : viewModel.iconName,
                 backgroundColor: isActivating ? .green : .purple
             ) {
                 activateScene()

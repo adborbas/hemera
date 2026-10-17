@@ -28,7 +28,7 @@ public struct CardRow<Trailing: View>: View {
     public var body: some View {
         Button(action: action) {
             HStack(spacing: Mortar.Spacing.m) {
-                CardIcon(iconName: iconName, backgroundColor: iconColor)
+                CardIcon(systemImage: iconName, backgroundColor: iconColor)
 
                 VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
                     Text(title)

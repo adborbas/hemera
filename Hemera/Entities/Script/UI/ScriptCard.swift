@@ -7,7 +7,7 @@ struct ScriptCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isRunning) {
             CardIcon(
-                iconName: viewModel.isRunning ? "stop.fill" : viewModel.iconName,
+                icon: viewModel.isRunning ? "mdi:stop" : viewModel.iconName,
                 backgroundColor: viewModel.tintColor
             ) {
                 viewModel.performPrimaryAction()

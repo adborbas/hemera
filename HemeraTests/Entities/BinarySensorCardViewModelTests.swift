@@ -52,43 +52,44 @@ struct BinarySensorCardViewModelTests {
     @Test
     func iconName_motionOn() {
         let vm = makeViewModel(deviceClass: .motion, state: .on)
-        #expect(vm.iconName == "figure.walk")
+        #expect(vm.iconName == "motion-sensor")
     }
 
     @Test
     func iconName_motionOff() {
         let vm = makeViewModel(deviceClass: .motion, state: .off)
-        #expect(vm.iconName == "figure.stand")
+        #expect(vm.iconName == "motion-sensor-off")
     }
 
     @Test
     func iconName_doorOn() {
         let vm = makeViewModel(deviceClass: .door, state: .on)
-        #expect(vm.iconName == "door.left.hand.open")
+        #expect(vm.iconName == "door-open")
     }
 
     @Test
     func iconName_doorOff() {
         let vm = makeViewModel(deviceClass: .door, state: .off)
-        #expect(vm.iconName == "door.left.hand.closed")
+        #expect(vm.iconName == "door-closed")
     }
 
     @Test
     func iconName_smokeOn() {
         let vm = makeViewModel(deviceClass: .smoke, state: .on)
-        #expect(vm.iconName == "smoke.fill")
+        #expect(vm.iconName == "smoke-detector-variant-alert")
     }
 
     @Test
-    func iconName_unknown_showsQuestionmark() {
+    /// Home Assistant publishes no icon for `unknown`, so the device class default stands in.
+    func iconName_unknownState_usesDeviceClassDefault() {
         let vm = makeViewModel(deviceClass: .motion, state: .unknown)
-        #expect(vm.iconName == "questionmark.circle")
+        #expect(vm.iconName == "motion-sensor-off")
     }
 
     @Test
-    func iconName_unavailable_showsExclamation() {
+    func iconName_unavailableState_usesDeviceClassDefault() {
         let vm = makeViewModel(deviceClass: .motion, state: .unavailable)
-        #expect(vm.iconName == "exclamationmark.circle")
+        #expect(vm.iconName == "motion-sensor-off")
     }
 
     // MARK: - State Description
@@ -143,6 +144,6 @@ struct BinarySensorCardViewModelTests {
             state: state,
             deviceClass: deviceClass
         )
-        return BinarySensorCardViewModel(binarySensor: entity)
+        return BinarySensorCardViewModel(binarySensor: entity, iconResolver: IconTranslationsFixture.resolver())
     }
 }

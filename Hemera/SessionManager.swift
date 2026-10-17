@@ -115,7 +115,6 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
 
         DemoDataProvider.seedDemoData(into: demoContext)
         let demoController = DemoController(context: demoContext)
-
         let factory = ViewModelFactory(context: demoContext, container: demoContainer)
         factory.registerAllDomains(
             lightController: demoController,
@@ -210,6 +209,7 @@ private extension SessionManager {
             mainContext: container.mainContext,
             entityRegistry: .shared,
             errorNotifier: errorNotifier,
+            iconResolver: .shared,
             onSyncComplete: { [weak self] in
                 self?.isResyncing = false
                 self?.router?.sessionReady()

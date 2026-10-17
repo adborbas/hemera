@@ -19,12 +19,12 @@ final class AutomationCardViewModel: Identifiable {
     }
     var lastTriggered: Date? { automation.lastTriggered }
 
-    var iconName: String {
-        if let icon = automation.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        return "gearshape.2.fill"
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: AutomationEntity.domain,
+            state: automation.state.rawValue,
+            entityIcon: automation.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -34,11 +34,13 @@ final class AutomationCardViewModel: Identifiable {
     var tintColor: Color { .orange }
 
     private let controller: AutomationControlling
+    private let iconResolver: any IconResolving
 
-    init(automation: AutomationEntity, controller: AutomationControlling) {
+    init(automation: AutomationEntity, controller: AutomationControlling, iconResolver: any IconResolving = IconResolver.shared) {
         self.id = automation.entityId
         self.automation = automation
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     func toggle() {

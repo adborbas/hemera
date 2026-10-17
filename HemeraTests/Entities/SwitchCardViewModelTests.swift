@@ -12,27 +12,27 @@ struct SwitchCardViewModelTests {
     @Test
     func iconName_outlet() {
         let vm = makeViewModel(deviceClass: .outlet, state: .off)
-        #expect(vm.iconName == "powerplug.fill")
+        #expect(vm.iconName == "power-plug-off")
     }
 
     @Test
     func iconName_switch() {
         let vm = makeViewModel(deviceClass: .switch, state: .off)
-        #expect(vm.iconName == "power")
+        #expect(vm.iconName == "toggle-switch-variant-off")
     }
 
     @Test
-    func iconName_withMappedIcon_usesMapping() {
+    func iconName_withEntityIconOverride_usesItVerbatim() {
         let entity = SwitchEntity(entityId: "switch.test", name: "Test", state: .on, deviceClass: .outlet, icon: "mdi:fan")
-        let vm = SwitchCardViewModel(switchEntity: entity, controller: SpySwitchControlling())
-        #expect(vm.iconName == "fan.fill")
+        let vm = SwitchCardViewModel(switchEntity: entity, controller: SpySwitchControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "fan")
     }
 
     @Test
-    func iconName_withUnmappedIcon_fallsBackToDeviceClass() {
-        let entity = SwitchEntity(entityId: "switch.test", name: "Test", state: .on, deviceClass: .outlet, icon: "mdi:nonexistent-xyz")
-        let vm = SwitchCardViewModel(switchEntity: entity, controller: SpySwitchControlling())
-        #expect(vm.iconName == "powerplug.fill")
+    func iconName_withUnsupportedIconPack_fallsBackToDeviceClass() {
+        let entity = SwitchEntity(entityId: "switch.test", name: "Test", state: .on, deviceClass: .outlet, icon: "phu:socket")
+        let vm = SwitchCardViewModel(switchEntity: entity, controller: SpySwitchControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "power-plug")
     }
 
     // MARK: - On State Colors
@@ -157,7 +157,7 @@ struct SwitchCardViewModelTests {
         controller: SwitchControlling
     ) -> SwitchCardViewModel {
         let entity = SwitchEntity(entityId: "switch.test", name: "Test", state: state, deviceClass: deviceClass)
-        return SwitchCardViewModel(switchEntity: entity, controller: controller)
+        return SwitchCardViewModel(switchEntity: entity, controller: controller, iconResolver: IconTranslationsFixture.resolver())
     }
 }
 

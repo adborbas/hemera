@@ -7,7 +7,7 @@ struct BinarySensorCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
             CardIcon(
-                iconName: viewModel.iconName,
+                icon: viewModel.iconName,
                 backgroundColor: viewModel.iconBackgroundColor
             )
         } label: {

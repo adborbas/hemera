@@ -9,7 +9,7 @@ struct ButtonCard: View {
     var body: some View {
         EntityCard {
             CardIcon(
-                iconName: viewModel.iconName,
+                icon: viewModel.iconName,
                 backgroundColor: viewModel.iconBackgroundColor
             ) {
                 handleTap()

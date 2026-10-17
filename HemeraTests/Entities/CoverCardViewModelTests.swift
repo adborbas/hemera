@@ -309,7 +309,7 @@ struct CoverCardViewModelTests {
             currentPosition: 30,
             supportedFeaturesRaw: CoverEntity.Features.setPosition.rawValue
         )
-        let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), cooldown: cooldown)
+        let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), iconResolver: IconTranslationsFixture.resolver(), cooldown: cooldown)
 
         #expect(vm.sliderPosition == 30)
 
@@ -336,7 +336,7 @@ struct CoverCardViewModelTests {
             currentPosition: 30,
             supportedFeaturesRaw: CoverEntity.Features.setPosition.rawValue
         )
-        let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), cooldown: cooldown)
+        let vm = CoverCardViewModel(cover: cover, controller: SpyCoverControlling(), iconResolver: IconTranslationsFixture.resolver(), cooldown: cooldown)
 
         // The card/subtitle/iconTapped surface must never show unconfirmed state:
         // position stays the model value even while a commit is pending.
@@ -361,7 +361,7 @@ struct CoverCardViewModelTests {
             supportedFeaturesRaw: features.rawValue
         )
         cover.isAvailable = isAvailable
-        return CoverCardViewModel(cover: cover, controller: controller ?? SpyCoverControlling())
+        return CoverCardViewModel(cover: cover, controller: controller ?? SpyCoverControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 }
 
