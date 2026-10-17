@@ -78,7 +78,7 @@ struct ViewModelFactoryTests {
         let container = try! ModelContainer(for: schema, configurations: config)
         let context = container.mainContext
         let factory = ViewModelFactory(context: context, container: container)
-        factory.register(LightCardViewModel.registration(controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver()))
+        factory.register(LightCardViewModel.registration(controller: StubLightControlling()))
         return (factory, context)
     }
 }

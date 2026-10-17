@@ -34,9 +34,9 @@ final class AutomationCardViewModel: Identifiable {
     var tintColor: Color { .orange }
 
     private let controller: AutomationControlling
-    private let iconResolver: IconResolver
+    private let iconResolver: any IconResolving
 
-    init(automation: AutomationEntity, controller: AutomationControlling, iconResolver: IconResolver) {
+    init(automation: AutomationEntity, controller: AutomationControlling, iconResolver: any IconResolving = IconResolver.shared) {
         self.id = automation.entityId
         self.automation = automation
         self.controller = controller
@@ -61,17 +61,17 @@ final class AutomationCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension AutomationCardViewModel {
-    static func registration(controller: AutomationControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
+    static func registration(controller: AutomationControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: AutomationEntity.domain,
             makeViewModelsForArea: { area in
                 area.automations.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    AutomationCardViewModel(automation: $0, controller: controller, iconResolver: iconResolver)
+                    AutomationCardViewModel(automation: $0, controller: controller)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let automation = AutomationEntity.fetch(byId: entityId, in: context) else { return nil }
-                return AutomationCardViewModel(automation: automation, controller: controller, iconResolver: iconResolver)
+                return AutomationCardViewModel(automation: automation, controller: controller)
             },
             entityExists: { entityId, context in
                 AutomationEntity.fetch(byId: entityId, in: context) != nil

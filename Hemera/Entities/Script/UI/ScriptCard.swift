@@ -41,7 +41,7 @@ private extension ScriptCard {
 fileprivate extension ScriptCardViewModel {
     static func mockScript() -> ScriptCardViewModel {
         let script = ScriptEntity(entityId: "script.movie_time", name: "Movie Time")
-        return ScriptCardViewModel(script: script, controller: MockScriptControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
+        return ScriptCardViewModel(script: script, controller: MockScriptControlling())
     }
 }
 

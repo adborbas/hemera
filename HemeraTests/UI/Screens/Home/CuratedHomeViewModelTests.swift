@@ -40,8 +40,7 @@ struct CuratedHomeViewModelTests {
             switchController: mockController,
             buttonController: mockController,
             automationController: mockController,
-            climateController: mockController,
-            iconResolver: IconTranslationsFixture.resolver()
+            climateController: mockController
         )
     }
 

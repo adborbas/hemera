@@ -100,12 +100,12 @@ final class LightCardViewModel: Identifiable {
 
     private let cooldown: CommitCooldown
     private let controller: LightControlling
-    private let iconResolver: IconResolver
+    private let iconResolver: any IconResolving
 
     init(
         light: LightEntity,
         controller: LightControlling,
-        iconResolver: IconResolver,
+        iconResolver: any IconResolving = IconResolver.shared,
         cooldown: CommitCooldown? = nil
     ) {
         self.iconResolver = iconResolver
@@ -168,17 +168,17 @@ final class LightCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension LightCardViewModel {
-    static func registration(controller: LightControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
+    static func registration(controller: LightControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: LightEntity.domain,
             makeViewModelsForArea: { area in
                 area.lights.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    LightCardViewModel(light: $0, controller: controller, iconResolver: iconResolver)
+                    LightCardViewModel(light: $0, controller: controller)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let light = LightEntity.fetch(byId: entityId, in: context) else { return nil }
-                return LightCardViewModel(light: light, controller: controller, iconResolver: iconResolver)
+                return LightCardViewModel(light: light, controller: controller)
             },
             entityExists: { entityId, context in
                 LightEntity.fetch(byId: entityId, in: context) != nil

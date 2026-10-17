@@ -190,11 +190,8 @@ private extension AreasView {
 
 private struct AreaCardView: View {
     @Bindable var area: AreaEntity
-    @Environment(IconResolver.self) private var iconResolver: IconResolver?
-
     private var statusIcons: [AreaStatusIcon] {
-        guard let iconResolver else { return [] }
-        return AreaDisplayHelpers.statusIcons(from: area, iconResolver: iconResolver)
+        AreaDisplayHelpers.statusIcons(from: area)
     }
 
     private var climateLabel: String? {
@@ -224,7 +221,7 @@ private struct AreaCardView: View {
                     HStack(spacing: Mortar.Spacing.s) {
                         ForEach(statusIcons) { icon in
                             if let name = icon.iconName {
-                                MDIIcon(name: name, size: Constants.statusIconSize)
+                                MDIIcon(name: name, size: Mortar.IconSize.xs)
                                     .foregroundStyle(icon.isActive ? icon.activeColor : .gray)
                             }
                         }
@@ -241,8 +238,6 @@ private struct AreaCardView: View {
     }
 
     private enum Constants {
-        /// Matches the `.subheadline` metrics the status badges used as SF Symbols.
-        static let statusIconSize: CGFloat = 15
         static let fallbackIcon = "mdi:texture-box"
     }
 }

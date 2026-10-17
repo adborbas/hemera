@@ -64,8 +64,7 @@ private extension AutomationControlPanel {
                 state: .on,
                 lastTriggered: Date().addingTimeInterval(-300)
             ),
-            controller: PreviewAutomationController(),
-            iconResolver: IconResolver(translations: IconTranslations.bundled())
+            controller: PreviewAutomationController()
         ),
         isPresented: .constant(true)
     )

@@ -53,7 +53,7 @@ fileprivate extension LightCardViewModel {
         let light = LightEntity(entityId: "id",
                                   name: "Light",
                                   state: isOn ? .on : .off)
-        return LightCardViewModel(light: light, controller: MockLightControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
+        return LightCardViewModel(light: light, controller: MockLightControlling())
     }
 }
 

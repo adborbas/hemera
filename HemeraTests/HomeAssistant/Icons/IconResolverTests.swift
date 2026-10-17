@@ -68,10 +68,6 @@ struct IconResolverTests {
         #expect(resolver().iconName(domain: "vacuum", state: "cleaning") == nil)
     }
 
-    @Test func iconName_beforeTranslationsArrive_returnsNil() {
-        #expect(IconResolver().iconName(domain: "cover", state: "open") == nil)
-    }
-
     /// An unresolvable icon pack must not shadow the translations — fall through, don't return nil.
     @Test func iconName_unsupportedEntityIconPack_fallsThroughToTranslations() {
         #expect(resolver().iconName(domain: "cover", deviceClass: "garage", state: "closed",
@@ -106,7 +102,7 @@ struct IconResolverTests {
      is exactly the regression this guards: the icons would render only after some unrelated redraw.
     */
     @Test func update_emitsObservationChange() {
-        let resolver = IconResolver()
+        let resolver = IconResolver(translations: IconTranslations(resources: [:]))
         let didChange = Mutex(false)
 
         withObservationTracking {
@@ -119,5 +115,27 @@ struct IconResolverTests {
 
         #expect(didChange.withLock { $0 })
         #expect(resolver.iconName(domain: "cover", state: "open") == "window-open")
+    }
+
+    /**
+     Call sites hold the resolver as `any IconResolving`, and an existential is the one thing in the
+     observation path that could plausibly swallow the change notification. If it did, every card
+     would stay pinned to the bundled snapshot for the whole session with nothing to show for it.
+    */
+    @Test func update_emitsObservationChange_throughExistential() {
+        let resolver = IconResolver(translations: IconTranslations(resources: [:]))
+        let erased: any IconResolving = resolver
+        let didChange = Mutex(false)
+
+        withObservationTracking {
+            _ = erased.iconName(domain: "cover", state: "open")
+        } onChange: {
+            didChange.withLock { $0 = true }
+        }
+
+        resolver.update(Self.fixture())
+
+        #expect(didChange.withLock { $0 })
+        #expect(erased.iconName(domain: "cover", state: "open") == "window-open")
     }
 }

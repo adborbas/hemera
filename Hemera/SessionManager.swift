@@ -115,9 +115,6 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
 
         DemoDataProvider.seedDemoData(into: demoContext)
         let demoController = DemoController(context: demoContext)
-        /// Demo mode never connects to Home Assistant, so its icon names come from the bundle.
-        let demoIconResolver = IconResolver(translations: IconTranslations.bundled())
-
         let factory = ViewModelFactory(context: demoContext, container: demoContainer)
         factory.registerAllDomains(
             lightController: demoController,
@@ -127,8 +124,7 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
             switchController: demoController,
             buttonController: demoController,
             automationController: demoController,
-            climateController: demoController,
-            iconResolver: demoIconResolver
+            climateController: demoController
         )
         let demoStorage = SwiftDataStorage(context: demoContext)
         let tileRepo = SwiftDataHomeTileRepository(storage: demoStorage)
@@ -141,7 +137,6 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
             mainContext: demoContext,
             restClient: DemoRESTClient(),
             errorNotifier: ErrorNotifier(),
-            iconResolver: demoIconResolver,
             resync: { }
         )
     }
@@ -195,12 +190,6 @@ private extension SessionManager {
             tokenProvider: tokenProvider
         )
 
-        /**
-         Seeded from the bundle so the first paint has real icons even before the socket responds.
-         The cache and then the server's own translations override this as they arrive.
-        */
-        let iconResolver = IconResolver(translations: IconTranslations.bundled())
-
         let factory = ViewModelFactory(context: container.mainContext, container: container)
         factory.registerAllDomains(
             lightController: LightController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
@@ -210,8 +199,7 @@ private extension SessionManager {
             switchController: SwitchController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
             buttonController: ButtonController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
             automationController: AutomationController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
-            climateController: ClimateController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
-            iconResolver: iconResolver
+            climateController: ClimateController(serviceCaller: serviceCaller, errorNotifier: errorNotifier)
         )
         let tileRepo = SwiftDataHomeTileRepository(storage: storage)
 
@@ -221,7 +209,7 @@ private extension SessionManager {
             mainContext: container.mainContext,
             entityRegistry: .shared,
             errorNotifier: errorNotifier,
-            iconResolver: iconResolver,
+            iconResolver: .shared,
             onSyncComplete: { [weak self] in
                 self?.isResyncing = false
                 self?.router?.sessionReady()
@@ -246,7 +234,6 @@ private extension SessionManager {
             mainContext: container.mainContext,
             restClient: restClient,
             errorNotifier: errorNotifier,
-            iconResolver: iconResolver,
             resync: { [weak self] in await self?.performResync() }
         )
 

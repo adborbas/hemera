@@ -45,7 +45,7 @@ final class CoverCardViewModel: Identifiable {
     private var pendingPosition: Int?
     private let cooldown: CommitCooldown
     private let controller: CoverControlling
-    private let iconResolver: IconResolver
+    private let iconResolver: any IconResolving
     private(set) var actionTask: Task<Void, Never>?
 
     var stateDescription: String {
@@ -133,7 +133,7 @@ final class CoverCardViewModel: Identifiable {
 
     init(cover: CoverEntity,
          controller: CoverControlling,
-         iconResolver: IconResolver,
+         iconResolver: any IconResolving = IconResolver.shared,
          cooldown: CommitCooldown? = nil) {
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = cover.entityId
@@ -236,17 +236,17 @@ private extension CoverCardViewModel {
 // MARK: - Factory Registration
 
 extension CoverCardViewModel {
-    static func registration(controller: CoverControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
+    static func registration(controller: CoverControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: CoverEntity.domain,
             makeViewModelsForArea: { area in
                 area.covers.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    CoverCardViewModel(cover: $0, controller: controller, iconResolver: iconResolver)
+                    CoverCardViewModel(cover: $0, controller: controller)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let cover = CoverEntity.fetch(byId: entityId, in: context) else { return nil }
-                return CoverCardViewModel(cover: cover, controller: controller, iconResolver: iconResolver)
+                return CoverCardViewModel(cover: cover, controller: controller)
             },
             entityExists: { entityId, context in
                 CoverEntity.fetch(byId: entityId, in: context) != nil

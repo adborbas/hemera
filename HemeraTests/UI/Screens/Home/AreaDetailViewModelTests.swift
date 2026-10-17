@@ -45,8 +45,7 @@ struct AreaDetailViewModelTests {
             switchController: controller,
             buttonController: controller,
             automationController: controller,
-            climateController: controller,
-            iconResolver: IconTranslationsFixture.resolver()
+            climateController: controller
         )
         viewModel = AreaDetailViewModel(
             destination: .area(area),

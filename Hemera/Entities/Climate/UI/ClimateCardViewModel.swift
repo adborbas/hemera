@@ -19,7 +19,7 @@ final class ClimateCardViewModel: Identifiable {
 
     private let cooldown: CommitCooldown
     private let controller: ClimateControlling
-    private let iconResolver: IconResolver
+    private let iconResolver: any IconResolving
     private(set) var actionTask: Task<Void, Never>?
 
     // MARK: - HVAC State
@@ -214,7 +214,7 @@ final class ClimateCardViewModel: Identifiable {
     init(
         climate: ClimateEntity,
         controller: ClimateControlling,
-        iconResolver: IconResolver,
+        iconResolver: any IconResolving = IconResolver.shared,
         cooldown: CommitCooldown? = nil
     ) {
         self.cooldown = cooldown ?? CommitCooldown()
@@ -387,17 +387,17 @@ extension ClimateCardViewModel {
 // MARK: - Factory Registration
 
 extension ClimateCardViewModel {
-    static func registration(controller: ClimateControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
+    static func registration(controller: ClimateControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: ClimateEntity.domain,
             makeViewModelsForArea: { area in
                 area.climates.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    ClimateCardViewModel(climate: $0, controller: controller, iconResolver: iconResolver)
+                    ClimateCardViewModel(climate: $0, controller: controller)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let climate = ClimateEntity.fetch(byId: entityId, in: context) else { return nil }
-                return ClimateCardViewModel(climate: climate, controller: controller, iconResolver: iconResolver)
+                return ClimateCardViewModel(climate: climate, controller: controller)
             },
             entityExists: { entityId, context in
                 ClimateEntity.fetch(byId: entityId, in: context) != nil

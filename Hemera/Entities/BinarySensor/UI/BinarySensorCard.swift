@@ -58,7 +58,7 @@ fileprivate extension BinarySensorCardViewModel {
             state: state,
             deviceClass: deviceClass
         )
-        return BinarySensorCardViewModel(binarySensor: entity, iconResolver: IconResolver(translations: IconTranslations.bundled()))
+        return BinarySensorCardViewModel(binarySensor: entity)
     }
 }
 #endif

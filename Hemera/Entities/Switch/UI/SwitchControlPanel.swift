@@ -42,7 +42,7 @@ struct SwitchControlPanel: View {
                     .animation(Mortar.Motion.springBouncy, value: isOn)
 
                 if let iconName = viewModel.iconName {
-                    MDIIcon(name: iconName, size: Constants.iconSize)
+                    MDIIcon(name: iconName, size: Mortar.IconSize.m)
                         .foregroundStyle(isOn ? .white : PlatformColor.systemGray2)
                         .animation(Mortar.Motion.springBouncy, value: isOn)
                 }
@@ -72,7 +72,6 @@ struct SwitchControlPanel: View {
 private extension SwitchControlPanel {
     enum Constants {
         static let buttonSize: CGFloat = 160
-        static let iconSize: CGFloat = 48
     }
 }
 

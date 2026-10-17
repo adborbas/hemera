@@ -4,21 +4,30 @@ import Foundation
 /**
  Resolves Material Design Icon names for entities using Home Assistant's own icon translations.
 
- Reference type on purpose: translations arrive from the WebSocket after the first paint, so a value
- type would give SwiftUI no reason to recompute and every card would stay blank until some unrelated
- state change. `@Observable` lets the cards that gained an icon re-render and nothing else.
+ Reference type on purpose: the server's translations replace the bundled snapshot once the sync
+ delivers them, and `@Observable` is what lets the cards whose icon changed re-render. A value type
+ would leave every card showing the snapshot until some unrelated state change.
 */
 @Observable
 @MainActor
-final class IconResolver {
+final class IconResolver: IconResolving {
 
     // MARK: - Properties
 
-    private(set) var translations: IconTranslations?
+    /**
+     The app-wide resolver.
+
+     Icon translations are Home Assistant core's own `icons.json` data, not user or server data —
+     two servers on the same core version return identical payloads — so one app-lifetime instance
+     is the right scope. `@MainActor` isolation makes this a safe static without `nonisolated(unsafe)`.
+    */
+    static let shared = IconResolver(translations: .bundled())
+
+    private(set) var translations: IconTranslations
 
     // MARK: - Init
 
-    init(translations: IconTranslations? = nil) {
+    init(translations: IconTranslations) {
         self.translations = translations
     }
 
@@ -37,15 +46,15 @@ final class IconResolver {
      different icons in Hemera than on the dashboard they already know.
     */
     func iconName(
-        domain: String,
-        deviceClass: String? = nil,
-        state: String? = nil,
-        entityIcon: String? = nil
+        forDomain domain: String,
+        deviceClass: String?,
+        state: String?,
+        entityIcon: String?
     ) -> String? {
         if let entityIcon, let overridden = MDIIconName.normalised(entityIcon) {
             return overridden
         }
-        guard let entry = translations?.entry(domain: domain, deviceClass: deviceClass) else { return nil }
+        guard let entry = translations.entry(domain: domain, deviceClass: deviceClass) else { return nil }
         return Self.icon(from: entry, state: state)
     }
 
@@ -57,13 +66,13 @@ final class IconResolver {
      decide their own fallback.
     */
     func attributeIconName(
-        domain: String,
-        deviceClass: String? = nil,
+        forDomain domain: String,
+        deviceClass: String?,
         attribute: String,
         value: String?
     ) -> String? {
         guard let value,
-              let entry = translations?.entry(domain: domain, deviceClass: deviceClass),
+              let entry = translations.entry(domain: domain, deviceClass: deviceClass),
               let match = entry.stateAttributes?[attribute]?.state?[value] else { return nil }
         return MDIIconName.normalised(match)
     }

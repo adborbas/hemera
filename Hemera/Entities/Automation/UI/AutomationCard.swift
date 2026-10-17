@@ -44,7 +44,7 @@ fileprivate extension AutomationCardViewModel {
             state: isOn ? .on : .off,
             lastTriggered: Date().addingTimeInterval(-300)
         )
-        return AutomationCardViewModel(automation: entity, controller: MockAutomationControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
+        return AutomationCardViewModel(automation: entity, controller: MockAutomationControlling())
     }
 }
 

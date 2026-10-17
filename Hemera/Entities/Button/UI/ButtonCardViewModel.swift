@@ -45,10 +45,10 @@ final class ButtonCardViewModel: Identifiable {
     }
 
     private let controller: ButtonControlling
-    private let iconResolver: IconResolver
+    private let iconResolver: any IconResolving
     private(set) var controllerTask: Task<Void, Never>?
 
-    init(button: ButtonEntity, controller: ButtonControlling, iconResolver: IconResolver) {
+    init(button: ButtonEntity, controller: ButtonControlling, iconResolver: any IconResolving = IconResolver.shared) {
         self.id = button.entityId
         self.button = button
         self.controller = controller
@@ -66,18 +66,18 @@ final class ButtonCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension ButtonCardViewModel {
-    static func registration(controller: ButtonControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
+    static func registration(controller: ButtonControlling) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: ButtonEntity.domain,
             makeViewModelsForArea: { area in
                 area.buttons.filter { !$0.isHiddenInHA && $0.deviceClass.isUserActionable }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    ButtonCardViewModel(button: $0, controller: controller, iconResolver: iconResolver)
+                    ButtonCardViewModel(button: $0, controller: controller)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let button = ButtonEntity.fetch(byId: entityId, in: context),
                       button.deviceClass.isUserActionable else { return nil }
-                return ButtonCardViewModel(button: button, controller: controller, iconResolver: iconResolver)
+                return ButtonCardViewModel(button: button, controller: controller)
             },
             entityExists: { entityId, context in
                 ButtonEntity.fetch(byId: entityId, in: context) != nil

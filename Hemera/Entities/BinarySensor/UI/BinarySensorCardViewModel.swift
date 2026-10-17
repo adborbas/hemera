@@ -18,9 +18,9 @@ final class BinarySensorCardViewModel: Identifiable {
         set { binarySensor.isHidden = newValue }
     }
 
-    private let iconResolver: IconResolver
+    private let iconResolver: any IconResolving
 
-    init(binarySensor: BinarySensorEntity, iconResolver: IconResolver) {
+    init(binarySensor: BinarySensorEntity, iconResolver: any IconResolving = IconResolver.shared) {
         self.iconResolver = iconResolver
         self.id = binarySensor.entityId
         self.binarySensor = binarySensor
@@ -65,17 +65,17 @@ final class BinarySensorCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension BinarySensorCardViewModel {
-    static func registration(iconResolver: IconResolver) -> ViewModelFactory.Registration {
+    static func registration() -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: BinarySensorEntity.domain,
             makeViewModelsForArea: { area in
                 area.binarySensors.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    BinarySensorCardViewModel(binarySensor: $0, iconResolver: iconResolver)
+                    BinarySensorCardViewModel(binarySensor: $0)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let binarySensor = BinarySensorEntity.fetch(byId: entityId, in: context) else { return nil }
-                return BinarySensorCardViewModel(binarySensor: binarySensor, iconResolver: iconResolver)
+                return BinarySensorCardViewModel(binarySensor: binarySensor)
             },
             entityExists: { entityId, context in
                 BinarySensorEntity.fetch(byId: entityId, in: context) != nil

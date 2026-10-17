@@ -38,7 +38,10 @@ enum AreaDisplayHelpers {
         return (tempStr, humStr)
     }
 
-    static func statusIcons(from area: AreaEntity, iconResolver: IconResolver) -> [AreaStatusIcon] {
+    static func statusIcons(
+        from area: AreaEntity,
+        iconResolver: any IconResolving = IconResolver.shared
+    ) -> [AreaStatusIcon] {
         var icons: [AreaStatusIcon] = []
 
         // Status indicators must ignore HA-hidden and locally-hidden entities,

@@ -75,7 +75,7 @@ fileprivate extension CoverCardViewModel {
                                 state: state,
                                 currentPosition: position,
                                 deviceClass: deviceClass)
-        return CoverCardViewModel(cover: cover, controller: MockCoverControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
+        return CoverCardViewModel(cover: cover, controller: MockCoverControlling())
     }
 }
 

@@ -74,7 +74,7 @@ private extension ButtonCard {
 fileprivate extension ButtonCardViewModel {
     static func mockRestart() -> ButtonCardViewModel {
         let button = ButtonEntity(entityId: "button.restart_router", name: "Restart Router", deviceClass: .restart)
-        return ButtonCardViewModel(button: button, controller: MockButtonControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
+        return ButtonCardViewModel(button: button, controller: MockButtonControlling())
     }
 
 }

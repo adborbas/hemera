@@ -1,5 +1,4 @@
 import Foundation
-import HemeraLog
 
 /**
  Home Assistant's own icon data, as returned by the `frontend/get_icons` WebSocket command for the
@@ -64,17 +63,18 @@ extension IconTranslations {
 
      The only source demo mode has, since it never connects to a server, and the first-paint seed for
      live sessions until the real payload arrives.
+
+     Non-optional: the resource is vendored into the app, so a missing or malformed file is a broken
+     build rather than a runtime condition any caller could sensibly handle.
     */
-    static func bundled() -> IconTranslations? {
+    static func bundled() -> IconTranslations {
         guard let url = Bundle.main.url(forResource: "BundledIconTranslations", withExtension: "json") else {
-            Log.error("BundledIconTranslations.json missing from bundle — icon names unavailable offline")
-            return nil
+            preconditionFailure("BundledIconTranslations.json missing from the app bundle")
         }
         do {
             return try JSONDecoder().decode(IconTranslations.self, from: try Data(contentsOf: url))
         } catch {
-            Log.error("Failed to load BundledIconTranslations.json", cause: error)
-            return nil
+            preconditionFailure("BundledIconTranslations.json could not be decoded: \(error)")
         }
     }
 }
