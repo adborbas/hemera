@@ -45,6 +45,7 @@ final class CoverCardViewModel: Identifiable {
     private var pendingPosition: Int?
     private let cooldown: CommitCooldown
     private let controller: CoverControlling
+    private let iconResolver: IconResolver
     private(set) var actionTask: Task<Void, Never>?
 
     var stateDescription: String {
@@ -84,8 +85,13 @@ final class CoverCardViewModel: Identifiable {
         }
     }
 
-    var iconName: String {
-        cover.deviceClass.symbolName(for: state)
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: CoverEntity.domain,
+            deviceClass: cover.deviceClass == .unknown ? nil : cover.deviceClass.rawValue,
+            state: state.rawValue,
+            entityIcon: cover.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -127,11 +133,13 @@ final class CoverCardViewModel: Identifiable {
 
     init(cover: CoverEntity,
          controller: CoverControlling,
+         iconResolver: IconResolver,
          cooldown: CommitCooldown? = nil) {
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = cover.entityId
         self.cover = cover
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     // MARK: - Actions
@@ -206,24 +214,6 @@ final class CoverCardViewModel: Identifiable {
     }
 }
 
-fileprivate extension CoverEntity.DeviceClass {
-
-    func symbolName(for state: CoverEntity.State) -> String {
-        switch state {
-        case .open:
-            return symbolPair.open
-        case .closed:
-            return symbolPair.closed
-        case .opening, .closing:
-            return "stop.fill"
-        case .unknown:
-            return "questionmark.circle"
-        case .unavailable:
-            return "exclamationmark.circle"
-        }
-    }
-}
-
 private extension CoverCardViewModel {
     enum Localization {
         static let open = String(localized: "Open", comment: "Cover entity state shown on card when the cover (blind/shutter/curtain) is open")
@@ -246,17 +236,17 @@ private extension CoverCardViewModel {
 // MARK: - Factory Registration
 
 extension CoverCardViewModel {
-    static func registration(controller: CoverControlling) -> ViewModelFactory.Registration {
+    static func registration(controller: CoverControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: CoverEntity.domain,
             makeViewModelsForArea: { area in
                 area.covers.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    CoverCardViewModel(cover: $0, controller: controller)
+                    CoverCardViewModel(cover: $0, controller: controller, iconResolver: iconResolver)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let cover = CoverEntity.fetch(byId: entityId, in: context) else { return nil }
-                return CoverCardViewModel(cover: cover, controller: controller)
+                return CoverCardViewModel(cover: cover, controller: controller, iconResolver: iconResolver)
             },
             entityExists: { entityId, context in
                 CoverEntity.fetch(byId: entityId, in: context) != nil

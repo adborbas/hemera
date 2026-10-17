@@ -41,6 +41,7 @@ final class AppEnvironment {
         self.storage = SwiftDataStorage(context: container.mainContext)
         self.screenManager = ScreenManager()
         self.areaDisplaySettings = AreaDisplaySettings()
+
     }
 }
 

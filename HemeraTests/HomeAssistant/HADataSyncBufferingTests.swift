@@ -32,6 +32,7 @@ struct HADataSyncBufferingTests {
             restClient: restClient,
             mainContext: context,
             entityRegistry: EntityRegistry.shared,
+            iconResolver: IconTranslationsFixture.resolver(),
             onSyncComplete: {}
         )
     }

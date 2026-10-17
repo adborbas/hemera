@@ -11,19 +11,19 @@ struct ScriptCardViewModelTests {
     @Test
     func iconName_withNilIcon_usesDefault() {
         let vm = makeViewModel()
-        #expect(vm.iconName == "play.circle.fill")
+        #expect(vm.iconName == "script-text")
     }
 
     @Test
-    func iconName_withMappedIcon_usesMapping() {
+    func iconName_withEntityIconOverride_usesItVerbatim() {
         let vm = makeViewModel(icon: "mdi:timer")
         #expect(vm.iconName == "timer")
     }
 
     @Test
-    func iconName_withUnmappedIcon_fallsBackToDefault() {
-        let vm = makeViewModel(icon: "mdi:nonexistent-xyz")
-        #expect(vm.iconName == "play.circle.fill")
+    func iconName_withUnsupportedIconPack_fallsBackToDefault() {
+        let vm = makeViewModel(icon: "phu:something")
+        #expect(vm.iconName == "script-text")
     }
 
     // MARK: - Running State
@@ -79,7 +79,7 @@ struct ScriptCardViewModelTests {
         controller: ScriptControlling? = nil
     ) -> ScriptCardViewModel {
         let script = ScriptEntity(entityId: "script.test", name: "Test", state: state, icon: icon)
-        return ScriptCardViewModel(script: script, controller: controller ?? StubScriptControlling())
+        return ScriptCardViewModel(script: script, controller: controller ?? StubScriptControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 }
 

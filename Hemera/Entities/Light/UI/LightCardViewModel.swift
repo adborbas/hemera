@@ -84,12 +84,12 @@ final class LightCardViewModel: Identifiable {
         set { light.isHidden = newValue }
     }
 
-    var iconName: String {
-        if let icon = light.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        return "lightbulb.fill"
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: LightEntity.domain,
+            state: light.state.rawValue,
+            entityIcon: light.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -100,8 +100,15 @@ final class LightCardViewModel: Identifiable {
 
     private let cooldown: CommitCooldown
     private let controller: LightControlling
+    private let iconResolver: IconResolver
 
-    init(light: LightEntity, controller: LightControlling, cooldown: CommitCooldown? = nil) {
+    init(
+        light: LightEntity,
+        controller: LightControlling,
+        iconResolver: IconResolver,
+        cooldown: CommitCooldown? = nil
+    ) {
+        self.iconResolver = iconResolver
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = light.entityId
         self.light = light
@@ -161,17 +168,17 @@ final class LightCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension LightCardViewModel {
-    static func registration(controller: LightControlling) -> ViewModelFactory.Registration {
+    static func registration(controller: LightControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: LightEntity.domain,
             makeViewModelsForArea: { area in
                 area.lights.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    LightCardViewModel(light: $0, controller: controller)
+                    LightCardViewModel(light: $0, controller: controller, iconResolver: iconResolver)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let light = LightEntity.fetch(byId: entityId, in: context) else { return nil }
-                return LightCardViewModel(light: light, controller: controller)
+                return LightCardViewModel(light: light, controller: controller, iconResolver: iconResolver)
             },
             entityExists: { entityId, context in
                 LightEntity.fetch(byId: entityId, in: context) != nil

@@ -42,7 +42,8 @@ struct AreasViewModelTests {
             switchController: mockController,
             buttonController: mockController,
             automationController: mockController,
-            climateController: mockController
+            climateController: mockController,
+            iconResolver: IconTranslationsFixture.resolver()
         )
     }
 

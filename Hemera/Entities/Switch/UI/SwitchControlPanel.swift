@@ -41,10 +41,11 @@ struct SwitchControlPanel: View {
                     .strokeBorder(isOn ? Color.green.opacity(0.3) : PlatformColor.systemGray4, lineWidth: 4)
                     .animation(Mortar.Motion.springBouncy, value: isOn)
 
-                Image(systemName: viewModel.iconName)
-                    .font(.system(size: 48, weight: .medium))
-                    .foregroundStyle(isOn ? .white : PlatformColor.systemGray2)
-                    .animation(Mortar.Motion.springBouncy, value: isOn)
+                if let iconName = viewModel.iconName {
+                    MDIIcon(name: iconName, size: Constants.iconSize)
+                        .foregroundStyle(isOn ? .white : PlatformColor.systemGray2)
+                        .animation(Mortar.Motion.springBouncy, value: isOn)
+                }
             }
             .frame(width: Constants.buttonSize, height: Constants.buttonSize)
             .scaleEffect(isPressed ? 0.92 : 1.0)
@@ -71,6 +72,7 @@ struct SwitchControlPanel: View {
 private extension SwitchControlPanel {
     enum Constants {
         static let buttonSize: CGFloat = 160
+        static let iconSize: CGFloat = 48
     }
 }
 

@@ -12,7 +12,7 @@ struct LightCard: View {
 
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
-            CardIcon(iconName: viewModel.iconName,
+            CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.toggle()
@@ -53,7 +53,7 @@ fileprivate extension LightCardViewModel {
         let light = LightEntity(entityId: "id",
                                   name: "Light",
                                   state: isOn ? .on : .off)
-        return LightCardViewModel(light: light, controller: MockLightControlling())
+        return LightCardViewModel(light: light, controller: MockLightControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

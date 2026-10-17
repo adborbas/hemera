@@ -17,7 +17,12 @@ let package = Package(
     targets: [
         .target(
             name: "Mortar",
-            resources: [.process("Assets.xcassets")]
+            resources: [
+                .process("Assets.xcassets"),
+                .copy("Resources/materialdesignicons-webfont.ttf"),
+                .copy("Resources/MDICodepoints.json"),
+                .copy("Resources/MDI-LICENSE.txt")
+            ]
         )
     ]
 )

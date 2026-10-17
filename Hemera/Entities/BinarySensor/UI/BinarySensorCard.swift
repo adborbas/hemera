@@ -7,7 +7,7 @@ struct BinarySensorCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
             CardIcon(
-                iconName: viewModel.iconName,
+                icon: viewModel.iconName,
                 backgroundColor: viewModel.iconBackgroundColor
             )
         } label: {
@@ -58,7 +58,7 @@ fileprivate extension BinarySensorCardViewModel {
             state: state,
             deviceClass: deviceClass
         )
-        return BinarySensorCardViewModel(binarySensor: entity)
+        return BinarySensorCardViewModel(binarySensor: entity, iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 #endif

@@ -12,7 +12,7 @@ struct CoverCard: View {
 
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOpen) {
-            CardIcon(iconName: viewModel.iconName,
+            CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.iconTapped()
@@ -75,7 +75,7 @@ fileprivate extension CoverCardViewModel {
                                 state: state,
                                 currentPosition: position,
                                 deviceClass: deviceClass)
-        return CoverCardViewModel(cover: cover, controller: MockCoverControlling())
+        return CoverCardViewModel(cover: cover, controller: MockCoverControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

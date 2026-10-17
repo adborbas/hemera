@@ -58,17 +58,18 @@ final class ViewModelFactory {
         switchController: some SwitchControlling,
         buttonController: some ButtonControlling,
         automationController: some AutomationControlling,
-        climateController: some ClimateControlling
+        climateController: some ClimateControlling,
+        iconResolver: IconResolver
     ) {
-        register(LightCardViewModel.registration(controller: lightController))
-        register(CoverCardViewModel.registration(controller: coverController))
-        register(SceneCardViewModel.registration(controller: sceneController))
-        register(ScriptCardViewModel.registration(controller: scriptController))
-        register(BinarySensorCardViewModel.registration())
-        register(SwitchCardViewModel.registration(controller: switchController))
-        register(ButtonCardViewModel.registration(controller: buttonController))
-        register(AutomationCardViewModel.registration(controller: automationController))
-        register(ClimateCardViewModel.registration(controller: climateController))
+        register(LightCardViewModel.registration(controller: lightController, iconResolver: iconResolver))
+        register(CoverCardViewModel.registration(controller: coverController, iconResolver: iconResolver))
+        register(SceneCardViewModel.registration(controller: sceneController, iconResolver: iconResolver))
+        register(ScriptCardViewModel.registration(controller: scriptController, iconResolver: iconResolver))
+        register(BinarySensorCardViewModel.registration(iconResolver: iconResolver))
+        register(SwitchCardViewModel.registration(controller: switchController, iconResolver: iconResolver))
+        register(ButtonCardViewModel.registration(controller: buttonController, iconResolver: iconResolver))
+        register(AutomationCardViewModel.registration(controller: automationController, iconResolver: iconResolver))
+        register(ClimateCardViewModel.registration(controller: climateController, iconResolver: iconResolver))
     }
 
     // MARK: - Area-Level VM Creation

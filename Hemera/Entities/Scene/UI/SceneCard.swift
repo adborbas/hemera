@@ -8,7 +8,7 @@ struct SceneCard: View {
     var body: some View {
         EntityCard {
             CardIcon(
-                iconName: isActivating ? "checkmark.circle.fill" : viewModel.iconName,
+                icon: isActivating ? "mdi:check-circle" : viewModel.iconName,
                 backgroundColor: isActivating ? .green : .purple
             ) {
                 activateScene()
@@ -49,7 +49,7 @@ private extension SceneCard {
 fileprivate extension SceneCardViewModel {
     static func mockScene() -> SceneCardViewModel {
         let scene = SceneEntity(entityId: "scene.movie_time", name: "Movie Time")
-        return SceneCardViewModel(scene: scene, controller: MockSceneControlling())
+        return SceneCardViewModel(scene: scene, controller: MockSceneControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

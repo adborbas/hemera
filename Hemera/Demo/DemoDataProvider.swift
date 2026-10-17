@@ -179,8 +179,7 @@ enum DemoDataProvider {
         let nightMode = AutomationEntity(
             entityId: "automation.night_mode",
             name: "Night Mode",
-            state: .off,
-            icon: "mdi:nonexistent-icon-xyz"
+            state: .off
         )
 
         let goodnightScene = SceneEntity(entityId: "scene.goodnight", name: "Goodnight")

@@ -82,7 +82,7 @@ struct AreaDisplayHelpersTests {
         light.area = area
         context.insert(area); context.insert(light)
 
-        let icons = AreaDisplayHelpers.statusIcons(from: area)
+        let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.count == 1)
         #expect(icons[0].category == .light)
@@ -98,7 +98,7 @@ struct AreaDisplayHelpersTests {
         on.area = area
         context.insert(area); context.insert(off); context.insert(on)
 
-        let icons = AreaDisplayHelpers.statusIcons(from: area)
+        let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.first(where: { $0.category == .light })?.isActive == true)
     }
@@ -110,7 +110,7 @@ struct AreaDisplayHelpersTests {
         light.area = area
         context.insert(area); context.insert(light)
 
-        let icons = AreaDisplayHelpers.statusIcons(from: area)
+        let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.contains(where: { $0.category == .cover }) == false)
     }
@@ -122,7 +122,7 @@ struct AreaDisplayHelpersTests {
         motion.area = area
         context.insert(area); context.insert(motion)
 
-        let icons = AreaDisplayHelpers.statusIcons(from: area)
+        let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.first(where: { $0.category == .binarySensor })?.isActive == true)
     }
@@ -135,7 +135,7 @@ struct AreaDisplayHelpersTests {
         smoke.area = area
         context.insert(area); context.insert(smoke)
 
-        let icons = AreaDisplayHelpers.statusIcons(from: area)
+        let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.contains(where: { $0.category == .binarySensor }) == false)
     }
@@ -148,7 +148,7 @@ struct AreaDisplayHelpersTests {
         light.area = area
         context.insert(area); context.insert(light)
 
-        let icons = AreaDisplayHelpers.statusIcons(from: area)
+        let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.first(where: { $0.category == .light })?.isActive == false)
     }

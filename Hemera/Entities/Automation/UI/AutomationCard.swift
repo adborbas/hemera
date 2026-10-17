@@ -6,7 +6,7 @@ struct AutomationCard: View {
 
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
-            CardIcon(iconName: viewModel.iconName,
+            CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.toggle()
@@ -44,7 +44,7 @@ fileprivate extension AutomationCardViewModel {
             state: isOn ? .on : .off,
             lastTriggered: Date().addingTimeInterval(-300)
         )
-        return AutomationCardViewModel(automation: entity, controller: MockAutomationControlling())
+        return AutomationCardViewModel(automation: entity, controller: MockAutomationControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

@@ -176,7 +176,7 @@ private extension AreasView {
         let title = AreaDestination.unassigned(hasRealAreas: hasRealAreas).displayName
         return EntityCard {
             CardIcon(
-                iconName: "tray",
+                icon: "mdi:tray",
                 backgroundColor: PlatformColor.systemGray3
             )
         } label: {
@@ -190,13 +190,11 @@ private extension AreasView {
 
 private struct AreaCardView: View {
     @Bindable var area: AreaEntity
-
-    private var iconName: String? {
-        area.icon.flatMap { MDISymbolMapper.sfSymbol(for: $0) }
-    }
+    @Environment(IconResolver.self) private var iconResolver: IconResolver?
 
     private var statusIcons: [AreaStatusIcon] {
-        AreaDisplayHelpers.statusIcons(from: area)
+        guard let iconResolver else { return [] }
+        return AreaDisplayHelpers.statusIcons(from: area, iconResolver: iconResolver)
     }
 
     private var climateLabel: String? {
@@ -207,8 +205,17 @@ private struct AreaCardView: View {
 
     var body: some View {
         EntityCard {
+            /**
+             Areas are not entities, so Home Assistant publishes no icon translations for them — the
+             name comes straight from the area registry.
+
+             The fallback covers a name that cannot be drawn at all, not just an absent one: an area
+             icon from a custom pack (`phu:`) or one MDI has dropped resolves to nothing, and an
+             empty circle reads as a broken card.
+            */
             CardIcon(
-                iconName: iconName ?? "square.grid.2x2",
+                icon: area.icon,
+                fallback: Constants.fallbackIcon,
                 backgroundColor: PlatformColor.systemGray3
             )
         } label: {
@@ -216,9 +223,10 @@ private struct AreaCardView: View {
                 if !statusIcons.isEmpty {
                     HStack(spacing: Mortar.Spacing.s) {
                         ForEach(statusIcons) { icon in
-                            Image(systemName: icon.iconName)
-                                .font(.subheadline)
-                                .foregroundStyle(icon.isActive ? icon.activeColor : .gray)
+                            if let name = icon.iconName {
+                                MDIIcon(name: name, size: Constants.statusIconSize)
+                                    .foregroundStyle(icon.isActive ? icon.activeColor : .gray)
+                            }
                         }
                     }
                 } else if let climate = climateLabel {
@@ -230,6 +238,12 @@ private struct AreaCardView: View {
             }
         }
         .environment(\.isMediumTile, true)
+    }
+
+    private enum Constants {
+        /// Matches the `.subheadline` metrics the status badges used as SF Symbols.
+        static let statusIconSize: CGFloat = 15
+        static let fallbackIcon = "mdi:texture-box"
     }
 }
 

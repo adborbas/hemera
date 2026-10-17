@@ -19,6 +19,7 @@ final class ClimateCardViewModel: Identifiable {
 
     private let cooldown: CommitCooldown
     private let controller: ClimateControlling
+    private let iconResolver: IconResolver
     private(set) var actionTask: Task<Void, Never>?
 
     // MARK: - HVAC State
@@ -126,11 +127,34 @@ final class ClimateCardViewModel: Identifiable {
     static let warmColor: Color = .warm
     static let coolColor: Color = .cool
 
-    var iconName: String {
-        if let action = hvacAction {
-            return iconForAction(action)
+    /**
+     Icon for the card, preferring what the thermostat is actually *doing* over what it is set to.
+
+     Home Assistant's `climate` icon translations contain only a domain default (`mdi:thermostat`)
+     plus a `state_attributes.hvac_action` map — there is no per-mode `state` map — so the mode
+     fallback below has no equivalent in HA's data and has to stay hardcoded. It keeps heat/cool/dry
+     differentiation on thermostats that report no `hvac_action`, which most do not.
+    */
+    var iconName: String? {
+        if let icon = climate.icon, let override = MDIIconName.normalised(icon) {
+            return override
         }
-        return iconForMode(hvacMode)
+
+        /**
+         `.idle` deliberately falls through to the mode: HA maps idle to `mdi:clock-outline`, which
+         tells the user nothing about whether the thermostat is set to heat or cool.
+        */
+        if let action = hvacAction, action != .idle,
+           let actionIcon = iconResolver.attributeIconName(
+               domain: ClimateEntity.domain,
+               attribute: "hvac_action",
+               value: action.rawValue
+           ) {
+            return actionIcon
+        }
+
+        return Self.modeIcon(hvacMode)
+            ?? iconResolver.iconName(domain: ClimateEntity.domain)
     }
 
     var iconBackgroundColor: Color {
@@ -187,11 +211,17 @@ final class ClimateCardViewModel: Identifiable {
 
     // MARK: - Init
 
-    init(climate: ClimateEntity, controller: ClimateControlling, cooldown: CommitCooldown? = nil) {
+    init(
+        climate: ClimateEntity,
+        controller: ClimateControlling,
+        iconResolver: IconResolver,
+        cooldown: CommitCooldown? = nil
+    ) {
         self.cooldown = cooldown ?? CommitCooldown()
         self.id = climate.entityId
         self.climate = climate
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     // MARK: - Display Helpers
@@ -287,27 +317,21 @@ final class ClimateCardViewModel: Identifiable {
 // MARK: - Icon & Color Helpers
 
 extension ClimateCardViewModel {
-    private func iconForAction(_ action: ClimateEntity.HVACAction) -> String {
-        switch action {
-        case .off: "power"
-        case .preheating, .heating: "heat.waves"
-        case .cooling: "snowflake"
-        case .drying: "dehumidifier.fill"
-        case .fan: "fan.fill"
-        case .idle: iconForMode(hvacMode)
-        case .defrosting: "snowflake.slash"
-        }
-    }
+    /**
+     Mode-to-icon mapping, used when the thermostat reports no `hvac_action`.
 
-    private func iconForMode(_ mode: ClimateEntity.HVACMode) -> String {
+     Hardcoded because Home Assistant publishes no per-mode icons for `climate` — its icon
+     translations only cover `hvac_action`. Names are MDI, matching what HA's own frontend uses for
+     the equivalent HVAC modes elsewhere. `nil` defers to the domain default (`mdi:thermostat`).
+    */
+    private static func modeIcon(_ mode: ClimateEntity.HVACMode) -> String? {
         switch mode {
         case .off: "power"
-        case .heat: "heat.waves"
+        case .heat: "fire"
         case .cool: "snowflake"
-        case .heatCool, .auto: "thermometer.medium"
-        case .dry: "dehumidifier.fill"
-        case .fanOnly: "fan.fill"
-        case .unknown, .unavailable: "questionmark.circle"
+        case .dry: "water-percent"
+        case .fanOnly: "fan"
+        case .heatCool, .auto, .unknown, .unavailable: nil
         }
     }
 
@@ -363,17 +387,17 @@ extension ClimateCardViewModel {
 // MARK: - Factory Registration
 
 extension ClimateCardViewModel {
-    static func registration(controller: ClimateControlling) -> ViewModelFactory.Registration {
+    static func registration(controller: ClimateControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: ClimateEntity.domain,
             makeViewModelsForArea: { area in
                 area.climates.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    ClimateCardViewModel(climate: $0, controller: controller)
+                    ClimateCardViewModel(climate: $0, controller: controller, iconResolver: iconResolver)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let climate = ClimateEntity.fetch(byId: entityId, in: context) else { return nil }
-                return ClimateCardViewModel(climate: climate, controller: controller)
+                return ClimateCardViewModel(climate: climate, controller: controller, iconResolver: iconResolver)
             },
             entityExists: { entityId, context in
                 ClimateEntity.fetch(byId: entityId, in: context) != nil

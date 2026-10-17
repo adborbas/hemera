@@ -11,6 +11,14 @@ final class BinarySensorEntity: StoredEntity {
     var name: String
     var state: State
     var deviceClass: DeviceClass
+    /**
+     Home Assistant's raw `device_class` string.
+
+     `DeviceClass` models only the handful of classes Hemera branches on for colour and wording,
+     but HA ships ~30. Icon resolution needs the unmodelled ones too, otherwise every moisture,
+     battery or tamper sensor falls back to the generic domain icon.
+    */
+    var deviceClassRaw: String?
     var icon: String?
     var deviceId: String?
     var isAvailable: Bool = true
@@ -27,12 +35,14 @@ final class BinarySensorEntity: StoredEntity {
         name: String,
         state: State,
         deviceClass: DeviceClass = .unknown,
+        deviceClassRaw: String? = nil,
         icon: String? = nil
     ) {
         self.entityId = entityId
         self.name = name
         self.state = state
         self.deviceClass = deviceClass
+        self.deviceClassRaw = deviceClassRaw ?? (deviceClass == .unknown ? nil : deviceClass.rawValue)
         self.icon = icon
     }
 
@@ -41,8 +51,9 @@ final class BinarySensorEntity: StoredEntity {
         name = entity.attributes["friendly_name"] as? String ?? entityId
         state = State(rawValue: entity.state) ?? .unknown
 
-        let deviceClassRaw = entity.attributes["device_class"] as? String
-        deviceClass = DeviceClass(rawValue: deviceClassRaw ?? "") ?? .unknown
+        let rawDeviceClass = entity.attributes["device_class"] as? String
+        deviceClassRaw = rawDeviceClass
+        deviceClass = DeviceClass(rawValue: rawDeviceClass ?? "") ?? .unknown
         icon = entity.attributes["icon"] as? String
     }
 }
@@ -77,27 +88,5 @@ extension BinarySensorEntity {
         case unknown
 
         var id: String { rawValue }
-    }
-}
-
-// MARK: - Device Class Symbols
-
-extension BinarySensorEntity.DeviceClass {
-
-    func symbolName(isOn: Bool) -> String {
-        switch self {
-        case .motion:
-            return isOn ? "figure.walk" : "figure.stand"
-        case .door:
-            return isOn ? "door.left.hand.open" : "door.left.hand.closed"
-        case .window:
-            return isOn ? "window.vertical.open" : "window.vertical.closed"
-        case .smoke:
-            return isOn ? "smoke.fill" : "smoke"
-        case .occupancy:
-            return isOn ? "person.fill" : "person"
-        case .unknown:
-            return isOn ? "circle.fill" : "circle"
-        }
     }
 }

@@ -15,5 +15,8 @@ struct Session {
     let mainContext: ModelContext
     let restClient: any HARESTClienting
     let errorNotifier: ErrorNotifier
+    /// Resolves MDI icon names from Home Assistant's icon translations. Mutable observable state, so
+    /// cards pick up the names as soon as the sync delivers them.
+    let iconResolver: IconResolver
     let resync: () async -> Void
 }

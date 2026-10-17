@@ -7,7 +7,7 @@ struct ScriptCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isRunning) {
             CardIcon(
-                iconName: viewModel.isRunning ? "stop.fill" : viewModel.iconName,
+                icon: viewModel.isRunning ? "mdi:stop" : viewModel.iconName,
                 backgroundColor: viewModel.tintColor
             ) {
                 viewModel.performPrimaryAction()
@@ -41,7 +41,7 @@ private extension ScriptCard {
 fileprivate extension ScriptCardViewModel {
     static func mockScript() -> ScriptCardViewModel {
         let script = ScriptEntity(entityId: "script.movie_time", name: "Movie Time")
-        return ScriptCardViewModel(script: script, controller: MockScriptControlling())
+        return ScriptCardViewModel(script: script, controller: MockScriptControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

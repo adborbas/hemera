@@ -11,19 +11,19 @@ struct SceneCardViewModelTests {
     @Test
     func iconName_withNilIcon_usesDefault() {
         let vm = makeViewModel()
-        #expect(vm.iconName == "play.circle.fill")
+        #expect(vm.iconName == "palette")
     }
 
     @Test
-    func iconName_withMappedIcon_usesMapping() {
+    func iconName_withEntityIconOverride_usesItVerbatim() {
         let vm = makeViewModel(icon: "mdi:timer")
         #expect(vm.iconName == "timer")
     }
 
     @Test
-    func iconName_withUnmappedIcon_fallsBackToDefault() {
-        let vm = makeViewModel(icon: "mdi:nonexistent-xyz")
-        #expect(vm.iconName == "play.circle.fill")
+    func iconName_withUnsupportedIconPack_fallsBackToDefault() {
+        let vm = makeViewModel(icon: "phu:something")
+        #expect(vm.iconName == "palette")
     }
 
     // MARK: - Primary Action
@@ -53,7 +53,7 @@ struct SceneCardViewModelTests {
 
     private func makeViewModel(icon: String? = nil, controller: SceneControlling? = nil) -> SceneCardViewModel {
         let scene = SceneEntity(entityId: "scene.test", name: "Test", icon: icon)
-        return SceneCardViewModel(scene: scene, controller: controller ?? StubSceneControlling())
+        return SceneCardViewModel(scene: scene, controller: controller ?? StubSceneControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 }
 

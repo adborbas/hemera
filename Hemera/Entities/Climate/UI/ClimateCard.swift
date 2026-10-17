@@ -6,7 +6,7 @@ struct ClimateCard: View {
 
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isActive) {
-            CardIcon(iconName: viewModel.iconName,
+            CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.togglePower()
@@ -39,7 +39,7 @@ fileprivate extension ClimateCardViewModel {
             hvacAction: .heating, currentTemperature: 19.8, temperature: 21,
             hvacModesRaw: ["off", "heat"]
         )
-        return ClimateCardViewModel(climate: entity, controller: PreviewClimateController())
+        return ClimateCardViewModel(climate: entity, controller: PreviewClimateController(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 
     static var previewCooling: ClimateCardViewModel {
@@ -48,7 +48,7 @@ fileprivate extension ClimateCardViewModel {
             hvacAction: .cooling, currentTemperature: 24.5, temperature: 22,
             hvacModesRaw: ["off", "cool", "heat", "auto"]
         )
-        return ClimateCardViewModel(climate: entity, controller: PreviewClimateController())
+        return ClimateCardViewModel(climate: entity, controller: PreviewClimateController(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 
     static var previewOff: ClimateCardViewModel {
@@ -57,7 +57,7 @@ fileprivate extension ClimateCardViewModel {
             hvacAction: .off, currentTemperature: 21.3,
             hvacModesRaw: ["off", "heat", "cool"]
         )
-        return ClimateCardViewModel(climate: entity, controller: PreviewClimateController())
+        return ClimateCardViewModel(climate: entity, controller: PreviewClimateController(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

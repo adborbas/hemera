@@ -6,7 +6,7 @@ struct SwitchCard: View {
 
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
-            CardIcon(iconName: viewModel.iconName,
+            CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.toggle()
@@ -41,12 +41,12 @@ private extension SwitchCard {
 fileprivate extension SwitchCardViewModel {
     static func mockSwitch(isOn: Bool) -> SwitchCardViewModel {
         let entity = SwitchEntity(entityId: "switch.fan", name: "Fan", state: isOn ? .on : .off, deviceClass: .switch)
-        return SwitchCardViewModel(switchEntity: entity, controller: MockSwitchControlling())
+        return SwitchCardViewModel(switchEntity: entity, controller: MockSwitchControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 
     static func mockOutlet(isOn: Bool) -> SwitchCardViewModel {
         let entity = SwitchEntity(entityId: "switch.coffee", name: "Coffee Machine", state: isOn ? .on : .off, deviceClass: .outlet)
-        return SwitchCardViewModel(switchEntity: entity, controller: MockSwitchControlling())
+        return SwitchCardViewModel(switchEntity: entity, controller: MockSwitchControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 }
 

@@ -9,6 +9,8 @@ struct MainTabView: View {
 
     let viewModel: MainTabViewModel
     private let tabViewModels: TabViewModels
+    /// Session-scoped, so it is resolved here once and published for the area views to read.
+    private let iconResolver: IconResolver?
 
     init(viewModel: MainTabViewModel) {
         self.viewModel = viewModel
@@ -18,6 +20,7 @@ struct MainTabView: View {
             preconditionFailure("MainTabView requires AppCoordinator to have built tab VMs")
         }
         self.tabViewModels = vms
+        self.iconResolver = ServiceLocator.shared.session?.iconResolver
     }
 
     var body: some View {
@@ -43,6 +46,7 @@ struct MainTabView: View {
                 .tag(Tab.settings)
                 .accessibilityIdentifier("settingsTab")
         }
+        .environment(iconResolver)
         .safeAreaInset(edge: .bottom) {
             if viewModel.showOfflineBanner {
                 OfflineBanner()

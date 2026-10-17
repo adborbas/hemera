@@ -37,7 +37,7 @@ struct StateUpdatePropagationTests {
         let light = LightEntity(entityId: "light.lamp", name: "Lamp", state: .off)
         context.insert(light)
 
-        let vm = LightCardViewModel(light: light, controller: MockController())
+        let vm = LightCardViewModel(light: light, controller: MockController(), iconResolver: IconTranslationsFixture.resolver())
         #expect(!vm.isOn)
         #expect(vm.brightness == 0)
 
@@ -64,7 +64,7 @@ struct StateUpdatePropagationTests {
         let sw = SwitchEntity(entityId: "switch.plug", name: "Plug", state: .off, deviceClass: .outlet)
         context.insert(sw)
 
-        let vm = SwitchCardViewModel(switchEntity: sw, controller: MockController())
+        let vm = SwitchCardViewModel(switchEntity: sw, controller: MockController(), iconResolver: IconTranslationsFixture.resolver())
         #expect(!vm.isOn)
 
         let haEntity = try HAEntity(
@@ -92,7 +92,7 @@ struct StateUpdatePropagationTests {
         context.insert(area)
         context.insert(light)
 
-        let iconsBefore = AreaDisplayHelpers.statusIcons(from: area)
+        let iconsBefore = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
         #expect(iconsBefore.first?.isActive == false)
 
         let haEntity = try HAEntity(
@@ -107,7 +107,7 @@ struct StateUpdatePropagationTests {
 
         EntityRegistry.shared.upsert(from: haEntity, in: context)
 
-        let iconsAfter = AreaDisplayHelpers.statusIcons(from: area)
+        let iconsAfter = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
         #expect(iconsAfter.first?.isActive == true)
     }
 

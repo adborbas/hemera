@@ -18,20 +18,21 @@ final class BinarySensorCardViewModel: Identifiable {
         set { binarySensor.isHidden = newValue }
     }
 
-    init(binarySensor: BinarySensorEntity) {
+    private let iconResolver: IconResolver
+
+    init(binarySensor: BinarySensorEntity, iconResolver: IconResolver) {
+        self.iconResolver = iconResolver
         self.id = binarySensor.entityId
         self.binarySensor = binarySensor
     }
 
-    var iconName: String {
-        switch binarySensor.state {
-        case .unknown:
-            return "questionmark.circle"
-        case .unavailable:
-            return "exclamationmark.circle"
-        case .on, .off:
-            return binarySensor.deviceClass.symbolName(isOn: isOn)
-        }
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: BinarySensorEntity.domain,
+            deviceClass: binarySensor.deviceClassRaw,
+            state: binarySensor.state.rawValue,
+            entityIcon: binarySensor.icon
+        )
     }
 
     var tintColor: Color {
@@ -64,17 +65,17 @@ final class BinarySensorCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension BinarySensorCardViewModel {
-    static func registration() -> ViewModelFactory.Registration {
+    static func registration(iconResolver: IconResolver) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: BinarySensorEntity.domain,
             makeViewModelsForArea: { area in
                 area.binarySensors.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    BinarySensorCardViewModel(binarySensor: $0)
+                    BinarySensorCardViewModel(binarySensor: $0, iconResolver: iconResolver)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let binarySensor = BinarySensorEntity.fetch(byId: entityId, in: context) else { return nil }
-                return BinarySensorCardViewModel(binarySensor: binarySensor)
+                return BinarySensorCardViewModel(binarySensor: binarySensor, iconResolver: iconResolver)
             },
             entityExists: { entityId, context in
                 BinarySensorEntity.fetch(byId: entityId, in: context) != nil

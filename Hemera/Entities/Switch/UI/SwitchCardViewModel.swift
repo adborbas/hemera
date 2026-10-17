@@ -19,15 +19,13 @@ final class SwitchCardViewModel: Identifiable {
     }
     var deviceClass: SwitchEntity.DeviceClass { switchEntity.deviceClass }
 
-    var iconName: String {
-        if let icon = switchEntity.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        switch deviceClass {
-        case .outlet: return "powerplug.fill"
-        case .switch: return "power"
-        }
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: SwitchEntity.domain,
+            deviceClass: deviceClass.rawValue,
+            state: switchEntity.state.rawValue,
+            entityIcon: switchEntity.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -37,12 +35,14 @@ final class SwitchCardViewModel: Identifiable {
     var tintColor: Color { .green }
 
     private let controller: SwitchControlling
+    private let iconResolver: IconResolver
     private(set) var controllerTask: Task<Void, Never>?
 
-    init(switchEntity: SwitchEntity, controller: SwitchControlling) {
+    init(switchEntity: SwitchEntity, controller: SwitchControlling, iconResolver: IconResolver) {
         self.id = switchEntity.entityId
         self.switchEntity = switchEntity
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     func toggle() {
@@ -62,17 +62,17 @@ final class SwitchCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension SwitchCardViewModel {
-    static func registration(controller: SwitchControlling) -> ViewModelFactory.Registration {
+    static func registration(controller: SwitchControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: SwitchEntity.domain,
             makeViewModelsForArea: { area in
                 area.switches.filter { !$0.isHiddenInHA }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    SwitchCardViewModel(switchEntity: $0, controller: controller)
+                    SwitchCardViewModel(switchEntity: $0, controller: controller, iconResolver: iconResolver)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let switchEntity = SwitchEntity.fetch(byId: entityId, in: context) else { return nil }
-                return SwitchCardViewModel(switchEntity: switchEntity, controller: controller)
+                return SwitchCardViewModel(switchEntity: switchEntity, controller: controller, iconResolver: iconResolver)
             },
             entityExists: { entityId, context in
                 SwitchEntity.fetch(byId: entityId, in: context) != nil

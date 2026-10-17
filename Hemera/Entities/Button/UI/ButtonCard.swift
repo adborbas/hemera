@@ -9,7 +9,7 @@ struct ButtonCard: View {
     var body: some View {
         EntityCard {
             CardIcon(
-                iconName: viewModel.iconName,
+                icon: viewModel.iconName,
                 backgroundColor: viewModel.iconBackgroundColor
             ) {
                 handleTap()
@@ -74,7 +74,7 @@ private extension ButtonCard {
 fileprivate extension ButtonCardViewModel {
     static func mockRestart() -> ButtonCardViewModel {
         let button = ButtonEntity(entityId: "button.restart_router", name: "Restart Router", deviceClass: .restart)
-        return ButtonCardViewModel(button: button, controller: MockButtonControlling())
+        return ButtonCardViewModel(button: button, controller: MockButtonControlling(), iconResolver: IconResolver(translations: IconTranslations.bundled()))
     }
 
 }

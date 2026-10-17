@@ -18,17 +18,12 @@ final class ButtonCardViewModel: Identifiable {
     }
     var requiresConfirmation: Bool { button.deviceClass.requiresConfirmation }
 
-    var iconName: String {
-        if let icon = button.icon,
-           let sfSymbol = MDISymbolMapper.entitySFSymbol(for: icon) {
-            return sfSymbol
-        }
-        switch button.deviceClass {
-        case .restart: return "arrow.clockwise.circle.fill"
-        case .update: return "arrow.down.circle.fill"
-        case .identify: return "eye.circle.fill"
-        case .unknown: return "button.horizontal.top.press"
-        }
+    var iconName: String? {
+        iconResolver.iconName(
+            domain: ButtonEntity.domain,
+            deviceClass: button.deviceClass == .unknown ? nil : button.deviceClass.rawValue,
+            entityIcon: button.icon
+        )
     }
 
     var iconBackgroundColor: Color {
@@ -50,12 +45,14 @@ final class ButtonCardViewModel: Identifiable {
     }
 
     private let controller: ButtonControlling
+    private let iconResolver: IconResolver
     private(set) var controllerTask: Task<Void, Never>?
 
-    init(button: ButtonEntity, controller: ButtonControlling) {
+    init(button: ButtonEntity, controller: ButtonControlling, iconResolver: IconResolver) {
         self.id = button.entityId
         self.button = button
         self.controller = controller
+        self.iconResolver = iconResolver
     }
 
     func press() {
@@ -69,18 +66,18 @@ final class ButtonCardViewModel: Identifiable {
 // MARK: - Factory Registration
 
 extension ButtonCardViewModel {
-    static func registration(controller: ButtonControlling) -> ViewModelFactory.Registration {
+    static func registration(controller: ButtonControlling, iconResolver: IconResolver) -> ViewModelFactory.Registration {
         ViewModelFactory.Registration(
             domain: ButtonEntity.domain,
             makeViewModelsForArea: { area in
                 area.buttons.filter { !$0.isHiddenInHA && $0.deviceClass.isUserActionable }.sorted(by: { $0.entityId < $1.entityId }).map {
-                    ButtonCardViewModel(button: $0, controller: controller)
+                    ButtonCardViewModel(button: $0, controller: controller, iconResolver: iconResolver)
                 }
             },
             makeViewModelForEntityId: { entityId, context in
                 guard let button = ButtonEntity.fetch(byId: entityId, in: context),
                       button.deviceClass.isUserActionable else { return nil }
-                return ButtonCardViewModel(button: button, controller: controller)
+                return ButtonCardViewModel(button: button, controller: controller, iconResolver: iconResolver)
             },
             entityExists: { entityId, context in
                 ButtonEntity.fetch(byId: entityId, in: context) != nil

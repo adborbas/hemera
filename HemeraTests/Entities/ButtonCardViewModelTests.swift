@@ -11,33 +11,33 @@ struct ButtonCardViewModelTests {
     @Test
     func iconName_restart() {
         let vm = makeViewModel(deviceClass: .restart)
-        #expect(vm.iconName == "arrow.clockwise.circle.fill")
+        #expect(vm.iconName == "restart")
     }
 
     @Test
     func iconName_update() {
         let vm = makeViewModel(deviceClass: .update)
-        #expect(vm.iconName == "arrow.down.circle.fill")
+        #expect(vm.iconName == "package-up")
     }
 
     @Test
     func iconName_unknown() {
         let vm = makeViewModel(deviceClass: .unknown)
-        #expect(vm.iconName == "button.horizontal.top.press")
+        #expect(vm.iconName == "button-pointer")
     }
 
     @Test
-    func iconName_withMappedIcon_usesMapping() {
+    func iconName_withEntityIconOverride_usesItVerbatim() {
         let button = ButtonEntity(entityId: "button.test", name: "Test", deviceClass: .restart, icon: "mdi:wifi")
-        let vm = ButtonCardViewModel(button: button, controller: SpyButtonControlling())
+        let vm = ButtonCardViewModel(button: button, controller: SpyButtonControlling(), iconResolver: IconTranslationsFixture.resolver())
         #expect(vm.iconName == "wifi")
     }
 
     @Test
-    func iconName_withUnmappedIcon_fallsBackToDeviceClass() {
-        let button = ButtonEntity(entityId: "button.test", name: "Test", deviceClass: .update, icon: "mdi:nonexistent-xyz")
-        let vm = ButtonCardViewModel(button: button, controller: SpyButtonControlling())
-        #expect(vm.iconName == "arrow.down.circle.fill")
+    func iconName_withUnsupportedIconPack_fallsBackToDeviceClass() {
+        let button = ButtonEntity(entityId: "button.test", name: "Test", deviceClass: .update, icon: "phu:refresh")
+        let vm = ButtonCardViewModel(button: button, controller: SpyButtonControlling(), iconResolver: IconTranslationsFixture.resolver())
+        #expect(vm.iconName == "package-up")
     }
 
     // MARK: - Icon Background Color
@@ -106,7 +106,7 @@ struct ButtonCardViewModelTests {
     func press_callsControllerWithEntityId() async {
         let mock = SpyButtonControlling()
         let button = ButtonEntity(entityId: "button.test_press", name: "Test", deviceClass: .restart)
-        let vm = ButtonCardViewModel(button: button, controller: mock)
+        let vm = ButtonCardViewModel(button: button, controller: mock, iconResolver: IconTranslationsFixture.resolver())
 
         vm.press()
 
@@ -118,7 +118,7 @@ struct ButtonCardViewModelTests {
 
     private func makeViewModel(deviceClass: ButtonEntity.DeviceClass) -> ButtonCardViewModel {
         let button = ButtonEntity(entityId: "button.test", name: "Test", deviceClass: deviceClass)
-        return ButtonCardViewModel(button: button, controller: SpyButtonControlling())
+        return ButtonCardViewModel(button: button, controller: SpyButtonControlling(), iconResolver: IconTranslationsFixture.resolver())
     }
 }
 
