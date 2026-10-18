@@ -18,13 +18,13 @@ final class AreasViewModel {
 
     /// Whether the grid groups areas into sections by floor. Settable so the
     /// toolbar "View Options" toggle can bind to it; writes through to the
-    /// persisted `AreaDisplaySettings`.
+    /// persisted `UserSettings`.
     var areasGroupedByFloor: Bool {
-        get { areaDisplaySettings.areasGroupedByFloor }
-        set { areaDisplaySettings.areasGroupedByFloor = newValue }
+        get { settings.areasGroupedByFloor }
+        set { settings.areasGroupedByFloor = newValue }
     }
 
-    private let areaDisplaySettings: AreaDisplaySettings
+    private let settings: UserSettings
     private let errorNotifier: ErrorNotifier?
     private let connectionRetrier: (any ConnectionRetrying)?
     private var retryTimeoutTask: Task<Void, Never>?
@@ -35,7 +35,7 @@ final class AreasViewModel {
         viewModelFactory: ViewModelFactory,
         demoCoordinator: any DemoCoordinating,
         authManager: any AuthManaging,
-        areaDisplaySettings: AreaDisplaySettings,
+        settings: UserSettings,
         errorNotifier: ErrorNotifier? = nil,
         connectionRetrier: (any ConnectionRetrying)? = nil,
         resync: @escaping () async -> Void = { }
@@ -44,7 +44,7 @@ final class AreasViewModel {
         self.viewModelFactory = viewModelFactory
         self.isDemoMode = demoCoordinator.isActive
         self.haWebViewPresenter = HAWebViewPresenter(authManager: authManager)
-        self.areaDisplaySettings = areaDisplaySettings
+        self.settings = settings
         self.errorNotifier = errorNotifier
         self.connectionRetrier = connectionRetrier
         self.resync = resync

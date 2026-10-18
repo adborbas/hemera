@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum ClockFormat: Int, CaseIterable, Identifiable {
+enum ClockFormat: Int, CaseIterable, Identifiable, Codable {
     case system = 0
     case twelveHour = 12
     case twentyFourHour = 24
@@ -23,7 +23,7 @@ enum ClockFormat: Int, CaseIterable, Identifiable {
     }
 }
 
-enum DimTimeout: Int, CaseIterable, Identifiable {
+enum DimTimeout: Int, CaseIterable, Identifiable, Codable {
     case thirtySeconds = 30
     case oneMinute = 60
     case fiveMinutes = 300
@@ -46,13 +46,17 @@ enum DimTimeout: Int, CaseIterable, Identifiable {
 @MainActor
 final class ScreenManager {
 
-    // MARK: - Persisted Settings
-
+    /**
+     Passthroughs to `UserSettings`, keeping the side effects on the setter so
+     `KioskModeView`'s bindings still work. No same-value guard: the `didSet` they replaced
+     fired on same-value assignment too.
+    */
     var stayAwake: Bool {
-        didSet {
-            UserDefaults.standard.set(stayAwake, forKey: Keys.stayAwake)
+        get { settings.stayAwake }
+        set {
+            settings.stayAwake = newValue
             applyStayAwake()
-            if stayAwake {
+            if newValue {
                 resetInactivityTimer()
             } else {
                 cancelInactivityTimer()
@@ -62,16 +66,16 @@ final class ScreenManager {
     }
 
     var dimTimeout: DimTimeout {
-        didSet {
-            UserDefaults.standard.set(dimTimeout.rawValue, forKey: Keys.dimTimeout)
+        get { settings.dimTimeout }
+        set {
+            settings.dimTimeout = newValue
             resetInactivityTimer()
         }
     }
 
     var clockFormat: ClockFormat {
-        didSet {
-            UserDefaults.standard.set(clockFormat.rawValue, forKey: Keys.clockFormat)
-        }
+        get { settings.clockFormat }
+        set { settings.clockFormat = newValue }
     }
 
     // MARK: - Runtime State
@@ -98,21 +102,12 @@ final class ScreenManager {
 
     private var inactivityTimer: Timer?
 
-    private enum Keys {
-        static let stayAwake = "screenManager.stayAwake"
-        static let dimTimeout = "screenManager.dimTimeout"
-        static let clockFormat = "screenManager.clockFormat"
-    }
+    private let settings: UserSettings
 
     // MARK: - Init
 
-    init() {
-        let defaults = UserDefaults.standard
-        self.stayAwake = defaults.bool(forKey: Keys.stayAwake)
-        let rawTimeout = defaults.integer(forKey: Keys.dimTimeout)
-        self.dimTimeout = DimTimeout(rawValue: rawTimeout) ?? .thirtySeconds
-        let rawClockFormat = defaults.integer(forKey: Keys.clockFormat)
-        self.clockFormat = ClockFormat(rawValue: rawClockFormat) ?? .system
+    init(settings: UserSettings) {
+        self.settings = settings
 
         applyStayAwake()
         if stayAwake {

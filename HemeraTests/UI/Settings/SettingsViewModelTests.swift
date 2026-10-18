@@ -27,7 +27,7 @@ struct SettingsViewModelTests {
         viewModel = SettingsViewModel(
             authManager: authManager,
             demoCoordinator: demoCoordinator,
-            screenManager: ScreenManager(),
+            screenManager: ScreenManager(settings: UserSettings.load(from: InMemorySettingsStore())),
             restClient: nil
         )
     }
@@ -45,7 +45,7 @@ struct SettingsViewModelTests {
         let vm = SettingsViewModel(
             authManager: authManager,
             demoCoordinator: demoCoordinator,
-            screenManager: ScreenManager(),
+            screenManager: ScreenManager(settings: UserSettings.load(from: InMemorySettingsStore())),
             restClient: nil
         )
         #expect(vm.isDemoMode == true)
@@ -117,7 +117,7 @@ struct SettingsViewModelTests {
         let vm = SettingsViewModel(
             authManager: authManager,
             demoCoordinator: demoCoordinator,
-            screenManager: ScreenManager(),
+            screenManager: ScreenManager(settings: UserSettings.load(from: InMemorySettingsStore())),
             restClient: restClient
         )
 

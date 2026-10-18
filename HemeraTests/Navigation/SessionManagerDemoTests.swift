@@ -31,8 +31,8 @@ struct SessionManagerTests {
             router: router,
             demoCoordinator: DemoCoordinator(),
             sessionManager: sessionManager,
-            screenManager: ScreenManager(),
-            areaDisplaySettings: AreaDisplaySettings()
+            screenManager: ScreenManager(settings: UserSettings.load(from: InMemorySettingsStore())),
+            settings: UserSettings.load(from: InMemorySettingsStore())
         )
 
         self.authManager = authManager

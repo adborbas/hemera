@@ -46,7 +46,7 @@ private extension KioskModeView {
 #if DEBUG
 #Preview {
     NavigationStack {
-        KioskModeView(screenManager: ScreenManager())
+        KioskModeView(screenManager: ScreenManager(settings: UserSettings.load(from: UserDefaultsSettingsStore.preview())))
     }
 }
 #endif

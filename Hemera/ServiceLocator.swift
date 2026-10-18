@@ -8,7 +8,7 @@ final class ServiceLocator {
     let demoCoordinator: any DemoCoordinating
     let sessionManager: SessionManager
     let screenManager: ScreenManager
-    let areaDisplaySettings: AreaDisplaySettings
+    let settings: UserSettings
     var appCoordinator: AppCoordinator?
 
     /// Session-scoped dependencies. Non-nil when a session (HA or demo) is active.
@@ -29,7 +29,7 @@ final class ServiceLocator {
         demoCoordinator: any DemoCoordinating,
         sessionManager: SessionManager,
         screenManager: ScreenManager,
-        areaDisplaySettings: AreaDisplaySettings
+        settings: UserSettings
     ) {
         _shared = ServiceLocator(
             authManager: authManager,
@@ -37,17 +37,17 @@ final class ServiceLocator {
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
             screenManager: screenManager,
-            areaDisplaySettings: areaDisplaySettings
+            settings: settings
         )
     }
 
-    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, areaDisplaySettings: AreaDisplaySettings) {
+    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, settings: UserSettings) {
         self.authManager = authManager
         self.router = router
         self.demoCoordinator = demoCoordinator
         self.sessionManager = sessionManager
         self.screenManager = screenManager
-        self.areaDisplaySettings = areaDisplaySettings
+        self.settings = settings
     }
 
     #if DEBUG
@@ -69,7 +69,7 @@ final class ServiceLocator {
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
             screenManager: env.screenManager,
-            areaDisplaySettings: env.areaDisplaySettings
+            settings: env.settings
         )
 
         if authenticated {

@@ -17,7 +17,7 @@ struct AreasView: View {
         }
     }
 
-    /// Maps the persisted `Bool` preference to the two-option picker selection.
+    /// Maps the persisted `Bool` setting to the two-option picker selection.
     private var groupingSelection: Binding<AreaGrouping> {
         Binding(
             get: { viewModel.areasGroupedByFloor ? .byFloor : .none },

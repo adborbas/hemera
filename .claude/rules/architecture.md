@@ -47,6 +47,32 @@ Every external capability is abstracted behind a protocol:
 - `Storage` — generic SwiftData read/write operations
 - `DemoCoordinating` — demo mode lifecycle
 - `ConnectionRetrying` — reconnection
+- `SettingsStoring` — persistence of the user settings document
+
+### User Settings
+
+Every user preference lives in `SettingsValues` (`Hemera/Settings/`), a plain `Codable` struct, held by
+the `@Observable` `UserSettings` and persisted as pretty-printed JSON through `SettingsStoring`.
+Call sites read `settings.stayAwake` directly — `UserSettings` is `@dynamicMemberLookup` over the
+value, which stays private.
+
+- **Adding a setting is one line**: a property with a default on `SettingsValues`. Persistence,
+  defaulting and tolerance of older documents all follow. Raw-valued enums must declare `Codable` —
+  synthesis is free, the conformance is not.
+- Keep `SettingsValues` a value type. Observation lives on the holder: mutating a nested field replaces
+  the struct, so `UserSettings`' `didSet` fires and saves. Putting `Codable` on the
+  `@Observable` class instead forces underscored `CodingKeys`, an isolated conformance and a
+  permanent compiler warning — that was tried and backed out.
+- A feature owning three or more related settings gets its own nested struct; lone toggles stay
+  top-level. Small bounded app-owned lists stay as arrays. Anything keyed by HA entities or unbounded
+  in size belongs in SwiftData, alongside `HomeTile` and `StoredEntity.isHidden`.
+- Settings deliberately do **not** live in SwiftData: that store is a cache of HA state whose recovery
+  path deletes it (`AppEnvironment.init`), and settings are the only irreplaceable data in the app.
+- `UserSettings` is injected as a concrete type, not behind a protocol — a protocol would have to
+  restate every property and grow with each new setting. `SettingsStoring` is the test seam; tests
+  inject `InMemorySettingsStore`.
+- `SettingsValues.decode(from:)` overlays the stored JSON on the defaults and reverts individual
+  rejected fields, so a missing or corrupt value costs only itself. Don't bypass it.
 
 Each protocol has three implementations:
 1. **Production** — per-domain controller classes wrapping `HAServiceCalling` (`LightController`, `CoverController`, etc.)

@@ -6,10 +6,11 @@ import Testing
 struct ScreenManagerTests {
 
     let screenManager: ScreenManager
+    let settings: UserSettings
 
     init() {
-        screenManager = ScreenManager()
-        screenManager.resetToDefaults()
+        settings = UserSettings.load(from: InMemorySettingsStore())
+        screenManager = ScreenManager(settings: settings)
     }
 
     // MARK: - Clock Format Defaults
@@ -34,6 +35,16 @@ struct ScreenManagerTests {
         screenManager.resetToDefaults()
 
         #expect(screenManager.dimTimeout == .thirtySeconds)
+    }
+
+    /// Logout calls `resetToDefaults()`. Now that all settings share one document, that
+    /// must stay kiosk-only.
+    @Test func resetToDefaults_leavesNonKioskSettingsUntouched() {
+        settings.areasGroupedByFloor = false
+
+        screenManager.resetToDefaults()
+
+        #expect(settings.areasGroupedByFloor == false)
     }
 
     @Test func resetToDefaults_resetsStayAwakeToFalse() {
