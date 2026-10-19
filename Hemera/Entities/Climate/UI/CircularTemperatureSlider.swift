@@ -29,15 +29,6 @@ struct CircularTemperatureSlider: View {
         case high
     }
 
-    // MARK: - Default Formatter
-
-    private static func defaultFormatter(_ temp: Double) -> String {
-        if temp == temp.rounded() {
-            return "\(Int(temp))\u{00B0}"
-        }
-        return String(format: "%.1f\u{00B0}", temp)
-    }
-
     // MARK: - Geometry Constants
 
     private static let startAngle: Double = 135
@@ -55,7 +46,7 @@ struct CircularTemperatureSlider: View {
         range: ClosedRange<Double>,
         tintColor: Color,
         step: Double = 0.5,
-        temperatureFormatter: @escaping (Double) -> String = Self.defaultFormatter,
+        temperatureFormatter: @escaping (Double) -> String = { ClimateCardViewModel.formatTemperature($0) },
         onCommit: @escaping (Double) -> Void
     ) {
         self._targetTemperature = targetTemperature
@@ -86,7 +77,7 @@ struct CircularTemperatureSlider: View {
         lowHandleColor: Color? = nil,
         highHandleColor: Color? = nil,
         step: Double = 0.5,
-        temperatureFormatter: @escaping (Double) -> String = Self.defaultFormatter,
+        temperatureFormatter: @escaping (Double) -> String = { ClimateCardViewModel.formatTemperature($0) },
         onCommit: @escaping (Double, Double) -> Void
     ) {
         self._targetTemperature = .constant(0)
