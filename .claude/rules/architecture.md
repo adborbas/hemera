@@ -74,7 +74,13 @@ their own copies would diverge; if something cross-cutting ever appears, route b
 owner rather than reading the store twice.
 
 That ownership rule is why the store needs no observation: the UI observes the owners, which are
-already `@Observable`. Settings deliberately do **not** live in SwiftData — that store is a cache of
+already `@Observable`.
+
+Settings are local-only and the store API is synchronous. If they ever need to sync (iCloud, or
+Home Assistant-side), writes can stay synchronous — the store accepts the mutation and persists in
+the background. What would have to change is the initial load (currently in `init`, would need to be
+awaited) and external changes, which need a push channel from the store to the owners, since owners
+hold their own observable copies. Settings deliberately do **not** live in SwiftData — that store is a cache of
 HA state whose recovery path deletes it (`AppEnvironment.init`), and settings are the only
 irreplaceable data in the app.
 
