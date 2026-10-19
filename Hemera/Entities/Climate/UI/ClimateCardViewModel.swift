@@ -298,11 +298,11 @@ final class ClimateCardViewModel: Identifiable {
 
     // MARK: - Temperature Formatting
 
-    static func formatTemperature(_ temp: Double) -> String {
+    nonisolated static func formatTemperature(_ temp: Double, locale: Locale = .current) -> String {
         if temp == temp.rounded() {
-            return "\(Int(temp))\u{00B0}"
+            return "\(Int(temp).formatted(.number.grouping(.never).locale(locale)))\u{00B0}"
         }
-        return String(format: "%.1f\u{00B0}", temp)
+        return "\(temp.formatted(.number.precision(.fractionLength(1)).locale(locale)))\u{00B0}"
     }
 
 }

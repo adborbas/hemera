@@ -115,7 +115,7 @@ struct ClimateControlPanel: View {
             currentTemperature: viewModel.currentTemperature,
             range: temperatureRange,
             tintColor: viewModel.tintColor,
-            temperatureFormatter: ClimateCardViewModel.formatTemperature
+            temperatureFormatter: { ClimateCardViewModel.formatTemperature($0) }
         )
         .frame(maxWidth: 260, maxHeight: 260)
         .transition(.blurReplace)
@@ -136,7 +136,7 @@ struct ClimateControlPanel: View {
                 lowHandleColor: viewModel.lowHandleColor,
                 highHandleColor: viewModel.highHandleColor,
                 step: viewModel.targetTempStep,
-                temperatureFormatter: ClimateCardViewModel.formatTemperature
+                temperatureFormatter: { ClimateCardViewModel.formatTemperature($0) }
             ) { low, high in
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 viewModel.setTemperatureRange(low: low, high: high)
@@ -149,7 +149,7 @@ struct ClimateControlPanel: View {
                 range: temperatureRange,
                 tintColor: viewModel.tintColor,
                 step: viewModel.targetTempStep,
-                temperatureFormatter: ClimateCardViewModel.formatTemperature
+                temperatureFormatter: { ClimateCardViewModel.formatTemperature($0) }
             ) { temp in
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 viewModel.setTemperature(temp)

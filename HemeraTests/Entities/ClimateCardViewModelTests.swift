@@ -107,7 +107,7 @@ struct ClimateCardViewModelTests {
     @Test func statusText_withActionAndTemp_showsActionName() {
         let vm = makeViewModel(state: .heat, hvacAction: .heating, currentTemperature: 21.5)
         #expect(vm.statusText.contains("Heating"))
-        #expect(vm.statusText.contains("21.5"))
+        #expect(vm.statusText.contains(ClimateCardViewModel.formatTemperature(21.5)))
         #expect(vm.statusText.contains("\u{00B7}"))
     }
 
@@ -130,6 +130,31 @@ struct ClimateCardViewModelTests {
     @Test func statusText_withoutCurrentTemp() {
         let vm = makeViewModel(state: .cool)
         #expect(!vm.statusText.contains("\u{00B7}"))
+    }
+
+    // MARK: - Temperature Formatting
+
+    // A German user reading "21.5°" on their thermostat sees a foreign number format.
+    @Test func formatTemperature_inGermanLocale_usesCommaSeparator() {
+        let formatted = ClimateCardViewModel.formatTemperature(21.5, locale: Locale(identifier: "de_DE"))
+        #expect(formatted == "21,5\u{00B0}")
+    }
+
+    @Test func formatTemperature_inUSLocale_usesDotSeparator() {
+        let formatted = ClimateCardViewModel.formatTemperature(21.5, locale: Locale(identifier: "en_US"))
+        #expect(formatted == "21.5\u{00B0}")
+    }
+
+    // Whole setpoints are the common case (step 0.5/1); "21,0°" would be noise on the dial.
+    @Test func formatTemperature_wholeNumber_hasNoDecimalPart() {
+        let formatted = ClimateCardViewModel.formatTemperature(21, locale: Locale(identifier: "de_DE"))
+        #expect(formatted == "21\u{00B0}")
+    }
+
+    // Locales with non-Latin digits must not get Western digits from plain Int interpolation.
+    @Test func formatTemperature_inArabicLocale_usesLocalDigits() {
+        let formatted = ClimateCardViewModel.formatTemperature(21, locale: Locale(identifier: "ar_EG"))
+        #expect(formatted == "\u{0662}\u{0661}\u{00B0}")
     }
 
     // MARK: - Feature Support
