@@ -35,7 +35,7 @@ private extension SettingsMigration {
         defer { present.forEach(defaults.removeObject(forKey:)) }
 
         // Already imported — just drop the stale keys.
-        guard defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == nil else { return }
+        guard !UserDefaultsSettingsStore.hasStoredSettings(in: defaults) else { return }
 
         var settings = Settings()
         if defaults.object(forKey: LegacyKey.stayAwake) != nil {
@@ -51,12 +51,7 @@ private extension SettingsMigration {
             settings.areasGroupedByFloor = defaults.bool(forKey: LegacyKey.areasGroupedByFloor)
         }
 
-        guard let json = SettingsJSON.encode(settings) else {
-            Log.error("Failed to encode imported settings — they will fall back to defaults")
-            return
-        }
-
-        defaults.set(json, forKey: UserDefaultsSettingsStore.storageKey)
+        UserDefaultsSettingsStore.write(settings, to: defaults)
         Log.info("Imported \(present.count) legacy settings key(s)")
     }
 }

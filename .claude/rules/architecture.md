@@ -56,14 +56,13 @@ Every external capability is abstracted behind a protocol:
 - **`Settings`** — a plain `Codable` struct holding every setting. **Adding a setting is one line
   here**, with a default. Raw-valued enums must declare `Codable` — synthesis is free, the
   conformance is not.
-- **`SettingsJSON`** — encoding and decoding. `decode(_:)` overlays what is stored onto the defaults
-  before decoding, because the synthesized decoder ignores property defaults and throws
-  `keyNotFound` — without it, shipping a new setting would wipe every existing one. There is no
-  per-field recovery: a wrong-typed value returns `nil` and settings reset, so changing an existing
-  setting's type goes through `SettingsMigration`.
 - **`SettingsStoring`** / **`UserDefaultsSettingsStore`** — holds the current `Settings` and persists
   on mutation. A reference type so every owner mutates one shared value, but deliberately **not**
-  `@Observable`.
+  `@Observable`. The JSON format is `private` to that file: decoding overlays what is stored onto the
+  defaults, because the synthesized decoder ignores property defaults and throws `keyNotFound` —
+  without it, shipping a new setting would wipe every existing one. There is no per-field recovery:
+  a wrong-typed value resets settings, so changing an existing setting's type goes through
+  `SettingsMigration`.
 - **`SettingsMigration`** — version policy: the legacy-key import, and the rule that each step is a
   no-op when its source data is absent.
 
