@@ -20,11 +20,9 @@ struct SettingsMigrationTests {
         defaults.set(300, forKey: "screenManager.dimTimeout")
         defaults.set(24, forKey: "screenManager.clockFormat")
         defaults.set(false, forKey: "areaDisplaySettings.areasGroupedByFloor")
-        let store = InMemorySettingsStore()
+        SettingsMigration.run(defaults: defaults)
 
-        SettingsMigration.run(on: store, defaults: defaults)
-
-        let settings = UserSettings.load(from: store)
+        let settings = UserDefaultsSettingsStore(defaults: defaults).settings
         #expect(settings.stayAwake == true)
         #expect(settings.dimTimeout == .fiveMinutes)
         #expect(settings.clockFormat == .twentyFourHour)
@@ -35,7 +33,7 @@ struct SettingsMigrationTests {
         defaults.set(true, forKey: "screenManager.stayAwake")
         defaults.set(false, forKey: "areaDisplaySettings.areasGroupedByFloor")
 
-        SettingsMigration.run(on: InMemorySettingsStore(), defaults: defaults)
+        SettingsMigration.run(defaults: defaults)
 
         #expect(defaults.object(forKey: "screenManager.stayAwake") == nil)
         #expect(defaults.object(forKey: "areaDisplaySettings.areasGroupedByFloor") == nil)
@@ -46,11 +44,9 @@ struct SettingsMigrationTests {
     /// every user who never touched it.
     @Test func run_withSomeLegacyKeysAbsent_leavesThemAtTheirDefaults() {
         defaults.set(true, forKey: "screenManager.stayAwake")
-        let store = InMemorySettingsStore()
+        SettingsMigration.run(defaults: defaults)
 
-        SettingsMigration.run(on: store, defaults: defaults)
-
-        let settings = UserSettings.load(from: store)
+        let settings = UserDefaultsSettingsStore(defaults: defaults).settings
         #expect(settings.stayAwake == true)
         #expect(settings.areasGroupedByFloor == true)
         #expect(settings.dimTimeout == .thirtySeconds)
@@ -60,35 +56,31 @@ struct SettingsMigrationTests {
     // MARK: - Fresh Install
 
     @Test func run_onFreshInstall_writesNothing() {
-        let store = InMemorySettingsStore()
+        SettingsMigration.run(defaults: defaults)
 
-        SettingsMigration.run(on: store, defaults: defaults)
-
-        #expect(store.json == nil)
+        #expect(defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == nil)
     }
 
     // MARK: - Idempotence
 
     @Test func run_withExistingSettings_keepsThemAndDropsStaleLegacyKeys() {
         let stored = #"{"schemaVersion":1,"stayAwake":false}"#
-        let store = InMemorySettingsStore(json: stored)
+        defaults.set(stored, forKey: UserDefaultsSettingsStore.storageKey)
         defaults.set(true, forKey: "screenManager.stayAwake")
 
-        SettingsMigration.run(on: store, defaults: defaults)
+        SettingsMigration.run(defaults: defaults)
 
         // The stored settings win — the legacy key is a leftover, not newer truth.
-        #expect(store.json == stored)
+        #expect(defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == stored)
         #expect(defaults.object(forKey: "screenManager.stayAwake") == nil)
     }
 
     @Test func run_twice_isStable() {
         defaults.set(true, forKey: "screenManager.stayAwake")
-        let store = InMemorySettingsStore()
+        SettingsMigration.run(defaults: defaults)
+        let afterFirst = defaults.string(forKey: UserDefaultsSettingsStore.storageKey)
+        SettingsMigration.run(defaults: defaults)
 
-        SettingsMigration.run(on: store, defaults: defaults)
-        let afterFirst = store.json
-        SettingsMigration.run(on: store, defaults: defaults)
-
-        #expect(store.json == afterFirst)
+        #expect(defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == afterFirst)
     }
 }

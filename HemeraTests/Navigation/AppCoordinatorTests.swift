@@ -20,7 +20,7 @@ struct AppCoordinatorTests {
             demoCoordinator: DemoCoordinator(),
             sessionManager: sessionManager,
             screenManager: env.screenManager,
-            settings: env.settings
+            settingsStore: env.settingsStore
         )
 
         coordinator = AppCoordinator(sessionManager: sessionManager, authManager: authManager, router: router)

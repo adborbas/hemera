@@ -56,7 +56,7 @@ struct AreasViewModelTests {
             viewModelFactory: factory,
             demoCoordinator: demoCoordinator,
             authManager: authManager,
-            settings: UserSettings.load(from: InMemorySettingsStore()),
+            store: InMemorySettingsStore(),
             errorNotifier: errorNotifier,
             connectionRetrier: connectionRetrier,
             resync: resync

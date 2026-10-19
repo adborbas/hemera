@@ -46,17 +46,16 @@ enum DimTimeout: Int, CaseIterable, Identifiable, Codable {
 @MainActor
 final class ScreenManager {
 
-    /**
-     Passthroughs to `UserSettings`, keeping the side effects on the setter so
-     `KioskModeView`'s bindings still work. No same-value guard: the `didSet` they replaced
-     fired on same-value assignment too.
-    */
+    // MARK: - Settings
+    //
+    // Owned here: this is the single observable source of truth the UI binds to, and each
+    // write goes through to the store.
+
     var stayAwake: Bool {
-        get { settings.stayAwake }
-        set {
-            settings.stayAwake = newValue
+        didSet {
+            store.settings.stayAwake = stayAwake
             applyStayAwake()
-            if newValue {
+            if stayAwake {
                 resetInactivityTimer()
             } else {
                 cancelInactivityTimer()
@@ -66,16 +65,14 @@ final class ScreenManager {
     }
 
     var dimTimeout: DimTimeout {
-        get { settings.dimTimeout }
-        set {
-            settings.dimTimeout = newValue
+        didSet {
+            store.settings.dimTimeout = dimTimeout
             resetInactivityTimer()
         }
     }
 
     var clockFormat: ClockFormat {
-        get { settings.clockFormat }
-        set { settings.clockFormat = newValue }
+        didSet { store.settings.clockFormat = clockFormat }
     }
 
     // MARK: - Runtime State
@@ -102,12 +99,15 @@ final class ScreenManager {
 
     private var inactivityTimer: Timer?
 
-    private let settings: UserSettings
+    private let store: any SettingsStoring
 
     // MARK: - Init
 
-    init(settings: UserSettings) {
-        self.settings = settings
+    init(store: any SettingsStoring) {
+        self.store = store
+        self.stayAwake = store.settings.stayAwake
+        self.dimTimeout = store.settings.dimTimeout
+        self.clockFormat = store.settings.clockFormat
 
         applyStayAwake()
         if stayAwake {

@@ -4,7 +4,7 @@ import HemeraLog
 /**
  Steps the stored settings forward to the current schema.
 
- Adding a field needs no migration — `SettingsValues` overlays what is stored on the
+ Adding a field needs no migration — `SettingsJSON` overlays what is stored on the
  defaults. Migrations are for what that can't do: a semantic change to an existing field,
  and retiring compatibility code once the version proves nobody is on the old shape.
 
@@ -14,10 +14,9 @@ enum SettingsMigration {
 
     static let currentVersion = 1
 
-    /// Runs before `UserSettings` is built. Dependencies are explicit so previews and
-    /// tests never hit the real defaults.
-    static func run(on store: any SettingsStoring, defaults: UserDefaults) {
-        importLegacyKeys(into: store, from: defaults)
+    /// Runs before the store is built, so the import is in place when it loads.
+    static func run(defaults: UserDefaults) {
+        importLegacyKeys(from: defaults)
     }
 }
 
@@ -35,37 +34,42 @@ private extension SettingsMigration {
     }
 
     /**
-     Moves the pre-`SettingsValues` keys into the stored settings, then removes them.
+     Moves the pre-`Settings` keys into the stored settings, then removes them.
 
      Gated per key on presence: `bool(forKey:)` returns `false` for an absent key while
      `areasGroupedByFloor` defaults to `true`, so an unconditional import would quietly
      change settings for everyone who never touched them.
     */
-    static func importLegacyKeys(into store: any SettingsStoring, from defaults: UserDefaults) {
+    static func importLegacyKeys(from defaults: UserDefaults) {
         let present = LegacyKey.all.filter { defaults.object(forKey: $0) != nil }
         guard !present.isEmpty else { return }
 
         defer { present.forEach(defaults.removeObject(forKey:)) }
 
         // Settings already exist, so the import ran before — just drop the stale keys.
-        guard store.load() == nil else { return }
+        guard defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == nil else { return }
 
         // Starting from the defaults means an absent key keeps its default, never `false`/`0`.
-        var values = SettingsValues()
+        var settings = Settings()
         if defaults.object(forKey: LegacyKey.stayAwake) != nil {
-            values.stayAwake = defaults.bool(forKey: LegacyKey.stayAwake)
+            settings.stayAwake = defaults.bool(forKey: LegacyKey.stayAwake)
         }
         if defaults.object(forKey: LegacyKey.dimTimeout) != nil {
-            values.dimTimeout = DimTimeout(rawValue: defaults.integer(forKey: LegacyKey.dimTimeout)) ?? values.dimTimeout
+            settings.dimTimeout = DimTimeout(rawValue: defaults.integer(forKey: LegacyKey.dimTimeout)) ?? settings.dimTimeout
         }
         if defaults.object(forKey: LegacyKey.clockFormat) != nil {
-            values.clockFormat = ClockFormat(rawValue: defaults.integer(forKey: LegacyKey.clockFormat)) ?? values.clockFormat
+            settings.clockFormat = ClockFormat(rawValue: defaults.integer(forKey: LegacyKey.clockFormat)) ?? settings.clockFormat
         }
         if defaults.object(forKey: LegacyKey.areasGroupedByFloor) != nil {
-            values.areasGroupedByFloor = defaults.bool(forKey: LegacyKey.areasGroupedByFloor)
+            settings.areasGroupedByFloor = defaults.bool(forKey: LegacyKey.areasGroupedByFloor)
         }
 
-        store.save(values)
-        Log.info("Imported \(present.count) legacy settings key(s) into the settings")
+        guard let json = SettingsJSON.encode(settings) else {
+            Log.error("Failed to encode imported settings — they will fall back to defaults")
+            return
+        }
+
+        defaults.set(json, forKey: UserDefaultsSettingsStore.storageKey)
+        Log.info("Imported \(present.count) legacy settings key(s)")
     }
 }

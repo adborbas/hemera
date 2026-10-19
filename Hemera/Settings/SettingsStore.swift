@@ -2,39 +2,15 @@ import Foundation
 import HemeraLog
 
 /**
- Persistence for `SettingsValues`.
+ Holds the current `Settings` and persists them.
 
- Conformances only move a JSON string around — `encoded(_:)` and `decoded(from:)` below
- handle the conversion once — so a store can move to a file, iCloud or Home Assistant
- without changing anything above it.
+ A reference type so every owner mutates one shared value rather than its own copy — but
+ deliberately **not** `@Observable`: the UI observes the view models and managers that own
+ each setting, not this.
 */
 @MainActor
 protocol SettingsStoring: AnyObject {
-    func load() -> SettingsValues?
-    func save(_ values: SettingsValues)
-    func clear()
-}
-
-extension SettingsStoring {
-
-    /// Legible, stable JSON — key order is sorted so writes diff cleanly.
-    func encoded(_ values: SettingsValues) -> String? {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard
-            let data = try? encoder.encode(values),
-            let json = String(data: data, encoding: .utf8)
-        else {
-            Log.error("Failed to encode settings — not saved")
-            return nil
-        }
-        return json
-    }
-
-    /// Recovery from an older or damaged shape lives on `SettingsValues`, not in each store.
-    func decoded(from json: String) -> SettingsValues? {
-        SettingsValues.decode(from: json)
-    }
+    var settings: Settings { get set }
 }
 
 /// `SettingsStoring` backed by `UserDefaults`, under a single key.
@@ -43,24 +19,48 @@ final class UserDefaultsSettingsStore: SettingsStoring {
 
     static let storageKey = "userSettings"
 
+    var settings: Settings {
+        didSet {
+            guard !isReadOnly else { return }
+            guard let json = SettingsJSON.encode(settings) else {
+                Log.error("Failed to encode settings — not saved")
+                return
+            }
+            defaults.set(json, forKey: Self.storageKey)
+        }
+    }
+
     private let defaults: UserDefaults
+
+    /**
+     Set when the stored settings came from a newer build. Re-encoding them would drop
+     every field this build doesn't know about, so we run on defaults and never write back.
+    */
+    private let isReadOnly: Bool
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-    }
 
-    func load() -> SettingsValues? {
-        guard let json = defaults.string(forKey: Self.storageKey) else { return nil }
-        return decoded(from: json)
-    }
+        guard
+            let json = defaults.string(forKey: Self.storageKey),
+            let stored = SettingsJSON.decode(json)
+        else {
+            if defaults.string(forKey: Self.storageKey) != nil {
+                Log.warning("Stored settings unreadable — falling back to defaults")
+            }
+            self.settings = Settings()
+            self.isReadOnly = false
+            return
+        }
 
-    func save(_ values: SettingsValues) {
-        guard let json = encoded(values) else { return }
-        defaults.set(json, forKey: Self.storageKey)
-    }
-
-    func clear() {
-        defaults.removeObject(forKey: Self.storageKey)
+        if stored.schemaVersion > SettingsMigration.currentVersion {
+            Log.warning("Settings are from a newer build — running on defaults, not saving")
+            self.settings = Settings()
+            self.isReadOnly = true
+        } else {
+            self.settings = stored
+            self.isReadOnly = false
+        }
     }
 }
 

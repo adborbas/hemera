@@ -11,7 +11,7 @@ final class AppEnvironment {
     let container: ModelContainer
     let storage: Storage
     let screenManager: ScreenManager
-    let settings: UserSettings
+    let settingsStore: any SettingsStoring
 
     init() {
         Self.registerEntities()
@@ -39,8 +39,8 @@ final class AppEnvironment {
         }
 
         self.storage = SwiftDataStorage(context: container.mainContext)
-        self.settings = UserSettings.load(from: UserDefaultsSettingsStore())
-        self.screenManager = ScreenManager(settings: settings)
+        self.settingsStore = UserDefaultsSettingsStore()
+        self.screenManager = ScreenManager(store: settingsStore)
 
     }
 }
