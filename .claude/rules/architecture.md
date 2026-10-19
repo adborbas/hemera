@@ -47,11 +47,46 @@ Every external capability is abstracted behind a protocol:
 - `Storage` — generic SwiftData read/write operations
 - `DemoCoordinating` — demo mode lifecycle
 - `ConnectionRetrying` — reconnection
+- `SettingsStoring` — persistence of the user settings document
 
-Each protocol has three implementations:
-1. **Production** — per-domain controller classes wrapping `HAServiceCalling` (`LightController`, `CoverController`, etc.)
-2. **Demo** — simulated behavior (`DemoController` with extension-based conformances)
-3. **Test** — hand-written mocks (`MockController`, `MockAuthManager`, etc.)
+### User Settings
+
+`Hemera/Settings/` splits into four pieces, each with one job:
+
+- **`Settings`** — a plain `Codable` struct holding every setting. **Adding a setting is one line
+  here**, with a default. Raw-valued enums must declare `Codable` — synthesis is free, the
+  conformance is not.
+- **`SettingsStoring`** / **`UserDefaultsSettingsStore`** — holds the current `Settings` and persists
+  on mutation. A reference type so every owner mutates one shared value, but deliberately **not**
+  `@Observable`. The JSON format is `private` to that file: decoding overlays what is stored onto the
+  defaults, because the synthesized decoder ignores property defaults and throws `keyNotFound` —
+  without it, shipping a new setting would wipe every existing one. There is no per-field recovery:
+  a wrong-typed value resets settings, so changing an existing setting's type goes through
+  `SettingsMigration`.
+- **`SettingsMigration`** — version policy: the legacy-key import, and the rule that each step is a
+  no-op when its source data is absent.
+
+An unreadable value is copied to `userSettings.unreadable` before falling back to defaults, so the
+next write can't destroy the only evidence of why someone's settings reset. `SettingsSchemaTests`
+holds the exact JSON every released version writes; add a fixture per shipped schema and never edit
+an old one without a matching migration step.
+
+**Each setting has exactly one owner** — the view model or manager that exposes it to the UI
+(`ScreenManager` owns the kiosk settings; `AreasViewModel` owns `areasGroupedByFloor`). The owner
+declares it as an observable stored property and writes through in `didSet`. Two owners holding
+their own copies would diverge; if something cross-cutting ever appears, route both through one
+owner rather than reading the store twice.
+
+That ownership rule is why the store needs no observation: the UI observes the owners, which are
+already `@Observable`.
+
+Settings are local-only and the store API is synchronous. If they ever need to sync (iCloud, or
+Home Assistant-side), writes can stay synchronous — the store accepts the mutation and persists in
+the background. What would have to change is the initial load (currently in `init`, would need to be
+awaited) and external changes, which need a push channel from the store to the owners, since owners
+hold their own observable copies. Settings deliberately do **not** live in SwiftData — that store is a cache of
+HA state whose recovery path deletes it (`AppEnvironment.init`), and settings are the only
+irreplaceable data in the app.
 
 ## Entity Pattern
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum ClockFormat: Int, CaseIterable, Identifiable {
+enum ClockFormat: Int, CaseIterable, Identifiable, Codable {
     case system = 0
     case twelveHour = 12
     case twentyFourHour = 24
@@ -23,7 +23,7 @@ enum ClockFormat: Int, CaseIterable, Identifiable {
     }
 }
 
-enum DimTimeout: Int, CaseIterable, Identifiable {
+enum DimTimeout: Int, CaseIterable, Identifiable, Codable {
     case thirtySeconds = 30
     case oneMinute = 60
     case fiveMinutes = 300
@@ -46,11 +46,11 @@ enum DimTimeout: Int, CaseIterable, Identifiable {
 @MainActor
 final class ScreenManager {
 
-    // MARK: - Persisted Settings
+    // MARK: - Settings
 
     var stayAwake: Bool {
         didSet {
-            UserDefaults.standard.set(stayAwake, forKey: Keys.stayAwake)
+            store.settings.stayAwake = stayAwake
             applyStayAwake()
             if stayAwake {
                 resetInactivityTimer()
@@ -63,15 +63,13 @@ final class ScreenManager {
 
     var dimTimeout: DimTimeout {
         didSet {
-            UserDefaults.standard.set(dimTimeout.rawValue, forKey: Keys.dimTimeout)
+            store.settings.dimTimeout = dimTimeout
             resetInactivityTimer()
         }
     }
 
     var clockFormat: ClockFormat {
-        didSet {
-            UserDefaults.standard.set(clockFormat.rawValue, forKey: Keys.clockFormat)
-        }
+        didSet { store.settings.clockFormat = clockFormat }
     }
 
     // MARK: - Runtime State
@@ -98,21 +96,15 @@ final class ScreenManager {
 
     private var inactivityTimer: Timer?
 
-    private enum Keys {
-        static let stayAwake = "screenManager.stayAwake"
-        static let dimTimeout = "screenManager.dimTimeout"
-        static let clockFormat = "screenManager.clockFormat"
-    }
+    private let store: any SettingsStoring
 
     // MARK: - Init
 
-    init() {
-        let defaults = UserDefaults.standard
-        self.stayAwake = defaults.bool(forKey: Keys.stayAwake)
-        let rawTimeout = defaults.integer(forKey: Keys.dimTimeout)
-        self.dimTimeout = DimTimeout(rawValue: rawTimeout) ?? .thirtySeconds
-        let rawClockFormat = defaults.integer(forKey: Keys.clockFormat)
-        self.clockFormat = ClockFormat(rawValue: rawClockFormat) ?? .system
+    init(store: any SettingsStoring) {
+        self.store = store
+        self.stayAwake = store.settings.stayAwake
+        self.dimTimeout = store.settings.dimTimeout
+        self.clockFormat = store.settings.clockFormat
 
         applyStayAwake()
         if stayAwake {

@@ -8,7 +8,7 @@ final class ServiceLocator {
     let demoCoordinator: any DemoCoordinating
     let sessionManager: SessionManager
     let screenManager: ScreenManager
-    let areaDisplaySettings: AreaDisplaySettings
+    let settingsStore: any SettingsStoring
     var appCoordinator: AppCoordinator?
 
     /// Session-scoped dependencies. Non-nil when a session (HA or demo) is active.
@@ -29,7 +29,7 @@ final class ServiceLocator {
         demoCoordinator: any DemoCoordinating,
         sessionManager: SessionManager,
         screenManager: ScreenManager,
-        areaDisplaySettings: AreaDisplaySettings
+        settingsStore: any SettingsStoring
     ) {
         _shared = ServiceLocator(
             authManager: authManager,
@@ -37,17 +37,17 @@ final class ServiceLocator {
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
             screenManager: screenManager,
-            areaDisplaySettings: areaDisplaySettings
+            settingsStore: settingsStore
         )
     }
 
-    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, areaDisplaySettings: AreaDisplaySettings) {
+    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, settingsStore: any SettingsStoring) {
         self.authManager = authManager
         self.router = router
         self.demoCoordinator = demoCoordinator
         self.sessionManager = sessionManager
         self.screenManager = screenManager
-        self.areaDisplaySettings = areaDisplaySettings
+        self.settingsStore = settingsStore
     }
 
     #if DEBUG
@@ -69,7 +69,7 @@ final class ServiceLocator {
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
             screenManager: env.screenManager,
-            areaDisplaySettings: env.areaDisplaySettings
+            settingsStore: env.settingsStore
         )
 
         if authenticated {
