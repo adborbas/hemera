@@ -47,9 +47,6 @@ enum DimTimeout: Int, CaseIterable, Identifiable, Codable {
 final class ScreenManager {
 
     // MARK: - Settings
-    //
-    // Owned here: this is the single observable source of truth the UI binds to, and each
-    // write goes through to the store.
 
     var stayAwake: Bool {
         didSet {

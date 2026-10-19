@@ -37,8 +37,7 @@ struct ScreenManagerTests {
         #expect(screenManager.dimTimeout == .thirtySeconds)
     }
 
-    /// Logout calls `resetToDefaults()`. Now that all settings share one document, that
-    /// must stay kiosk-only.
+    /// Logout calls `resetToDefaults()`; it must stay kiosk-only.
     @Test func resetToDefaults_leavesNonKioskSettingsUntouched() {
         store.settings.areasGroupedByFloor = false
 

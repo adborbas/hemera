@@ -38,8 +38,7 @@ struct UserDefaultsSettingsStoreTests {
 
     // MARK: - Downgrade
     //
-    // An older build must never re-encode newer settings: it would permanently drop every
-    // field it doesn't know about.
+    // Re-encoding newer settings would permanently drop fields this build can't see.
 
     @Test func init_withNewerSchemaVersion_usesDefaults() {
         defaults.set(#"{"schemaVersion":99,"stayAwake":true}"#, forKey: UserDefaultsSettingsStore.storageKey)

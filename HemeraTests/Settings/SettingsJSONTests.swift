@@ -22,15 +22,13 @@ struct SettingsJSONTests {
     @Test func encode_usesLegibleSortedJSON() {
         let json = SettingsJSON.encode(Settings())
 
-        // Readable on disk via `defaults read`, and stable between writes.
         #expect(json?.contains("\"stayAwake\" : false") == true)
         #expect(json?.contains("\n") == true)
     }
 
     // MARK: - Shape Tolerance
     //
-    // Shipping a new setting must not disturb the ones a user already has. That is the
-    // only reason decoding overlays the defaults instead of decoding directly.
+    // Shipping a new setting must not disturb the ones a user already has.
 
     @Test func decode_withSettingAddedSinceWriting_defaultsOnlyThatSetting() {
         // Written before `clockFormat` existed.
@@ -48,7 +46,7 @@ struct SettingsJSONTests {
         #expect(decoded?.stayAwake == true)
     }
 
-    /// No per-field recovery: changing an existing setting's type is a migration's job.
+    /// No per-field recovery — a type change is a migration's job.
     @Test func decode_withWrongTypedValue_returnsNil() {
         #expect(SettingsJSON.decode(#"{"stayAwake":"not-a-bool"}"#) == nil)
     }
@@ -67,8 +65,7 @@ struct SettingsJSONTests {
 
     // MARK: - Merging
     //
-    // Exercised directly: no nested settings struct exists yet, so a decode can't reach
-    // the recursive path.
+    // Direct: no nested settings struct exists yet, so a decode can't reach the recursion.
 
     @Test func merging_recursesIntoNestedObjects() {
         let defaults: [String: Any] = ["kiosk": ["stayAwake": false, "dimTimeout": 30]]

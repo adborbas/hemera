@@ -16,8 +16,7 @@ final class AreasViewModel {
         errorNotifier?.syncFailed ?? false
     }
 
-    /// Whether the grid groups areas into sections by floor. Owned here, so the toolbar
-    /// "View Options" toggle can bind to it; each write goes through to the store.
+    /// Owned here so the toolbar's "View Options" toggle can bind to it.
     var areasGroupedByFloor: Bool {
         didSet { store.settings.areasGroupedByFloor = areasGroupedByFloor }
     }

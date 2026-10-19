@@ -1,13 +1,8 @@
 import Foundation
 import HemeraLog
 
-/**
- Holds the current `Settings` and persists them.
-
- A reference type so every owner mutates one shared value rather than its own copy — but
- deliberately **not** `@Observable`: the UI observes the view models and managers that own
- each setting, not this.
-*/
+/// Holds the current `Settings` and persists them. A reference type so owners share one
+/// value; not `@Observable` — the UI observes the owners.
 @MainActor
 protocol SettingsStoring: AnyObject {
     var settings: Settings { get set }
@@ -32,10 +27,7 @@ final class UserDefaultsSettingsStore: SettingsStoring {
 
     private let defaults: UserDefaults
 
-    /**
-     Set when the stored settings came from a newer build. Re-encoding them would drop
-     every field this build doesn't know about, so we run on defaults and never write back.
-    */
+    /// Settings came from a newer build; re-encoding would drop fields we don't know about.
     private let isReadOnly: Bool
 
     init(defaults: UserDefaults = .standard) {

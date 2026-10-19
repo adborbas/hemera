@@ -1,20 +1,13 @@
 import Foundation
 import HemeraLog
 
-/**
- Steps the stored settings forward to the current schema.
-
- Adding a field needs no migration — `SettingsJSON` overlays what is stored on the
- defaults. Migrations are for what that can't do: a semantic change to an existing field,
- and retiring compatibility code once the version proves nobody is on the old shape.
-
- Every step must be a no-op when its source data is absent.
-*/
+/// Steps the stored settings forward to the current schema. Every step must no-op when
+/// its source data is absent.
 enum SettingsMigration {
 
     static let currentVersion = 1
 
-    /// Runs before the store is built, so the import is in place when it loads.
+    /// Runs before the store is built.
     static func run(defaults: UserDefaults) {
         importLegacyKeys(from: defaults)
     }
@@ -33,23 +26,17 @@ private extension SettingsMigration {
         static let all = [stayAwake, dimTimeout, clockFormat, areasGroupedByFloor]
     }
 
-    /**
-     Moves the pre-`Settings` keys into the stored settings, then removes them.
-
-     Gated per key on presence: `bool(forKey:)` returns `false` for an absent key while
-     `areasGroupedByFloor` defaults to `true`, so an unconditional import would quietly
-     change settings for everyone who never touched them.
-    */
+    /// Gated per key on presence: `bool(forKey:)` returns `false` for an absent key while
+    /// `areasGroupedByFloor` defaults to `true`.
     static func importLegacyKeys(from defaults: UserDefaults) {
         let present = LegacyKey.all.filter { defaults.object(forKey: $0) != nil }
         guard !present.isEmpty else { return }
 
         defer { present.forEach(defaults.removeObject(forKey:)) }
 
-        // Settings already exist, so the import ran before — just drop the stale keys.
+        // Already imported — just drop the stale keys.
         guard defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == nil else { return }
 
-        // Starting from the defaults means an absent key keeps its default, never `false`/`0`.
         var settings = Settings()
         if defaults.object(forKey: LegacyKey.stayAwake) != nil {
             settings.stayAwake = defaults.bool(forKey: LegacyKey.stayAwake)

@@ -39,9 +39,8 @@ struct SettingsMigrationTests {
         #expect(defaults.object(forKey: "areaDisplaySettings.areasGroupedByFloor") == nil)
     }
 
-    /// The trap: `bool(forKey:)` returns `false` for an absent key while
-    /// `areasGroupedByFloor` defaults to `true`, so a naive import turns grouping off for
-    /// every user who never touched it.
+    /// `bool(forKey:)` returns `false` for an absent key while `areasGroupedByFloor`
+    /// defaults to `true` — a naive import would turn grouping off for everyone.
     @Test func run_withSomeLegacyKeysAbsent_leavesThemAtTheirDefaults() {
         defaults.set(true, forKey: "screenManager.stayAwake")
         SettingsMigration.run(defaults: defaults)
