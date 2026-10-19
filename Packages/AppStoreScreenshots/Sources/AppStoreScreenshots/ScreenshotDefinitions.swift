@@ -3,7 +3,7 @@ import AppScreenshotKit
 
 // MARK: - Home
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S01_Home: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
@@ -13,7 +13,7 @@ struct S01_Home: View {
 
 // MARK: - Area Detail
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S02_AreaDetail: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
@@ -23,7 +23,7 @@ struct S02_AreaDetail: View {
 
 // MARK: - Areas
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S03_Areas: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
@@ -33,7 +33,7 @@ struct S03_Areas: View {
 
 // MARK: - Light Control
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S04_LightControl: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
@@ -43,7 +43,7 @@ struct S04_LightControl: View {
 
 // MARK: - Cover Control
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S05_CoverControl: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
@@ -53,7 +53,7 @@ struct S05_CoverControl: View {
 
 // MARK: - Switch Control
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S06_SwitchControl: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
@@ -63,7 +63,7 @@ struct S06_SwitchControl: View {
 
 // MARK: - Climate Control
 
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S07_ClimateControl: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {

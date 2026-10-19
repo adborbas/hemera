@@ -6,13 +6,19 @@ SCREENSHOTS_DIR="$PROJECT_DIR/Screenshots"
 OUTPUT_DIR="$SCREENSHOTS_DIR/Promo"
 
 # Step 1: Capture raw screenshots (dark mode, portrait only)
-echo "=== Step 1: Capturing Raw Screenshots ==="
-echo ""
-"$PROJECT_DIR/scripts/capture-screenshots.sh"
-echo ""
+# SKIP_CAPTURE=1 reuses whatever is already in Screenshots/ — use when only the promo layout changed.
+if [ "${SKIP_CAPTURE:-0}" = "1" ]; then
+    echo "=== Step 1: Skipped (SKIP_CAPTURE=1, reusing existing raw screenshots) ==="
+    echo ""
+else
+    echo "=== Step 1: Capturing Raw Screenshots ==="
+    echo ""
+    "$PROJECT_DIR/scripts/capture-screenshots.sh"
+    echo ""
+fi
 
 # Verify all expected directories exist
-for dir in iPhone-6.9-Dark iPad-13-Dark; do
+for dir in iPhone-6.9-Dark iPhone-6.3-Dark iPad-13-Dark; do
     if [ ! -d "$SCREENSHOTS_DIR/$dir" ]; then
         echo "ERROR: Missing raw screenshots directory: $SCREENSHOTS_DIR/$dir"
         exit 1
@@ -67,6 +73,7 @@ for pf in page_files:
 # Devices and colors used by our screenshot configuration
 targets = [
     'iPhone 16 Pro Max - Black Titanium - Portrait',
+    'iPhone 16 Pro - Black Titanium - Portrait',
     'iPad Pro 13 (M4) - Space Gray - Portrait',
 ]
 
@@ -113,6 +120,11 @@ for png in "$OUTPUT_DIR"/iPhone-6.9/*.png; do
     sips --resampleWidth 1320 "$png" --out "$png" >/dev/null
 done
 echo "  iPhone-6.9: 1320x2868"
+
+for png in "$OUTPUT_DIR"/iPhone-6.3/*.png; do
+    sips --resampleWidth 1206 "$png" --out "$png" >/dev/null
+done
+echo "  iPhone-6.3: 1206x2622"
 
 for png in "$OUTPUT_DIR"/iPad-13/*.png; do
     sips --resampleWidth 2048 "$png" --out "$png" >/dev/null
