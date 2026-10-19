@@ -13,7 +13,7 @@ find_simulator() {
     local name="$1"
     local match_mode="${2:-exact}"
     xcrun simctl list devices available -j | python3 -c "
-import json, sys
+import json, re, sys
 data = json.load(sys.stdin)
 name, match_mode = sys.argv[1], sys.argv[2]
 candidates = []
@@ -22,15 +22,18 @@ for runtime, devices in data['devices'].items():
         matched = (name == d['name'].strip()) if match_mode == 'exact' else (name in d['name'])
         if matched and d['isAvailable']:
             candidates.append((runtime, d['udid']))
-candidates.sort(key=lambda x: x[0])
+# Sort by numeric OS version so iOS-27-0 beats iOS-9-0, which a string sort gets wrong.
+candidates.sort(key=lambda x: [int(n) for n in re.findall(r'[0-9]+', x[0].rsplit('.', 1)[-1])])
 if candidates:
     print(candidates[-1][1])
 " "$name" "$match_mode" 2>/dev/null || echo ""
 }
 
-IPHONE_69_ID="$(find_simulator "iPhone 16 Pro Max" "exact")"
+IPHONE_69_ID="$(find_simulator "iPhone 18 Pro Max" "exact")"
 
-IPAD_13_ID="$(find_simulator "iPad Pro 13-inch (M4)" "substring")"
+IPHONE_63_ID="$(find_simulator "iPhone 18 Pro" "exact")"
+
+IPAD_13_ID="$(find_simulator "iPad Pro 13-inch (M5)" "substring")"
 
 capture_screenshots() {
     local device_name="$1"
@@ -116,8 +119,9 @@ mkdir -p "$OUTPUT_DIR"
 echo "=== App Store Screenshot Capture ==="
 echo ""
 
-capture_device "iPhone 16 Pro Max (6.9\")" "$IPHONE_69_ID" "iPhone-6.9-Dark" "${PORTRAIT_TESTS[@]}"
-capture_device "iPad Pro 13-inch (M4)"     "$IPAD_13_ID"   "iPad-13-Dark"    "${PORTRAIT_TESTS[@]}"
+capture_device "iPhone 18 Pro Max (6.9\")" "$IPHONE_69_ID" "iPhone-6.9-Dark" "${PORTRAIT_TESTS[@]}"
+capture_device "iPhone 18 Pro (6.3\")"     "$IPHONE_63_ID" "iPhone-6.3-Dark" "${PORTRAIT_TESTS[@]}"
+capture_device "iPad Pro 13-inch (M5)"     "$IPAD_13_ID"   "iPad-13-Dark"    "${PORTRAIT_TESTS[@]}"
 
 echo "=== Done ==="
 echo "All screenshots saved to: $OUTPUT_DIR"
