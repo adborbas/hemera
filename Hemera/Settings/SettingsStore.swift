@@ -4,18 +4,8 @@ import HemeraLog
 /// Holds the current `Settings` and persists them. A reference type so owners share one
 /// value; not `@Observable` — the UI observes the owners.
 @MainActor
-@dynamicMemberLookup
 protocol SettingsStoring: AnyObject {
     var settings: Settings { get set }
-}
-
-extension SettingsStoring {
-
-    /// Lets owners read and write a single setting: `store.stayAwake = true`.
-    subscript<Value>(dynamicMember keyPath: WritableKeyPath<Settings, Value>) -> Value {
-        get { settings[keyPath: keyPath] }
-        set { settings[keyPath: keyPath] = newValue }
-    }
 }
 
 /// `SettingsStoring` backed by `UserDefaults`, under a single key.

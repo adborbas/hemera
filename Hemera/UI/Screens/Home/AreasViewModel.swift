@@ -18,7 +18,7 @@ final class AreasViewModel {
 
     /// Owned here so the toolbar's "View Options" toggle can bind to it.
     var areasGroupedByFloor: Bool {
-        didSet { store.areasGroupedByFloor = areasGroupedByFloor }
+        didSet { store.settings.areasGroupedByFloor = areasGroupedByFloor }
     }
 
     private let store: any SettingsStoring
@@ -42,7 +42,7 @@ final class AreasViewModel {
         self.isDemoMode = demoCoordinator.isActive
         self.haWebViewPresenter = HAWebViewPresenter(authManager: authManager)
         self.store = store
-        self.areasGroupedByFloor = store.areasGroupedByFloor
+        self.areasGroupedByFloor = store.settings.areasGroupedByFloor
         self.errorNotifier = errorNotifier
         self.connectionRetrier = connectionRetrier
         self.resync = resync

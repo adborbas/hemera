@@ -50,7 +50,7 @@ final class ScreenManager {
 
     var stayAwake: Bool {
         didSet {
-            store.stayAwake = stayAwake
+            store.settings.stayAwake = stayAwake
             applyStayAwake()
             if stayAwake {
                 resetInactivityTimer()
@@ -63,13 +63,13 @@ final class ScreenManager {
 
     var dimTimeout: DimTimeout {
         didSet {
-            store.dimTimeout = dimTimeout
+            store.settings.dimTimeout = dimTimeout
             resetInactivityTimer()
         }
     }
 
     var clockFormat: ClockFormat {
-        didSet { store.clockFormat = clockFormat }
+        didSet { store.settings.clockFormat = clockFormat }
     }
 
     // MARK: - Runtime State
@@ -102,9 +102,9 @@ final class ScreenManager {
 
     init(store: any SettingsStoring) {
         self.store = store
-        self.stayAwake = store.stayAwake
-        self.dimTimeout = store.dimTimeout
-        self.clockFormat = store.clockFormat
+        self.stayAwake = store.settings.stayAwake
+        self.dimTimeout = store.settings.dimTimeout
+        self.clockFormat = store.settings.clockFormat
 
         applyStayAwake()
         if stayAwake {
