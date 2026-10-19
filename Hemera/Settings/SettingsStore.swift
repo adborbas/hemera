@@ -14,6 +14,9 @@ final class UserDefaultsSettingsStore: SettingsStoring {
 
     static let storageKey = "userSettings"
 
+    /// Where an unreadable value is kept, rather than being overwritten on the next write.
+    static let unreadableKey = "userSettings.unreadable"
+
     var settings: Settings {
         didSet {
             guard !isReadOnly else { return }
@@ -33,8 +36,13 @@ final class UserDefaultsSettingsStore: SettingsStoring {
             let json = defaults.string(forKey: Self.storageKey),
             let stored = SettingsJSON.decode(json)
         else {
-            if defaults.string(forKey: Self.storageKey) != nil {
-                Log.warning("Stored settings unreadable — falling back to defaults")
+            /**
+             Keep anything unreadable: running on defaults means the next write would
+             overwrite it, and it is the only evidence of why a user's settings reset.
+            */
+            if let unreadable = defaults.string(forKey: Self.storageKey) {
+                defaults.set(unreadable, forKey: Self.unreadableKey)
+                Log.warning("Stored settings unreadable — copied to \(Self.unreadableKey), running on defaults")
             }
             self.settings = Settings()
             self.isReadOnly = false

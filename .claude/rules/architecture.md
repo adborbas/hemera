@@ -66,6 +66,11 @@ Every external capability is abstracted behind a protocol:
 - **`SettingsMigration`** — version policy: the legacy-key import, and the rule that each step is a
   no-op when its source data is absent.
 
+An unreadable value is copied to `userSettings.unreadable` before falling back to defaults, so the
+next write can't destroy the only evidence of why someone's settings reset. `SettingsSchemaTests`
+holds the exact JSON every released version writes; add a fixture per shipped schema and never edit
+an old one without a matching migration step.
+
 **Each setting has exactly one owner** — the view model or manager that exposes it to the UI
 (`ScreenManager` owns the kiosk settings; `AreasViewModel` owns `areasGroupedByFloor`). The owner
 declares it as an observable stored property and writes through in `didSet`. Two owners holding

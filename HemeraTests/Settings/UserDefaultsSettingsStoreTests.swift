@@ -73,6 +73,16 @@ struct UserDefaultsSettingsStoreTests {
         #expect(UserDefaultsSettingsStore(defaults: defaults).settings == Settings())
     }
 
+    /// Overwriting it would destroy the only evidence of why a user's settings reset.
+    @Test func init_withUnreadableValue_keepsACopy() {
+        seed("not json at all")
+
+        let store = UserDefaultsSettingsStore(defaults: defaults)
+        store.settings.stayAwake = true
+
+        #expect(defaults.string(forKey: UserDefaultsSettingsStore.unreadableKey) == "not json at all")
+    }
+
     @Test func init_withValidJSONThatIsNotAnObject_fallsBackToDefaults() {
         seed("[1,2,3]")
 
