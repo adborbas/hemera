@@ -27,6 +27,12 @@ enum LightControlMode: Hashable {
 final class LightCardViewModel: Identifiable {
     private(set) var light: LightEntity
 
+    /**
+     Shown while the cooldown holds, so the card reacts to the tap instead of to the server's
+     confirmation a round trip later. Set by every commit path, not only `toggle`: the brightness,
+     colour temperature and hue services all call `light.turn_on`.
+    */
+    private var pendingIsOn: Bool?
     private var pendingBrightness: Int?
     private var pendingColorTemp: Int?
     private var pendingHSColor: [Double]?
@@ -76,7 +82,10 @@ final class LightCardViewModel: Identifiable {
 
     nonisolated let id: String
     var name: String { light.name }
-    var isOn: Bool { light.isOn }
+    var isOn: Bool {
+        if cooldown.isSuppressed, let pending = pendingIsOn { return pending }
+        return light.isOn
+    }
     var isAvailable: Bool { light.isAvailable }
     var deviceId: String? { light.deviceId }
     var isHidden: Bool {
@@ -84,16 +93,25 @@ final class LightCardViewModel: Identifiable {
         set { light.isHidden = newValue }
     }
 
-    var iconName: String? {
+    var iconName: String? { iconName(lit: isOn) }
+
+    /**
+     `lit` forces the on-state icon, for the window where the card still reads as lit after the
+     light has gone off. Passing the entity's own state keeps anything else — unavailable, unknown —
+     truthful.
+    */
+    func iconName(lit: Bool) -> String? {
         iconResolver.iconName(
             domain: LightEntity.domain,
-            state: light.state.rawValue,
+            state: lit ? LightEntity.State.on.rawValue : light.state.rawValue,
             entityIcon: light.icon
         )
     }
 
-    var iconBackgroundColor: Color {
-        isOn ? .yellow : PlatformColor.systemGray3
+    var iconBackgroundColor: Color { iconBackgroundColor(lit: isOn) }
+
+    func iconBackgroundColor(lit: Bool) -> Color {
+        lit ? .yellow : PlatformColor.systemGray3
     }
 
     var tintColor: Color { .yellow }
@@ -117,14 +135,19 @@ final class LightCardViewModel: Identifiable {
 
     func toggle() {
         guard light.isAvailable else { return }
+        let target = !isOn
+        resetPending()
+        pendingIsOn = target
+        cooldown.commit()
         Task {
-            await controller.setLight(id, on: !isOn)
+            await controller.setLight(id, on: target)
         }
     }
 
     func setBrightness(to value: Int) {
         guard light.isAvailable else { return }
         resetPending()
+        pendingIsOn = true
         pendingBrightness = value
         cooldown.commit()
         Task {
@@ -135,6 +158,7 @@ final class LightCardViewModel: Identifiable {
     func setColorTemp(to mireds: Int) {
         guard light.isAvailable else { return }
         resetPending()
+        pendingIsOn = true
         pendingColorTemp = mireds
         cooldown.commit()
         Task {
@@ -145,6 +169,7 @@ final class LightCardViewModel: Identifiable {
     func setHSColor(hue: Double, saturation: Double) {
         guard light.isAvailable else { return }
         resetPending()
+        pendingIsOn = true
         pendingHSColor = [hue, saturation]
         cooldown.commit()
         Task {
@@ -153,7 +178,7 @@ final class LightCardViewModel: Identifiable {
     }
 
     /**
-     One cooldown gates all three pending values, so every commit clears the
+     One cooldown gates every pending value, so each commit clears the
      others first — otherwise a stale pending from an earlier commit would
      resurface (and mask server truth) when a different property is committed
      within the shared window.

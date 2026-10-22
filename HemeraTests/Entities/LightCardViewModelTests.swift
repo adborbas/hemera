@@ -27,6 +27,27 @@ struct LightCardViewModelTests {
         #expect(vm.tintColor == .yellow)
     }
 
+    // MARK: - Lit Appearance
+
+    /**
+     The card holds its lit look while the glow retracts, so an off light must still be able to
+     render the on-state icon — otherwise the bulb goes dark over a card that is still washed.
+    */
+    @Test
+    func litAppearance_whileOff_rendersOnState() {
+        let vm = makeViewModel(state: .off)
+        #expect(vm.iconName(lit: true) == "lightbulb")
+        #expect(vm.iconBackgroundColor(lit: true) == .yellow)
+    }
+
+    /// Without the override the entity's own state decides, so nothing about the resting card moves.
+    @Test
+    func litAppearance_notLit_matchesEntityState() {
+        let vm = makeViewModel(state: .off)
+        #expect(vm.iconName(lit: false) == vm.iconName)
+        #expect(vm.iconBackgroundColor(lit: false) == vm.iconBackgroundColor)
+    }
+
     // MARK: - HA Icon Override
 
     @Test
@@ -42,6 +63,48 @@ struct LightCardViewModelTests {
         let light = LightEntity(entityId: "light.test", name: "Test", state: .on, icon: "phu:floor-lamp")
         let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
         #expect(vm.iconName == "lightbulb")
+    }
+
+    // MARK: - Optimistic Toggle
+
+    /**
+     The card animates off `isOn`, so waiting for the server's confirmation would start the
+     animation a round trip after the tap. The model stays untouched — only the view's reading moves.
+    */
+    @Test
+    func toggle_reportsNewStateBeforeTheServerConfirms() {
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .off)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
+
+        vm.toggle()
+
+        #expect(vm.isOn)
+        #expect(light.state == .off)
+    }
+
+    /// A commit the server never confirms must reconcile back to its truth, not stick optimistically.
+    @Test
+    func isOn_whenCommitIsNeverConfirmed_reconcilesToModel() async {
+        let cooldown = CommitCooldown(duration: 0.05)
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .off)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver(), cooldown: cooldown)
+
+        vm.toggle()
+        #expect(vm.isOn)
+
+        await cooldown.expiryTask?.value
+        #expect(!vm.isOn)
+    }
+
+    /// Every slider commit calls `light.turn_on`, so the card must read as on while one is pending.
+    @Test
+    func setBrightness_whileOff_reportsLightAsOn() {
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .off)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
+
+        vm.setBrightness(to: 128)
+
+        #expect(vm.isOn)
     }
 
     // MARK: - Brightness Cooldown
