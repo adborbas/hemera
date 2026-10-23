@@ -10,7 +10,8 @@ struct LightCard: View {
      dark while the card is still washed shows the on and off state at once.
     */
     @State private var staysLit = false
-    @State private var hasRendered = false
+    /// Nil until the card has rendered once, so a card appearing on an off light never holds.
+    @State private var wasOn: Bool?
 
     /**
      Flipped in one frame, unanimated: the MDI glyph can only snap, so fading the icon's colour
@@ -48,15 +49,24 @@ struct LightCard: View {
         .unavailableStyle(viewModel.isAvailable)
         .animation(Mortar.Motion.springNormal, value: fillFraction)
         .task(id: viewModel.isOn) {
-            defer { hasRendered = true }
-            // Turning on, or a first render that is merely showing an already-off light.
-            guard hasRendered, !viewModel.isOn else {
+            /**
+             Only an on → off transition holds. This runs on every appearance too, not just on a
+             change, so keying off the state alone would re-light an off card each time the view
+             came back.
+            */
+            let turnedOff = wasOn == true && !viewModel.isOn
+            wasOn = viewModel.isOn
+
+            guard turnedOff else {
                 staysLit = false
                 return
             }
             staysLit = true
+            /**
+             Reset even when cancelled — the view disappearing mid-hold would otherwise leave the
+             card latched lit.
+            */
             try? await Task.sleep(for: .seconds(Mortar.Motion.glowRetreatDuration))
-            guard !Task.isCancelled else { return }
             staysLit = false
         }
     }

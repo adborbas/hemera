@@ -96,13 +96,38 @@ struct LightCardViewModelTests {
         #expect(!vm.isOn)
     }
 
-    /// Every slider commit calls `light.turn_on`, so the card must read as on while one is pending.
+    /// A brightness commit calls `light.turn_on`, so the card must read as on while one is pending.
     @Test
     func setBrightness_whileOff_reportsLightAsOn() {
         let light = LightEntity(entityId: "light.test", name: "Test", state: .off)
         let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
 
         vm.setBrightness(to: 128)
+
+        #expect(vm.isOn)
+    }
+
+    /**
+     The slider's range starts at zero and zero brightness turns the light off, so the optimistic
+     state has to follow the value — claiming "on" would light the card for the whole cooldown.
+    */
+    @Test
+    func setBrightness_toZero_reportsLightAsOff() {
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .on, brightness: 200)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
+
+        vm.setBrightness(to: 0)
+
+        #expect(!vm.isOn)
+    }
+
+    /// Colour commits always turn the light on, whatever the value.
+    @Test
+    func setColorTemp_whileOff_reportsLightAsOn() {
+        let light = LightEntity(entityId: "light.test", name: "Test", state: .off)
+        let vm = LightCardViewModel(light: light, controller: StubLightControlling(), iconResolver: IconTranslationsFixture.resolver())
+
+        vm.setColorTemp(to: 300)
 
         #expect(vm.isOn)
     }

@@ -29,8 +29,8 @@ final class LightCardViewModel: Identifiable {
 
     /**
      Shown while the cooldown holds, so the card reacts to the tap instead of to the server's
-     confirmation a round trip later. Set by every commit path, not only `toggle`: the brightness,
-     colour temperature and hue services all call `light.turn_on`.
+     confirmation a round trip later. Every commit path sets it, not only `toggle`: the colour
+     temperature and hue services call `light.turn_on`, and brightness does unless it is zero.
     */
     private var pendingIsOn: Bool?
     private var pendingBrightness: Int?
@@ -147,7 +147,8 @@ final class LightCardViewModel: Identifiable {
     func setBrightness(to value: Int) {
         guard light.isAvailable else { return }
         resetPending()
-        pendingIsOn = true
+        // The slider bottoms out at 0, and turn_on with zero brightness turns the light off.
+        pendingIsOn = value > 0
         pendingBrightness = value
         cooldown.commit()
         Task {
@@ -178,8 +179,8 @@ final class LightCardViewModel: Identifiable {
     }
 
     /**
-     One cooldown gates every pending value, so each commit clears the
-     others first — otherwise a stale pending from an earlier commit would
+     One cooldown gates every pending value, so each commit clears the other
+     three first (`pendingIsOn` is exempt — every commit path assigns it) — otherwise a stale pending from an earlier commit would
      resurface (and mask server truth) when a different property is committed
      within the shared window.
      */
