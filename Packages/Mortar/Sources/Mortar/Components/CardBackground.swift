@@ -52,11 +52,9 @@ extension View {
     ///
     /// When `tint` is `nil`, uses `secondarySystemBackground` regardless of mode.
     ///
-    /// With `glowsFromIcon`, the card reaches the same two resting states, but the wash is revealed
-    /// by a glow growing out of the `CardIcon` in its content rather than crossfading in place.
-    ///
-    /// `litOverlay` is drawn on top of the wash — a value indicator such as `CardFillOverlay` belongs
-    /// here rather than over the whole card, so the glow carries it in and out as one lit surface.
+    /// `glowsFromIcon` reveals the wash with a glow growing out of the content's `CardIcon`,
+    /// reaching the same two resting states. `litOverlay` draws on top of the wash — put a value
+    /// indicator there, not over the card, so the glow carries it in and out too.
     public func cardBackground<LitOverlay: View>(
         tint: Color? = nil,
         isActive: Bool = false,

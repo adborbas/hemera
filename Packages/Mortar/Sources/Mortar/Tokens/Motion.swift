@@ -19,14 +19,8 @@ extension Mortar {
         public static var glowExpand: Animation { .easeOut(duration: 0.45) }
         /// The same glow drawn back into the icon — accelerating inwards as it shrinks.
         public static var glowCollapse: Animation { .easeIn(duration: glowCollapseDuration) }
-        /// Exposed so a view can time itself against the collapse rather than restate its length.
         public static let glowCollapseDuration: Double = slow
-        /**
-         How long the glow takes to *look* gone, which is sooner than the curve ends: the disc's
-         last fraction of scale is already hidden behind the icon. Views holding a lit appearance
-         through the retraction should wait this long — waiting out the full curve leaves the icon
-         lit on an unlit card.
-        */
+        /// When the glow looks gone: before the curve ends, as its last scale hides behind the icon.
         public static let glowRetreatDuration: Double = glowCollapseDuration * 0.8
     }
 }

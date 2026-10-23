@@ -2,10 +2,7 @@ import SwiftUI
 
 // MARK: - Icon Anchor
 
-/**
- Published by `CardIcon` so a card's background knows where its icon sits, without having to
- re-derive the content layout (which differs between small and medium tiles).
-*/
+/// Published by `CardIcon` so the background need not re-derive where the icon sits.
 struct CardIconCenterKey: PreferenceKey {
     static let defaultValue: Anchor<CGPoint>? = nil
 
@@ -20,13 +17,9 @@ private let solidFraction: CGFloat = 0.82
 // MARK: - Glow Background
 
 /**
- An active card's tint wash, revealed by a disc growing out of the icon — light spilling from the
- lamp — and drawn back into it on deactivation.
-
- The wash is semi-transparent over the app background, so layering it on top of the inactive grey
- would tint it a different colour than a plain `cardBackground` produces. Instead the opaque grey
- sits *above* the wash and the disc punches a hole through it, which keeps both resting states
- pixel-identical to the static background.
+ An active card's tint wash, revealed by a disc growing out of the icon and drawn back in on
+ deactivation. The wash is semi-transparent, so the opaque grey sits *above* it and the disc
+ punches a hole through — layering the wash on the grey would tint it a different colour.
 */
 struct CardGlowBackground<LitOverlay: View>: View {
 
@@ -85,10 +78,7 @@ struct CardGlowBackground<LitOverlay: View>: View {
             .animation(isActive ? Mortar.Motion.glowExpand : Mortar.Motion.glowCollapse, value: isActive)
     }
 
-    /**
-     Sized so the flat core alone reaches the farthest corner at full scale: the soft rim then falls
-     outside the card, leaving the expanded wash as even as the static one.
-    */
+    /// Oversized so the flat core reaches the farthest corner and the soft rim falls outside.
     private func discRadius(in size: CGSize) -> CGFloat {
         let dx = max(iconCenter.x, size.width - iconCenter.x)
         let dy = max(iconCenter.y, size.height - iconCenter.y)

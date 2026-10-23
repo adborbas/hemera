@@ -5,27 +5,17 @@ struct LightCard: View {
     var viewModel: LightCardViewModel
     @Environment(\.isMediumTile) private var isMediumTile
 
-    /**
-     Holds the card's lit appearance until the glow has retracted into the icon. A bulb that goes
-     dark while the card is still washed shows the on and off state at once.
-    */
+    /// Keeps the card lit until the glow is home; a dark bulb on a washed card reads as both states.
     @State private var staysLit = false
-    /// Nil until the card has rendered once, so a card appearing on an off light never holds.
+    /// Nil until the first render, so a card appearing on an off light never holds.
     @State private var wasOn: Bool?
 
-    /**
-     Flipped in one frame, unanimated: the MDI glyph can only snap, so fading the icon's colour
-     alongside it would leave an off glyph on an on-coloured circle for the length of the fade.
-    */
+    /// Unanimated: the glyph can only snap, and a fading circle under an off glyph looks broken.
     private var isLit: Bool { viewModel.isOn || staysLit }
 
     private var showsBrightnessFill: Bool { isMediumTile && viewModel.isDimmable }
 
-    /**
-     Not zeroed when the light is off: the fill sits in the card's lit layer, which the glow hides
-     entirely, so leaving it at its level lets the glow retract it as one surface instead of sliding
-     it away underneath.
-    */
+    /// Not zeroed when off: the glow hides the lit layer, so it can retract the fill with it.
     private var fillFraction: CGFloat {
         CGFloat(viewModel.brightness) / 255.0
     }
@@ -49,11 +39,7 @@ struct LightCard: View {
         .unavailableStyle(viewModel.isAvailable)
         .animation(Mortar.Motion.springNormal, value: fillFraction)
         .task(id: viewModel.isOn) {
-            /**
-             Only an on → off transition holds. This runs on every appearance too, not just on a
-             change, so keying off the state alone would re-light an off card each time the view
-             came back.
-            */
+            // Runs on every reappearance too, so only a real on → off transition may hold.
             let turnedOff = wasOn == true && !viewModel.isOn
             wasOn = viewModel.isOn
 
@@ -62,10 +48,7 @@ struct LightCard: View {
                 return
             }
             staysLit = true
-            /**
-             Reset even when cancelled — the view disappearing mid-hold would otherwise leave the
-             card latched lit.
-            */
+            // Resets even when cancelled, or leaving mid-hold latches the card lit.
             try? await Task.sleep(for: .seconds(Mortar.Motion.glowRetreatDuration))
             staysLit = false
         }

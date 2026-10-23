@@ -27,11 +27,7 @@ enum LightControlMode: Hashable {
 final class LightCardViewModel: Identifiable {
     private(set) var light: LightEntity
 
-    /**
-     Shown while the cooldown holds, so the card reacts to the tap instead of to the server's
-     confirmation a round trip later. Every commit path sets it, not only `toggle`: the colour
-     temperature and hue services call `light.turn_on`, and brightness does unless it is zero.
-    */
+    /// Lets the card react to the tap, not to the server's confirmation a round trip later.
     private var pendingIsOn: Bool?
     private var pendingBrightness: Int?
     private var pendingColorTemp: Int?
@@ -95,11 +91,7 @@ final class LightCardViewModel: Identifiable {
 
     var iconName: String? { iconName(lit: isOn) }
 
-    /**
-     `lit` forces the on-state icon, for the window where the card still reads as lit after the
-     light has gone off. Passing the entity's own state keeps anything else — unavailable, unknown —
-     truthful.
-    */
+    /// `lit` forces the on-state icon; otherwise the entity's state wins, so unavailable stays so.
     func iconName(lit: Bool) -> String? {
         iconResolver.iconName(
             domain: LightEntity.domain,
@@ -147,7 +139,7 @@ final class LightCardViewModel: Identifiable {
     func setBrightness(to value: Int) {
         guard light.isAvailable else { return }
         resetPending()
-        // The slider bottoms out at 0, and turn_on with zero brightness turns the light off.
+        // turn_on with zero brightness turns the light off, and the slider bottoms out at 0.
         pendingIsOn = value > 0
         pendingBrightness = value
         cooldown.commit()
@@ -180,9 +172,9 @@ final class LightCardViewModel: Identifiable {
 
     /**
      One cooldown gates every pending value, so each commit clears the other
-     three first (`pendingIsOn` is exempt — every commit path assigns it) — otherwise a stale pending from an earlier commit would
+     three first — otherwise a stale pending from an earlier commit would
      resurface (and mask server truth) when a different property is committed
-     within the shared window.
+     within the shared window. `pendingIsOn` is exempt: every commit path sets it.
      */
     private func resetPending() {
         pendingBrightness = nil
