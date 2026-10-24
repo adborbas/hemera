@@ -6,13 +6,10 @@ struct LightCard: View {
     @Environment(\.isMediumTile) private var isMediumTile
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Keeps the card lit until the glow is home; a dark bulb on a washed card reads as both states.
-    @State private var staysLit = false
-    /// Nil until the first render, so a card appearing on an off light never holds.
-    @State private var wasOn: Bool?
+    @State private var litAppearance = LitAppearance()
 
     /// Unanimated: the glyph can only snap, and a fading circle under an off glyph looks broken.
-    private var isLit: Bool { viewModel.isOn || staysLit }
+    private var isLit: Bool { litAppearance.isLit(whenOn: viewModel.isOn) }
 
     private var showsBrightnessFill: Bool { isMediumTile && viewModel.isDimmable }
 
@@ -42,19 +39,10 @@ struct LightCard: View {
         .unavailableStyle(viewModel.isAvailable)
         .animation(Mortar.Motion.springNormal, value: fillFraction)
         .task(id: viewModel.isOn) {
-            // Runs on every reappearance too, so only a real on → off transition may hold.
-            // With no glow to wait for, there is nothing to hold the lit look for either.
-            let turnedOff = wasOn == true && !viewModel.isOn && !reduceMotion
-            wasOn = viewModel.isOn
-
-            guard turnedOff else {
-                staysLit = false
-                return
-            }
-            staysLit = true
-            // Resets even when cancelled, or leaving mid-hold latches the card lit.
+            guard litAppearance.observe(isOn: viewModel.isOn, glowing: !reduceMotion) else { return }
+            // Ends the hold even when cancelled, or leaving mid-hold latches the card lit.
             try? await Task.sleep(for: .seconds(Mortar.Motion.glowRetreatDuration))
-            staysLit = false
+            litAppearance.endHold()
         }
     }
 }
