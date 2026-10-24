@@ -26,11 +26,7 @@ enum ServerAddressMode {
         }
     }
 
-    /**
-     Nil when the placeholder already says everything: onboarding only needs the address
-     format, which the empty field demonstrates. Editing prefills the current address, so
-     there is no placeholder to read and the constraint it carries has nowhere else to go.
-    */
+    /// Nil for onboarding: the placeholder says it. Editing prefills, so it has no placeholder.
     var footer: String? {
         switch self {
         case .initial: nil

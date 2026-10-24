@@ -1,12 +1,7 @@
 import Foundation
 @testable import Hemera
 
-/**
- Answers per-scheme so resolution order can be asserted, and records what was asked.
-
- Defaults to answering everything, so tests that don't care about resolution never reach
- the network.
-*/
+/// Answers per-scheme and records what was asked. Answers everything by default.
 final class MockServerProbe: ServerProbing, @unchecked Sendable {
 
     /// Schemes that answer as Home Assistant. `nil` means every scheme answers.

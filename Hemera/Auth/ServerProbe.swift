@@ -1,20 +1,8 @@
 import Foundation
 
-/**
- Checks that an address answers as Home Assistant before the OAuth flow commits to it.
-
- Preparing an OAuth session is pure string work, so without this nothing touches the network
- until after the user has signed in — a typo or an unrelated host both end up as a sign-in
- sheet that silently never loads.
-*/
+/// Checks an address answers as Home Assistant; without it a typo becomes a blank sign-in sheet.
 protocol ServerProbing: Sendable {
-    /**
-     Throws `AuthError.serverUnreachable` or `AuthError.notHomeAssistant` if the address can't sign us in.
-
-     `timeout` is the caller's patience. Resolving a bare host tries a scheme the user never
-     named, so that guess gets a short one — the cost of being wrong is a delay the user did
-     not ask for.
-    */
+    /// Throws `serverUnreachable` or `notHomeAssistant`. `timeout` is the caller's patience.
     func probe(_ serverURL: URL, timeout: TimeInterval) async throws
 }
 
@@ -31,12 +19,7 @@ struct ServerProbe: ServerProbing {
     /// A scheme we guessed at is not — falling through to the other one quickly matters more.
     static let speculative: TimeInterval = 3
 
-    /**
-     `/auth/providers` is the login page's own unauthenticated endpoint, so anything able to
-     serve the OAuth flow answers it with a provider list. It separates the two failures the
-     user has to act on differently: a transport error means the address or the network is
-     wrong, a bad answer means the address reached something that isn't Home Assistant.
-    */
+    /// `/auth/providers` is unauthenticated, so anything that can serve OAuth answers it.
     func probe(_ serverURL: URL, timeout: TimeInterval) async throws {
         var request = URLRequest(url: serverURL.appendingPathComponent("/auth/providers"))
         request.timeoutInterval = timeout
@@ -58,15 +41,7 @@ struct ServerProbe: ServerProbing {
 
 }
 
-/**
- Only the shape is checked, not the contents — the providers a server offers are its own
- business, and pinning fields here would reject versions that add or rename them.
-
- Both shapes Home Assistant has used are accepted. Up to 2024.1 the endpoint answered with a
- bare array; 2024.2 wrapped it in an object alongside `preselect_remember_me`. Requiring the
- wrapper would turn every older server into "this isn't a Home Assistant", with no way past
- it, since this is a gate in front of signing in.
-*/
+/// Shape only. HA answered with a bare array up to 2024.1 and an object from 2024.2; both pass.
 private struct AuthProviders: Decodable {
 
     struct Provider: Decodable {}

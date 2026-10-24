@@ -90,11 +90,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func connectManual_withNoScheme_triesHTTPSFirstAndOnlyWaitsLongForTheLast() async {
-        /**
-         Order and patience are the contract: https is tried first so an address serving both
-         is reached encrypted, and the guess that isn't last gets a short timeout so a hung
-         port can't eat the whole attempt.
-        */
+        // https first so an address serving both is encrypted; only the last guess waits long.
         let probe = MockServerProbe(answering: [])
         let viewModel = makeViewModel(probe: probe)
         viewModel.manualURL = "192.168.1.100:8123"
@@ -188,11 +184,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func connectManual_withCredentialsInURL_reportsFailureAndSetsError() async {
-        /**
-         The URL passes field validation but OAuth preparation rejects the embedded
-         credentials. The screen keeps focus in the field on a false return, so reporting
-         success here would leave an unexplained error with the cursor gone.
-        */
+        // Reporting success would leave an unexplained error with the cursor gone.
         let viewModel = makeViewModel()
         viewModel.manualURL = "https://user:pass@ha.example.com"
         let result = await viewModel.connectManual()
@@ -219,11 +211,7 @@ struct ServerSelectionViewModelTests {
 
     // MARK: - Address Verification
 
-    /**
-     Preparing OAuth is pure string work, so without a probe an unreachable address opens a
-     sign-in sheet that silently never loads. These pin the user-visible contract: no sheet,
-     and a reason to act on.
-    */
+    // The contract: no sheet, and a reason to act on.
 
     @Test
     func connect_whenAddressUnreachable_setsErrorAndOpensNoSession() async {
@@ -260,11 +248,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func confirmHTTPConnection_doesNotProbeAgain() async {
-        /**
-         Resolution already proved the address serves Home Assistant, so confirming the
-         warning must not pay for a second round trip — nor can it, since a failure there
-         would have nowhere to go with the alert already dismissed.
-        */
+        // Already resolved, and a failure here would have nowhere to go: the alert is gone.
         let probe = MockServerProbe(answering: ["http"])
         let viewModel = makeViewModel(probe: probe)
         await viewModel.connect(to: URL(string: "http://192.168.1.100:8123")!)

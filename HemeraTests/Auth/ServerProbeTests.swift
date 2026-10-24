@@ -2,11 +2,7 @@ import Foundation
 import Testing
 @testable import Hemera
 
-/**
- The probe gates sign-in, so a payload it refuses is a server nobody can log into.
- Both shapes are real: Home Assistant answered /auth/providers with a bare array up to
- 2024.1 and wrapped it in an object from 2024.2 on.
-*/
+/// The probe gates sign-in, so a payload it refuses is a server nobody can log into.
 @MainActor
 @Suite(.serialized)
 struct ServerProbeTests {

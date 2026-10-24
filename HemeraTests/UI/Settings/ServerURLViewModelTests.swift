@@ -53,11 +53,7 @@ struct ServerURLViewModelTests {
 
     // MARK: - Normalisation
 
-    /**
-     A scheme-less host is guessed as https. Settings cannot resolve the way onboarding does,
-     so guessing http here would quietly move an encrypted session to cleartext; guessing
-     https fails loudly instead, and the scheme can be typed to say otherwise.
-    */
+    /// Settings can't resolve, so guessing http here would downgrade an encrypted session.
     @Test func save_withSchemelessHost_defaultsToHTTPS() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)

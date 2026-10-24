@@ -6,11 +6,7 @@ public enum MortarButtonKind {
     case secondary
     case destructive
 
-    /**
-     Mirrors each style's `foregroundStyle`, because a circular `ProgressView` takes its
-     colour from `tint` and ignores the foreground the style applies — left alone it draws
-     the accent colour, which is near-invisible on the dimmed background of a busy button.
-    */
+    /// Mirrors each style's foreground: a circular ProgressView reads `tint`, not foregroundStyle.
     var spinnerTint: Color {
         switch self {
         case .primary: .white
@@ -21,13 +17,8 @@ public enum MortarButtonKind {
 }
 
 /**
- A Mortar button that can be busy.
-
- The styles cannot express this on their own: a `ButtonStyle` may read `isEnabled` but not set
- it, so showing a spinner and refusing taps had to be each caller's job, and they disagreed —
- some put a spinner beside the title, others swapped the whole control out.
-
- Reach for the styles directly when a button is never busy; this adds nothing else.
+ A Mortar button that can be busy. Not a ButtonStyle: a style may read `isEnabled`, not set it,
+ so it could never disable itself. Use the styles directly when a button is never busy.
 */
 public struct MortarButton: View {
 
@@ -37,7 +28,7 @@ public struct MortarButton: View {
     private let isLoading: Bool
     private let action: () -> Void
 
-    /// `isLoading` is read, never written, so it is a value rather than a binding.
+    /// `isLoading` is read, never written, so it is a value not a binding.
     public init(
         _ title: String,
         kind: MortarButtonKind = .primary,
@@ -55,10 +46,7 @@ public struct MortarButton: View {
     public var body: some View {
         styled(
             Button(action: action) {
-                /**
-                 The title stays in place and only turns invisible, so an intrinsic-width button
-                 keeps its size and VoiceOver keeps its label while the spinner is up.
-                */
+                // Hidden, not removed: keeps the button's width and VoiceOver's label.
                 Text(title)
                     .opacity(isLoading ? 0 : 1)
                     .overlay {

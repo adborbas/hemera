@@ -32,12 +32,7 @@ final class ServerSelectionViewModel {
     private let authManager: any AuthManaging
     private let serverProbe: any ServerProbing
 
-    /**
-     Identifies the attempt in flight. Resolving takes seconds and nothing cancels it, so a
-     result has to prove it is still wanted before it presents anything — otherwise backing
-     out of manual entry still raises the warning, or the sign-in sheet, for the address you
-     walked away from, on whatever screen you landed on.
-    */
+    /// Nothing cancels a resolve, so a result must prove it's still wanted before presenting.
     private var attempt = 0
 
     init(authManager: any AuthManaging, serverProbe: any ServerProbing = ServerProbe()) {
@@ -82,15 +77,7 @@ final class ServerSelectionViewModel {
         await connect(candidates: [url])
     }
 
-    /**
-     Resolves the address, then warns only if the one that works is unencrypted.
-
-     This reverses the earlier ordering, where the warning came first so that no cleartext
-     request was sent without consent. Finding out whether http is even needed requires
-     asking, and the probe carries no credentials — it only reveals that someone asked this
-     host whether it runs Home Assistant. Warning on every scheme-less address instead told
-     people nothing: it fired just as often when https would have worked.
-    */
+    /// Warns only once http is known to be what works. Probing first costs no credentials.
     private func connect(candidates: [URL]) async {
         // A second tap lands here before the first attempt has finished; the first one wins.
         guard !isConnecting else { return }

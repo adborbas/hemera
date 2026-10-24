@@ -90,9 +90,7 @@ struct ServerAddressView: View {
                 .padding(Mortar.Spacing.m)
                 .background(
                     RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
-                        // Not a tertiarySystemBackground: that is white in light mode, so the
-                        // field vanished into the page. systemGray5 is what every other control
-                        // sitting on the page background uses, including the button below.
+                        // tertiarySystemBackground is white in light mode — the field vanished.
                         .fill(PlatformColor.systemGray5)
                 )
                 .onSubmit(submit)
@@ -119,7 +117,7 @@ struct ServerAddressView: View {
 private extension ServerAddressView {
     enum Localization {
         static let serverAddress = String(localized: "Server Address", comment: "Label for the server URL input field")
-        /// No scheme: it is optional now, and showing http would advertise the unencrypted one.
+        /// Scheme-less: it is optional, and http would advertise the unencrypted one.
         static let urlPlaceholder = "homeassistant.local:8123"
     }
 }
