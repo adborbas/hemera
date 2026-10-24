@@ -98,10 +98,12 @@ struct ServerAddressView: View {
                 )
                 .onSubmit(submit)
 
-            Text(handler.mode.footer)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.leading, Mortar.Spacing.xs)
+            if let footer = handler.mode.footer {
+                Text(footer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, Mortar.Spacing.xs)
+            }
 
             if let errorMessage = handler.errorMessage {
                 Text(errorMessage)
@@ -118,6 +120,7 @@ struct ServerAddressView: View {
 private extension ServerAddressView {
     enum Localization {
         static let serverAddress = String(localized: "Server Address", comment: "Label for the server URL input field")
-        static let urlPlaceholder = "http://homeassistant.local:8123"
+        /// No scheme: it is optional now, and showing http would advertise the unencrypted one.
+        static let urlPlaceholder = "homeassistant.local:8123"
     }
 }

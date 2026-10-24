@@ -26,9 +26,14 @@ enum ServerAddressMode {
         }
     }
 
-    var footer: String {
+    /**
+     Nil when the placeholder already says everything: onboarding only needs the address
+     format, which the empty field demonstrates. Editing prefills the current address, so
+     there is no placeholder to read and the constraint it carries has nowhere else to go.
+    */
+    var footer: String? {
         switch self {
-        case .initial: Localization.initialFooter
+        case .initial: nil
         case .edit: Localization.editFooter
         }
     }
@@ -58,7 +63,6 @@ private extension ServerAddressMode {
     enum Localization {
         static let enterManually = String(localized: "Enter address manually", comment: "Navigation title when entering a Home Assistant address during onboarding")
         static let serverAddress = String(localized: "Server Address", comment: "Navigation title when changing the saved Home Assistant address")
-        static let initialFooter = String(localized: "Enter your Home Assistant server URL, including the port if needed.", comment: "Help text below the server URL field during onboarding")
         static let editFooter = String(
             localized: "Another address for the same Home Assistant — your local address at home, or a VPN or remote address when you're away. You'll stay signed in.",
             comment: "Help text below the server address field in settings, clarifying the address must point at the same Home Assistant the user is already signed in to"
