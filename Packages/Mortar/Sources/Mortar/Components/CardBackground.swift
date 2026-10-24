@@ -6,10 +6,12 @@ private struct CardBackgroundModifier<LitOverlay: View>: ViewModifier {
     let glowsFromIcon: Bool
     @ViewBuilder let litOverlay: () -> LitOverlay
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.backgroundPreferenceValue(CardIconCenterKey.self) { iconAnchor in
-            if glowsFromIcon, let tint, let iconAnchor {
+            // Reduce Motion takes the plain fill: same two resting states, reached without travel.
+            if glowsFromIcon, !reduceMotion, let tint, let iconAnchor {
                 // Only to resolve the anchor — the background already spans the card's bounds.
                 GeometryReader { geometry in
                     CardGlowBackground(tint: tint,

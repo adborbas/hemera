@@ -4,6 +4,7 @@ import Mortar
 struct LightCard: View {
     var viewModel: LightCardViewModel
     @Environment(\.isMediumTile) private var isMediumTile
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Keeps the card lit until the glow is home; a dark bulb on a washed card reads as both states.
     @State private var staysLit = false
@@ -15,9 +16,11 @@ struct LightCard: View {
 
     private var showsBrightnessFill: Bool { isMediumTile && viewModel.isDimmable }
 
-    /// Not zeroed when off: the glow hides the lit layer, so it can retract the fill with it.
+    /// Not zeroed when off only because the glow hides the lit layer and retracts the fill with
+    /// it. Without a glow there is nothing to hide it, so it has to go.
     private var fillFraction: CGFloat {
-        CGFloat(viewModel.brightness) / 255.0
+        guard viewModel.isOn || !reduceMotion else { return 0 }
+        return CGFloat(viewModel.brightness) / 255.0
     }
 
     var body: some View {
@@ -40,7 +43,8 @@ struct LightCard: View {
         .animation(Mortar.Motion.springNormal, value: fillFraction)
         .task(id: viewModel.isOn) {
             // Runs on every reappearance too, so only a real on → off transition may hold.
-            let turnedOff = wasOn == true && !viewModel.isOn
+            // With no glow to wait for, there is nothing to hold the lit look for either.
+            let turnedOff = wasOn == true && !viewModel.isOn && !reduceMotion
             wasOn = viewModel.isOn
 
             guard turnedOff else {
