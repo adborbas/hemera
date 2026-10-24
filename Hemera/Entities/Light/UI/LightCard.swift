@@ -4,31 +4,46 @@ import Mortar
 struct LightCard: View {
     var viewModel: LightCardViewModel
     @Environment(\.isMediumTile) private var isMediumTile
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var litAppearance = LitAppearance()
+
+    /// Unanimated: the glyph can only snap, and a fading circle under an off glyph looks broken.
+    private var isLit: Bool { litAppearance.isLit(whenOn: viewModel.isOn) }
+
+    private var showsBrightnessFill: Bool { isMediumTile && viewModel.isDimmable }
+
+    /// Not zeroed when off only because the glow hides the lit layer and retracts the fill with
+    /// it. Without a glow there is nothing to hide it, so it has to go.
     private var fillFraction: CGFloat {
-        guard viewModel.isOn else { return 0 }
+        guard viewModel.isOn || !reduceMotion else { return 0 }
         return CGFloat(viewModel.brightness) / 255.0
     }
 
     var body: some View {
-        EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
-            CardIcon(icon: viewModel.iconName,
-                     backgroundColor: viewModel.iconBackgroundColor) {
+        EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn, glowsFromIcon: true) {
+            CardIcon(icon: viewModel.iconName(lit: isLit),
+                     backgroundColor: viewModel.iconBackgroundColor(lit: isLit)) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.toggle()
             }
         } label: {
             CardLabel(title: viewModel.name,
-                      subtitle: viewModel.isOn ? Localization.on : Localization.off,
+                      subtitle: isLit ? Localization.on : Localization.off,
                       accessibilityIdentifier: viewModel.id)
         } backgroundOverlay: {
-            if isMediumTile && viewModel.isDimmable {
+            if showsBrightnessFill {
                 CardFillOverlay(fraction: fillFraction, fillColor: viewModel.tintColor, anchor: .bottom)
             }
         }
         .unavailableStyle(viewModel.isAvailable)
-        .animation(Mortar.Motion.springNormal, value: viewModel.isOn)
         .animation(Mortar.Motion.springNormal, value: fillFraction)
+        .task(id: viewModel.isOn) {
+            guard litAppearance.observe(isOn: viewModel.isOn, glowing: !reduceMotion) else { return }
+            // Ends the hold even when cancelled, or leaving mid-hold latches the card lit.
+            try? await Task.sleep(for: .seconds(Mortar.Motion.glowRetreatDuration))
+            litAppearance.endHold()
+        }
     }
 }
 
