@@ -25,48 +25,48 @@ struct ServerSelectionViewModelTests {
     // MARK: - Manual URL Validation
 
     @Test
-    func connectManual_withEmptyURL_setsErrorMessageAndReturnsFalse() {
+    func connectManual_withEmptyURL_setsErrorMessageAndReturnsFalse() async {
         let viewModel = makeViewModel()
         viewModel.manualURL = ""
-        let result = viewModel.connectManual()
+        let result = await viewModel.connectManual()
         #expect(result == false)
         #expect(viewModel.errorMessage != nil)
     }
 
     @Test
-    func connectManual_withInvalidURL_setsErrorMessageAndReturnsFalse() {
+    func connectManual_withInvalidURL_setsErrorMessageAndReturnsFalse() async {
         let viewModel = makeViewModel()
         viewModel.manualURL = "not a valid url :///"
-        let result = viewModel.connectManual()
+        let result = await viewModel.connectManual()
         #expect(result == false)
         #expect(viewModel.errorMessage != nil)
     }
 
     @Test
-    func connectManual_withValidHTTPURL_showsHTTPWarningAndReturnsTrue() {
+    func connectManual_withValidHTTPURL_showsHTTPWarningAndReturnsTrue() async {
         let viewModel = makeViewModel()
         viewModel.manualURL = "http://192.168.1.100:8123"
-        let result = viewModel.connectManual()
+        let result = await viewModel.connectManual()
         #expect(result == true)
         #expect(viewModel.showHTTPWarning == true)
         #expect(viewModel.pendingHTTPURL != nil)
     }
 
     @Test
-    func connectManual_withValidHTTPSURL_startsOAuthAndReturnsTrue() {
+    func connectManual_withValidHTTPSURL_startsOAuthAndReturnsTrue() async {
         let viewModel = makeViewModel()
         viewModel.manualURL = "https://ha.example.com:8123"
-        let result = viewModel.connectManual()
+        let result = await viewModel.connectManual()
         #expect(result == true)
         #expect(viewModel.isConnecting == true)
         #expect(viewModel.showHTTPWarning == false)
     }
 
     @Test
-    func connectManual_prependsHTTPIfNoScheme_returnsTrue() {
+    func connectManual_prependsHTTPIfNoScheme_returnsTrue() async {
         let viewModel = makeViewModel()
         viewModel.manualURL = "192.168.1.100:8123"
-        let result = viewModel.connectManual()
+        let result = await viewModel.connectManual()
         #expect(result == true)
         #expect(viewModel.showHTTPWarning == true)
     }
@@ -74,40 +74,40 @@ struct ServerSelectionViewModelTests {
     // MARK: - HTTP Warning
 
     @Test
-    func connect_withHTTPURL_showsWarning() {
+    func connect_withHTTPURL_showsWarning() async {
         let viewModel = makeViewModel()
         let url = URL(string: "http://192.168.1.100:8123")!
-        viewModel.connect(to: url)
+        await viewModel.connect(to: url)
         #expect(viewModel.showHTTPWarning == true)
         #expect(viewModel.pendingHTTPURL == url)
     }
 
     @Test
-    func connect_withHTTPSURL_doesNotShowWarning() {
+    func connect_withHTTPSURL_doesNotShowWarning() async {
         let viewModel = makeViewModel()
         let url = URL(string: "https://ha.example.com:8123")!
-        viewModel.connect(to: url)
+        await viewModel.connect(to: url)
         #expect(viewModel.showHTTPWarning == false)
         #expect(viewModel.isConnecting == true)
     }
 
     @Test
-    func confirmHTTPConnection_startsOAuthWithPendingURL() {
+    func confirmHTTPConnection_startsOAuthWithPendingURL() async {
         let viewModel = makeViewModel()
         let url = URL(string: "http://192.168.1.100:8123")!
-        viewModel.connect(to: url)
+        await viewModel.connect(to: url)
 
-        viewModel.confirmHTTPConnection()
+        await viewModel.confirmHTTPConnection()
 
         #expect(viewModel.isConnecting == true)
         #expect(viewModel.pendingHTTPURL == nil)
     }
 
     @Test
-    func cancelHTTPWarning_clearsPendingURL() {
+    func cancelHTTPWarning_clearsPendingURL() async {
         let viewModel = makeViewModel()
         let url = URL(string: "http://192.168.1.100:8123")!
-        viewModel.connect(to: url)
+        await viewModel.connect(to: url)
 
         viewModel.cancelHTTPWarning()
 
@@ -119,7 +119,7 @@ struct ServerSelectionViewModelTests {
     @Test
     func handleOAuthCallback_whenCallbackFails_setsErrorMessageAndDoesNotAuthenticate() async {
         let authManager = MockAuthManager()
-        let viewModel = ServerSelectionViewModel(authManager: authManager)
+        let viewModel = ServerSelectionViewModel(authManager: authManager, serverProbe: MockServerProbe())
         let serverURL = URL(string: "https://ha.example.com:8123")!
         let session = OAuthFlowManager.AuthSession(
             authorizeURL: serverURL,
@@ -139,14 +139,16 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
-    func connectManual_withCredentialsInURL_returnsTrueButSetsError() {
-        // The URL passes field validation but OAuth preparation rejects the
-        // embedded credentials, so connectManual returns true yet leaves an
-        // error and no session — the manual sheet relies on this to stay open.
+    func connectManual_withCredentialsInURL_reportsFailureAndSetsError() async {
+        /**
+         The URL passes field validation but OAuth preparation rejects the embedded
+         credentials. The screen keeps focus in the field on a false return, so reporting
+         success here would leave an unexplained error with the cursor gone.
+        */
         let viewModel = makeViewModel()
         viewModel.manualURL = "https://user:pass@ha.example.com"
-        let result = viewModel.connectManual()
-        #expect(result == true)
+        let result = await viewModel.connectManual()
+        #expect(result == false)
         #expect(viewModel.errorMessage != nil)
         #expect(viewModel.authSession == nil)
     }
@@ -160,20 +162,88 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
-    func startOAuth_clearsPreviousErrorMessage() {
+    func startOAuth_clearsPreviousErrorMessage() async {
         let viewModel = makeViewModel()
         viewModel.errorMessage = "stale error"
-        viewModel.startOAuth(url: URL(string: "https://ha.example.com:8123")!)
+        await viewModel.startOAuth(url: URL(string: "https://ha.example.com:8123")!)
         #expect(viewModel.errorMessage == nil)
+    }
+
+    // MARK: - Address Verification
+
+    /**
+     Preparing OAuth is pure string work, so without a probe an unreachable address opens a
+     sign-in sheet that silently never loads. These pin the user-visible contract: no sheet,
+     and a reason to act on.
+    */
+
+    @Test
+    func startOAuth_whenAddressUnreachable_setsErrorAndOpensNoSession() async {
+        let viewModel = makeViewModel(probeError: AuthError.serverUnreachable)
+
+        await viewModel.startOAuth(url: URL(string: "https://notahost.invalid")!)
+
+        #expect(viewModel.authSession == nil)
+        #expect(viewModel.isConnecting == false)
+        #expect(viewModel.errorMessage == ServerSelectionViewModel.Localization.unreachable)
+    }
+
+    @Test
+    func startOAuth_whenAddressIsNotHomeAssistant_saysSoRatherThanUnreachable() async {
+        // A reachable host that isn't Home Assistant needs a different fix from a network problem.
+        let viewModel = makeViewModel(probeError: AuthError.notHomeAssistant)
+
+        await viewModel.startOAuth(url: URL(string: "https://example.com")!)
+
+        #expect(viewModel.authSession == nil)
+        #expect(viewModel.errorMessage == ServerSelectionViewModel.Localization.notHomeAssistant)
+    }
+
+    @Test
+    func connectManual_whenProbeFails_reportsFailureSoFocusReturnsToTheField() async {
+        let viewModel = makeViewModel(probeError: AuthError.serverUnreachable)
+        viewModel.manualURL = "https://notahost.invalid"
+
+        let result = await viewModel.connectManual()
+
+        #expect(result == false)
+        #expect(viewModel.errorMessage != nil)
+    }
+
+    @Test
+    func confirmHTTPConnection_whenProbeFails_setsErrorAndOpensNoSession() async {
+        // The HTTP warning is consented to before the probe runs, so its failure has to surface too.
+        let viewModel = makeViewModel(probeError: AuthError.serverUnreachable)
+        await viewModel.connect(to: URL(string: "http://192.168.1.100:8123")!)
+
+        await viewModel.confirmHTTPConnection()
+
+        #expect(viewModel.authSession == nil)
+        #expect(viewModel.isConnecting == false)
+        #expect(viewModel.errorMessage != nil)
+    }
+
+    @Test
+    func authSessionFailed_dismissesSheetAndExplainsWhy() async {
+        // The sign-in page can still fail to load after a passing probe — a TLS error, say.
+        let viewModel = makeViewModel()
+        await viewModel.startOAuth(url: URL(string: "https://ha.example.com:8123")!)
+        #expect(viewModel.authSession != nil)
+
+        viewModel.authSessionFailed()
+
+        #expect(viewModel.authSession == nil)
+        #expect(viewModel.isConnecting == false)
+        #expect(viewModel.errorMessage != nil)
     }
 
     // MARK: - Auth Cancellation
 
     @Test
-    func cancelAuth_clearsSessionAndStopsConnecting() {
+    func cancelAuth_clearsSessionAndStopsConnecting() async {
         let viewModel = makeViewModel()
         let url = URL(string: "https://ha.example.com:8123")!
-        viewModel.connect(to: url)
+        await viewModel.connect(to: url)
         #expect(viewModel.isConnecting == true)
 
         viewModel.cancelAuth()
@@ -187,7 +257,10 @@ struct ServerSelectionViewModelTests {
 
 private extension ServerSelectionViewModelTests {
 
-    func makeViewModel() -> ServerSelectionViewModel {
-        ServerSelectionViewModel(authManager: MockAuthManager())
+    func makeViewModel(probeError: (any Error)? = nil) -> ServerSelectionViewModel {
+        ServerSelectionViewModel(
+            authManager: MockAuthManager(),
+            serverProbe: MockServerProbe(throwing: probeError)
+        )
     }
 }

@@ -28,7 +28,7 @@ struct ServerSelectionView: View {
         .onDisappear { viewModel.stopDiscovery() }
         .alert(Localization.unencryptedTitle, isPresented: $viewModel.showHTTPWarning) {
             Button(Localization.continueAction) {
-                viewModel.confirmHTTPConnection()
+                Task { await viewModel.confirmHTTPConnection() }
             }
             .keyboardShortcut(.defaultAction)
             Button(Localization.cancel, role: .cancel) {
@@ -52,14 +52,19 @@ struct ServerSelectionView: View {
             viewModel.cancelAuth()
         }) { session in
             NavigationStack {
-                OAuthWebView(url: session.authorizeURL, redirectURI: session.redirectURI) { callbackURL in
-                    isExchangingToken = true
-                    Task {
-                        await viewModel.handleOAuthCallback(url: callbackURL, session: session)
-                        isExchangingToken = false
-                        viewModel.authSession = nil
-                    }
-                }
+                OAuthWebView(
+                    url: session.authorizeURL,
+                    redirectURI: session.redirectURI,
+                    onCallback: { callbackURL in
+                        isExchangingToken = true
+                        Task {
+                            await viewModel.handleOAuthCallback(url: callbackURL, session: session)
+                            isExchangingToken = false
+                            viewModel.authSession = nil
+                        }
+                    },
+                    onFailure: { viewModel.authSessionFailed() }
+                )
                 .ignoresSafeArea()
                 .overlay {
                     if isExchangingToken {
@@ -130,7 +135,7 @@ struct ServerSelectionView: View {
             iconColor: .green,
             title: server.name,
             subtitle: server.host,
-            action: { viewModel.connect(to: server.url) }
+            action: { Task { await viewModel.connect(to: server.url) } }
         ) {
             if viewModel.isConnecting {
                 ProgressView()

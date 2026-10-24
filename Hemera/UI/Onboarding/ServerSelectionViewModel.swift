@@ -30,9 +30,11 @@ final class ServerSelectionViewModel {
 
     private let oauthManager = OAuthFlowManager()
     private let authManager: any AuthManaging
+    private let serverProbe: any ServerProbing
 
-    init(authManager: any AuthManaging) {
+    init(authManager: any AuthManaging, serverProbe: any ServerProbing = ServerProbe()) {
         self.authManager = authManager
+        self.serverProbe = serverProbe
     }
 
     convenience init() {
@@ -56,32 +58,36 @@ final class ServerSelectionViewModel {
     }
 
     @discardableResult
-    func connectManual() -> Bool {
+    func connectManual() async -> Bool {
         guard let url = ServerAddress.normalised(manualURL) else {
             errorMessage = Localization.invalidURLWithExample
             return false
         }
 
-        connect(to: url)
-        return true
+        await connect(to: url)
+        return errorMessage == nil
     }
 
-    func connect(to url: URL) {
+    func connect(to url: URL) async {
         errorMessage = nil
 
+        /**
+         The warning comes before the probe deliberately: probing already sends the cleartext
+         request the user is being asked to consent to.
+        */
         if url.scheme?.lowercased() == "http" {
             pendingHTTPURL = url
             showHTTPWarning = true
             return
         }
 
-        startOAuth(url: url)
+        await startOAuth(url: url)
     }
 
-    func confirmHTTPConnection() {
+    func confirmHTTPConnection() async {
         if let url = pendingHTTPURL {
             pendingHTTPURL = nil
-            startOAuth(url: url)
+            await startOAuth(url: url)
         }
     }
 
@@ -89,9 +95,17 @@ final class ServerSelectionViewModel {
         pendingHTTPURL = nil
     }
 
-    func startOAuth(url: URL) {
+    func startOAuth(url: URL) async {
         isConnecting = true
         errorMessage = nil
+
+        do {
+            try await serverProbe.probe(url)
+        } catch {
+            errorMessage = Self.message(for: error)
+            isConnecting = false
+            return
+        }
 
         do {
             authSession = try oauthManager.prepare(serverURL: url)
@@ -99,6 +113,13 @@ final class ServerSelectionViewModel {
             errorMessage = Localization.invalidURL
             isConnecting = false
         }
+    }
+
+    /// The sign-in page itself failed to load, so the address passed the probe but can't be used.
+    func authSessionFailed() {
+        authSession = nil
+        isConnecting = false
+        errorMessage = Localization.unreachable
     }
 
     func handleOAuthCallback(url: URL, session: OAuthFlowManager.AuthSession) async {
@@ -147,10 +168,26 @@ final class ServerSelectionViewModel {
     }
     #endif
 
+    /// Separated so the user knows whether to fix the address or fix the network.
+    static func message(for error: Error) -> String {
+        switch error {
+        case AuthError.notHomeAssistant: Localization.notHomeAssistant
+        default: Localization.unreachable
+        }
+    }
+
     enum Localization {
         static let invalidURLWithExample = String(localized: "Please enter a valid URL (e.g. http://192.168.1.100:8123)", comment: "Validation error when the manually entered server URL is malformed")
         static let invalidURL = String(localized: "Invalid server URL.", comment: "Error message when OAuth preparation fails for the given server URL")
         static let authFailed = String(localized: "Authentication failed. Please try again.", comment: "Error message shown when OAuth login fails")
+        static let unreachable = String(
+            localized: "Couldn't reach this address. Check it's correct and that you're connected to a network that can reach it.",
+            comment: "Error shown when the entered Home Assistant address cannot be reached at all"
+        )
+        static let notHomeAssistant = String(
+            localized: "This address answered, but it isn't a Home Assistant. Check the address and the port.",
+            comment: "Error shown when the entered address is reachable but serves something other than Home Assistant"
+        )
     }
 }
 
@@ -168,7 +205,6 @@ extension ServerSelectionViewModel: ServerAddressHandling {
     var canSubmit: Bool { canConnect }
 
     func submit() async -> Bool {
-        // `connectManual` only reports that the address parsed; preparing OAuth can still fail.
-        connectManual() && errorMessage == nil
+        await connectManual()
     }
 }

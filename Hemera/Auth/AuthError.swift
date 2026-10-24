@@ -11,4 +11,6 @@ enum AuthError: Error {
     case differentServer
     /// The candidate address could not be reached at all.
     case serverUnreachable
+    /// The address answered, but not as a Home Assistant.
+    case notHomeAssistant
 }
