@@ -94,7 +94,10 @@ struct ServerAddressView: View {
                 .padding(Mortar.Spacing.m)
                 .background(
                     RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
-                        .fill(PlatformColor.tertiarySystemBackground)
+                        // Not a tertiarySystemBackground: that is white in light mode, so the
+                        // field vanished into the page. systemGray5 is what every other control
+                        // sitting on the page background uses, including the button below.
+                        .fill(PlatformColor.systemGray5)
                 )
                 .onSubmit(submit)
 
