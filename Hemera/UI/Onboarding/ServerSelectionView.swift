@@ -4,7 +4,6 @@ import Mortar
 struct ServerSelectionView: View {
 
     @Bindable var viewModel: ServerSelectionViewModel
-    @State private var activeSheet: ActiveSheet?
     @State private var showManualEntry = false
     @State private var isExchangingToken = false
 
@@ -41,7 +40,7 @@ struct ServerSelectionView: View {
         .alert(
             Localization.connectionFailedTitle,
             isPresented: Binding(
-                get: { viewModel.errorMessage != nil && activeSheet == nil && !showManualEntry },
+                get: { viewModel.errorMessage != nil && viewModel.authSession == nil && !showManualEntry },
                 set: { if !$0 { viewModel.errorMessage = nil } }
             )
         ) {
@@ -49,52 +48,39 @@ struct ServerSelectionView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
-        .sheet(item: $activeSheet, onDismiss: {
-            if viewModel.authSession != nil {
-                viewModel.cancelAuth()
-            }
-        }) { sheet in
-            switch sheet {
-            case .oAuth(let session):
-                NavigationStack {
-                    OAuthWebView(url: session.authorizeURL, redirectURI: session.redirectURI) { callbackURL in
-                        let captured = session
+        .sheet(item: $viewModel.authSession, onDismiss: {
+            viewModel.cancelAuth()
+        }) { session in
+            NavigationStack {
+                OAuthWebView(url: session.authorizeURL, redirectURI: session.redirectURI) { callbackURL in
+                    isExchangingToken = true
+                    Task {
+                        await viewModel.handleOAuthCallback(url: callbackURL, session: session)
+                        isExchangingToken = false
                         viewModel.authSession = nil
-                        isExchangingToken = true
-                        Task {
-                            await viewModel.handleOAuthCallback(url: callbackURL, session: captured)
-                            isExchangingToken = false
-                            activeSheet = nil
-                        }
                     }
-                    .ignoresSafeArea()
-                    .overlay {
-                        if isExchangingToken {
-                            ZStack {
-                                Color(uiColor: .systemBackground)
-                                    .ignoresSafeArea()
-                                ProgressView()
-                                    .controlSize(.large)
-                            }
-                        }
-                    }
-                    .navigationTitle(Localization.signIn)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(Localization.cancel) {
-                                viewModel.cancelAuth()
-                                activeSheet = nil
-                            }
-                            .opacity(isExchangingToken ? 0 : 1)
+                }
+                .ignoresSafeArea()
+                .overlay {
+                    if isExchangingToken {
+                        ZStack {
+                            Color(uiColor: .systemBackground)
+                                .ignoresSafeArea()
+                            ProgressView()
+                                .controlSize(.large)
                         }
                     }
                 }
-            }
-        }
-        .onChange(of: viewModel.authSession?.id) {
-            if let session = viewModel.authSession {
-                activeSheet = .oAuth(session)
+                .navigationTitle(Localization.signIn)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(Localization.cancel) {
+                            viewModel.cancelAuth()
+                        }
+                        .opacity(isExchangingToken ? 0 : 1)
+                    }
+                }
             }
         }
     }
@@ -169,20 +155,6 @@ struct ServerSelectionView: View {
             }
         ) {
             DisclosureIndicator()
-        }
-    }
-}
-
-// MARK: - Active Sheet
-
-private extension ServerSelectionView {
-    enum ActiveSheet: Identifiable {
-        case oAuth(OAuthFlowManager.AuthSession)
-
-        var id: String {
-            switch self {
-            case .oAuth: "oAuth"
-            }
         }
     }
 }
