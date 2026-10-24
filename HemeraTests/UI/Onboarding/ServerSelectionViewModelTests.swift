@@ -259,16 +259,50 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
-    func confirmHTTPConnection_whenProbeFails_setsErrorAndOpensNoSession() async {
-        // The HTTP warning is consented to before the probe runs, so its failure has to surface too.
-        let viewModel = makeViewModel(probe: .failing(AuthError.serverUnreachable))
+    func confirmHTTPConnection_doesNotProbeAgain() async {
+        /**
+         Resolution already proved the address serves Home Assistant, so confirming the
+         warning must not pay for a second round trip — nor can it, since a failure there
+         would have nowhere to go with the alert already dismissed.
+        */
+        let probe = MockServerProbe(answering: ["http"])
+        let viewModel = makeViewModel(probe: probe)
         await viewModel.connect(to: URL(string: "http://192.168.1.100:8123")!)
+        let afterResolve = probe.probed.count
 
         await viewModel.confirmHTTPConnection()
 
+        #expect(probe.probed.count == afterResolve)
+        #expect(viewModel.authSession != nil)
+    }
+
+    @Test
+    func connect_whenAbandonedMidFlight_presentsNothing() async {
+        // Backing out of manual entry must not raise the warning on whatever screen follows.
+        let probe = MockServerProbe(answering: ["http"], blocks: true)
+        let viewModel = makeViewModel(probe: probe)
+        let connecting = Task { await viewModel.connect(to: URL(string: "http://192.168.1.100:8123")!) }
+        while probe.probed.isEmpty { await Task.yield() }
+
+        viewModel.abandonConnection()
+        probe.release()
+        await connecting.value
+
+        #expect(viewModel.showHTTPWarning == false)
         #expect(viewModel.authSession == nil)
-        #expect(viewModel.isConnecting == false)
-        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test
+    func connect_whileAlreadyConnecting_isIgnored() async {
+        // Two taps in one runloop turn would otherwise race to overwrite the session.
+        let probe = MockServerProbe(answering: ["https"])
+        let viewModel = makeViewModel(probe: probe)
+        viewModel.isConnecting = true
+
+        await viewModel.connect(to: URL(string: "https://ha.example.com")!)
+
+        #expect(probe.probed.isEmpty)
     }
 
     @Test

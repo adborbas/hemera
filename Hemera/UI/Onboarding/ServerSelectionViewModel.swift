@@ -32,6 +32,14 @@ final class ServerSelectionViewModel {
     private let authManager: any AuthManaging
     private let serverProbe: any ServerProbing
 
+    /**
+     Identifies the attempt in flight. Resolving takes seconds and nothing cancels it, so a
+     result has to prove it is still wanted before it presents anything — otherwise backing
+     out of manual entry still raises the warning, or the sign-in sheet, for the address you
+     walked away from, on whatever screen you landed on.
+    */
+    private var attempt = 0
+
     init(authManager: any AuthManaging, serverProbe: any ServerProbing = ServerProbe()) {
         self.authManager = authManager
         self.serverProbe = serverProbe
@@ -84,11 +92,17 @@ final class ServerSelectionViewModel {
      people nothing: it fired just as often when https would have worked.
     */
     private func connect(candidates: [URL]) async {
+        // A second tap lands here before the first attempt has finished; the first one wins.
+        guard !isConnecting else { return }
+
+        attempt &+= 1
+        let mine = attempt
         errorMessage = nil
         isConnecting = true
 
         do {
             let resolved = try await resolve(candidates)
+            guard mine == attempt else { return }
             guard resolved.scheme?.lowercased() == "http" else {
                 startSession(at: resolved)
                 return
@@ -97,9 +111,19 @@ final class ServerSelectionViewModel {
             pendingHTTPURL = resolved
             showHTTPWarning = true
         } catch {
+            guard mine == attempt else { return }
             errorMessage = Self.message(for: error)
             isConnecting = false
         }
+    }
+
+    /// Leaving the screen abandons whatever it started, so a late result stays silent.
+    func abandonConnection() {
+        attempt &+= 1
+        isConnecting = false
+        pendingHTTPURL = nil
+        showHTTPWarning = false
+        errorMessage = nil
     }
 
     /// The first candidate that answers as Home Assistant wins.

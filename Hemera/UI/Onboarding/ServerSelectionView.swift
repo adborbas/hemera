@@ -23,7 +23,7 @@ struct ServerSelectionView: View {
         .navigationDestination(isPresented: $showManualEntry) {
             ServerAddressView(handler: viewModel, placement: .prominent)
             .modifier(UnencryptedWarning(isPresented: httpWarning(whileManualEntry: true), viewModel: viewModel))
-            .onDisappear { viewModel.errorMessage = nil }
+            .onDisappear { viewModel.abandonConnection() }
         }
         .onAppear { viewModel.startDiscovery() }
         .onDisappear { viewModel.stopDiscovery() }

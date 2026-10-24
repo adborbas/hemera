@@ -20,6 +20,12 @@ protocol ServerProbing: Sendable {
 
 struct ServerProbe: ServerProbing {
 
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
     /// A scheme the user actually typed is worth waiting for.
     static let confirmed: TimeInterval = 10
     /// A scheme we guessed at is not — falling through to the other one quickly matters more.
@@ -38,7 +44,7 @@ struct ServerProbe: ServerProbing {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw AuthError.serverUnreachable
         }
@@ -54,9 +60,28 @@ struct ServerProbe: ServerProbing {
 
 /**
  Only the shape is checked, not the contents — the providers a server offers are its own
- business, and pinning fields here would reject Home Assistant versions that add or rename them.
+ business, and pinning fields here would reject versions that add or rename them.
+
+ Both shapes Home Assistant has used are accepted. Up to 2024.1 the endpoint answered with a
+ bare array; 2024.2 wrapped it in an object alongside `preselect_remember_me`. Requiring the
+ wrapper would turn every older server into "this isn't a Home Assistant", with no way past
+ it, since this is a gate in front of signing in.
 */
 private struct AuthProviders: Decodable {
+
     struct Provider: Decodable {}
+
     let providers: [Provider]
+
+    init(from decoder: any Decoder) throws {
+        if let bare = try? decoder.singleValueContainer().decode([Provider].self) {
+            providers = bare
+            return
+        }
+        providers = try decoder.container(keyedBy: CodingKeys.self).decode([Provider].self, forKey: .providers)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case providers
+    }
 }

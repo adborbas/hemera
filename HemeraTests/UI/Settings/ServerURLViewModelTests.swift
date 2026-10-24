@@ -53,15 +53,19 @@ struct ServerURLViewModelTests {
 
     // MARK: - Normalisation
 
-    /// LAN and VPN addresses are typically typed without a scheme.
-    @Test func save_withSchemelessHost_defaultsToHTTP() async {
+    /**
+     A scheme-less host is guessed as https. Settings cannot resolve the way onboarding does,
+     so guessing http here would quietly move an encrypted session to cleartext; guessing
+     https fails loudly instead, and the scheme can be typed to say otherwise.
+    */
+    @Test func save_withSchemelessHost_defaultsToHTTPS() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.text = "192.168.1.5:8123"
 
         _ = await viewModel.submit()
 
-        #expect(spy.changeCalls == [URL(string: "http://192.168.1.5:8123")!])
+        #expect(spy.changeCalls == [URL(string: "https://192.168.1.5:8123")!])
     }
 
     /**

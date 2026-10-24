@@ -5,13 +5,15 @@ enum ServerAddress {
     /**
      Turns typed input into a server URL, or nil if it can't be one.
 
-     Bare hosts default to `http` because LAN and VPN addresses are usually typed without a
-     scheme. Shared by onboarding and settings so the two never disagree about what counts
-     as a valid address.
+     A bare host becomes https. It used to become http, which was safe while every caller
+     typed the scheme, but settings reaches here with whatever was typed and would then move
+     a working encrypted session to cleartext without saying so. Guessing https instead fails
+     loudly on an http-only server — the address simply won't verify — and the scheme can be
+     typed to say otherwise. Callers that can resolve should use `candidates` and try both.
     */
     static func normalised(_ input: String) -> URL? {
         guard let trimmed = trimmed(input) else { return nil }
-        return url(trimmed.contains("://") ? trimmed : "http://\(trimmed)")
+        return url(trimmed.contains("://") ? trimmed : "https://\(trimmed)")
     }
 
     /**
