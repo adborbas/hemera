@@ -32,17 +32,13 @@ struct ServerAddressView: View {
             Spacer()
 
             if placement == .prominent {
-                Button(action: submit) {
-                    HStack {
-                        Text(handler.mode.actionTitle)
-                        if handler.isBusy {
-                            Spacer()
-                            ProgressView()
-                        }
-                    }
-                }
-                .buttonStyle(.mortarPrimary(width: .fullWidth))
-                .disabled(!handler.canSubmit || handler.isBusy)
+                MortarButton(
+                    handler.mode.actionTitle,
+                    width: .fullWidth,
+                    isLoading: handler.isBusy,
+                    action: submit
+                )
+                .disabled(!handler.canSubmit)
             }
         }
         .padding(Mortar.Spacing.xl)
@@ -94,14 +90,17 @@ struct ServerAddressView: View {
                 .padding(Mortar.Spacing.m)
                 .background(
                     RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
-                        .fill(PlatformColor.tertiarySystemBackground)
+                        // tertiarySystemBackground is white in light mode — the field vanished.
+                        .fill(PlatformColor.systemGray5)
                 )
                 .onSubmit(submit)
 
-            Text(handler.mode.footer)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.leading, Mortar.Spacing.xs)
+            if let footer = handler.mode.footer {
+                Text(footer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, Mortar.Spacing.xs)
+            }
 
             if let errorMessage = handler.errorMessage {
                 Text(errorMessage)
@@ -118,6 +117,7 @@ struct ServerAddressView: View {
 private extension ServerAddressView {
     enum Localization {
         static let serverAddress = String(localized: "Server Address", comment: "Label for the server URL input field")
-        static let urlPlaceholder = "http://homeassistant.local:8123"
+        /// Scheme-less: it is optional, and http would advertise the unencrypted one.
+        static let urlPlaceholder = "homeassistant.local:8123"
     }
 }

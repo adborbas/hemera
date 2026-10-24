@@ -4,7 +4,6 @@ import Mortar
 struct ServerSelectionView: View {
 
     @Bindable var viewModel: ServerSelectionViewModel
-    @State private var activeSheet: ActiveSheet?
     @State private var showManualEntry = false
     @State private var isExchangingToken = false
 
@@ -23,25 +22,16 @@ struct ServerSelectionView: View {
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $showManualEntry) {
             ServerAddressView(handler: viewModel, placement: .prominent)
-            .onDisappear { viewModel.errorMessage = nil }
+            .modifier(UnencryptedWarning(isPresented: httpWarning(whileManualEntry: true), viewModel: viewModel))
+            .onDisappear { viewModel.abandonConnection() }
         }
         .onAppear { viewModel.startDiscovery() }
         .onDisappear { viewModel.stopDiscovery() }
-        .alert(Localization.unencryptedTitle, isPresented: $viewModel.showHTTPWarning) {
-            Button(Localization.continueAction) {
-                viewModel.confirmHTTPConnection()
-            }
-            .keyboardShortcut(.defaultAction)
-            Button(Localization.cancel, role: .cancel) {
-                viewModel.cancelHTTPWarning()
-            }
-        } message: {
-            Text(Localization.unencryptedMessage)
-        }
+        .modifier(UnencryptedWarning(isPresented: httpWarning(whileManualEntry: false), viewModel: viewModel))
         .alert(
             Localization.connectionFailedTitle,
             isPresented: Binding(
-                get: { viewModel.errorMessage != nil && activeSheet == nil && !showManualEntry },
+                get: { viewModel.errorMessage != nil && viewModel.authSession == nil && !showManualEntry },
                 set: { if !$0 { viewModel.errorMessage = nil } }
             )
         ) {
@@ -49,54 +39,57 @@ struct ServerSelectionView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
-        .sheet(item: $activeSheet, onDismiss: {
-            if viewModel.authSession != nil {
-                viewModel.cancelAuth()
-            }
-        }) { sheet in
-            switch sheet {
-            case .oAuth(let session):
-                NavigationStack {
-                    OAuthWebView(url: session.authorizeURL, redirectURI: session.redirectURI) { callbackURL in
-                        let captured = session
-                        viewModel.authSession = nil
+        .sheet(item: $viewModel.authSession, onDismiss: {
+            viewModel.cancelAuth()
+        }) { session in
+            NavigationStack {
+                OAuthWebView(
+                    url: session.authorizeURL,
+                    redirectURI: session.redirectURI,
+                    onCallback: { callbackURL in
                         isExchangingToken = true
                         Task {
-                            await viewModel.handleOAuthCallback(url: callbackURL, session: captured)
+                            await viewModel.handleOAuthCallback(url: callbackURL, session: session)
                             isExchangingToken = false
-                            activeSheet = nil
+                            viewModel.authSession = nil
+                        }
+                    },
+                    onFailure: { viewModel.authSessionFailed() }
+                )
+                .ignoresSafeArea()
+                .overlay {
+                    if isExchangingToken {
+                        ZStack {
+                            Color(uiColor: .systemBackground)
+                                .ignoresSafeArea()
+                            ProgressView()
+                                .controlSize(.large)
                         }
                     }
-                    .ignoresSafeArea()
-                    .overlay {
-                        if isExchangingToken {
-                            ZStack {
-                                Color(uiColor: .systemBackground)
-                                    .ignoresSafeArea()
-                                ProgressView()
-                                    .controlSize(.large)
-                            }
+                }
+                .navigationTitle(Localization.signIn)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(Localization.cancel) {
+                            viewModel.cancelAuth()
                         }
-                    }
-                    .navigationTitle(Localization.signIn)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(Localization.cancel) {
-                                viewModel.cancelAuth()
-                                activeSheet = nil
-                            }
-                            .opacity(isExchangingToken ? 0 : 1)
-                        }
+                        .opacity(isExchangingToken ? 0 : 1)
                     }
                 }
             }
         }
-        .onChange(of: viewModel.authSession?.id) {
-            if let session = viewModel.authSession {
-                activeSheet = .oAuth(session)
-            }
-        }
+    }
+
+    /**
+     A view covered by a pushed destination never presents, so the warning is attached to both
+     the root and the manual-entry screen, and the active one is whichever is on top.
+    */
+    private func httpWarning(whileManualEntry: Bool) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.showHTTPWarning && showManualEntry == whileManualEntry },
+            set: { viewModel.showHTTPWarning = $0 }
+        )
     }
 
     // MARK: - Discovery Content
@@ -144,7 +137,7 @@ struct ServerSelectionView: View {
             iconColor: .green,
             title: server.name,
             subtitle: server.host,
-            action: { viewModel.connect(to: server.url) }
+            action: { Task { await viewModel.connect(to: server.url) } }
         ) {
             if viewModel.isConnecting {
                 ProgressView()
@@ -173,23 +166,36 @@ struct ServerSelectionView: View {
     }
 }
 
-// MARK: - Active Sheet
+// MARK: - Unencrypted Warning
 
-private extension ServerSelectionView {
-    enum ActiveSheet: Identifiable {
-        case oAuth(OAuthFlowManager.AuthSession)
+/// One definition applied in two places — see `httpWarning(whileManualEntry:)` for why there are two.
+private struct UnencryptedWarning: ViewModifier {
 
-        var id: String {
-            switch self {
-            case .oAuth: "oAuth"
+    @Binding var isPresented: Bool
+    let viewModel: ServerSelectionViewModel
+
+    func body(content: Content) -> some View {
+        content.alert(
+            ServerSelectionView.Localization.unencryptedTitle,
+            isPresented: $isPresented,
+            presenting: viewModel.pendingHTTPURL
+        ) { _ in
+            Button(ServerSelectionView.Localization.continueAction) {
+                Task { await viewModel.confirmHTTPConnection() }
             }
+            .keyboardShortcut(.defaultAction)
+            Button(ServerSelectionView.Localization.cancel, role: .cancel) {
+                viewModel.cancelHTTPWarning()
+            }
+        } message: { url in
+            Text(ServerSelectionView.Localization.unencryptedMessage(url.absoluteString))
         }
     }
 }
 
 // MARK: - Localization
 
-private extension ServerSelectionView {
+extension ServerSelectionView {
     enum Localization {
         static let title = String(localized: "Connect to Server", comment: "Navigation title for the server connection screen")
         static let connectionFailedTitle = String(localized: "Couldn’t Connect", comment: "Alert title shown when connecting to a Home Assistant server fails during onboarding")
@@ -208,7 +214,12 @@ private extension ServerSelectionView {
 
         // HTTP warning
         static let unencryptedTitle = String(localized: "Unencrypted Connection", comment: "Alert title warning about HTTP connection without encryption")
-        static let unencryptedMessage = String(localized: "This connection is not encrypted. For better security, use HTTPS.", comment: "Alert message explaining the security risk of HTTP connections")
+        static func unencryptedMessage(_ address: String) -> String {
+            String(
+                localized: "Home Assistant answered at \(address), but not over HTTPS. This connection won't be encrypted.",
+                comment: "Alert message naming the address that answered and explaining it is unencrypted. The placeholder is a full URL such as http://192.168.1.100:8123"
+            )
+        }
         static let continueAction = String(localized: "Continue", comment: "Button to proceed with unencrypted HTTP connection")
     }
 }

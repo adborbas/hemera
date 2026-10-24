@@ -53,15 +53,15 @@ struct ServerURLViewModelTests {
 
     // MARK: - Normalisation
 
-    /// LAN and VPN addresses are typically typed without a scheme.
-    @Test func save_withSchemelessHost_defaultsToHTTP() async {
+    /// Settings can't resolve, so guessing http here would downgrade an encrypted session.
+    @Test func save_withSchemelessHost_defaultsToHTTPS() async {
         let spy = SpyURLChanger()
         let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
         viewModel.text = "192.168.1.5:8123"
 
         _ = await viewModel.submit()
 
-        #expect(spy.changeCalls == [URL(string: "http://192.168.1.5:8123")!])
+        #expect(spy.changeCalls == [URL(string: "https://192.168.1.5:8123")!])
     }
 
     /**

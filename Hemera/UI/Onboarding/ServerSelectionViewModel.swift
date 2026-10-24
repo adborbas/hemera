@@ -30,9 +30,14 @@ final class ServerSelectionViewModel {
 
     private let oauthManager = OAuthFlowManager()
     private let authManager: any AuthManaging
+    private let serverProbe: any ServerProbing
 
-    init(authManager: any AuthManaging) {
+    /// Nothing cancels a resolve, so a result must prove it's still wanted before presenting.
+    private var attempt = 0
+
+    init(authManager: any AuthManaging, serverProbe: any ServerProbing = ServerProbe()) {
         self.authManager = authManager
+        self.serverProbe = serverProbe
     }
 
     convenience init() {
@@ -56,49 +61,104 @@ final class ServerSelectionViewModel {
     }
 
     @discardableResult
-    func connectManual() -> Bool {
-        guard let url = ServerAddress.normalised(manualURL) else {
+    func connectManual() async -> Bool {
+        let candidates = ServerAddress.candidates(manualURL)
+        guard !candidates.isEmpty else {
             errorMessage = Localization.invalidURLWithExample
             return false
         }
 
-        connect(to: url)
-        return true
+        await connect(candidates: candidates)
+        return errorMessage == nil
     }
 
-    func connect(to url: URL) {
+    /// A discovered server names its own scheme, so there is nothing to resolve.
+    func connect(to url: URL) async {
+        await connect(candidates: [url])
+    }
+
+    /// Warns only once http is known to be what works. Probing first costs no credentials.
+    private func connect(candidates: [URL]) async {
+        // A second tap lands here before the first attempt has finished; the first one wins.
+        guard !isConnecting else { return }
+
+        attempt &+= 1
+        let mine = attempt
         errorMessage = nil
+        isConnecting = true
 
-        if url.scheme?.lowercased() == "http" {
-            pendingHTTPURL = url
+        do {
+            let resolved = try await resolve(candidates)
+            guard mine == attempt else { return }
+            guard resolved.scheme?.lowercased() == "http" else {
+                startSession(at: resolved)
+                return
+            }
+            isConnecting = false
+            pendingHTTPURL = resolved
             showHTTPWarning = true
-            return
+        } catch {
+            guard mine == attempt else { return }
+            errorMessage = Self.message(for: error)
+            isConnecting = false
         }
-
-        startOAuth(url: url)
     }
 
-    func confirmHTTPConnection() {
-        if let url = pendingHTTPURL {
-            pendingHTTPURL = nil
-            startOAuth(url: url)
+    /// Leaving the screen abandons whatever it started, so a late result stays silent.
+    func abandonConnection() {
+        attempt &+= 1
+        isConnecting = false
+        pendingHTTPURL = nil
+        showHTTPWarning = false
+        errorMessage = nil
+    }
+
+    /// The first candidate that answers as Home Assistant wins.
+    private func resolve(_ candidates: [URL]) async throws -> URL {
+        var answered = false
+
+        for (index, url) in candidates.enumerated() {
+            let isLast = index == candidates.count - 1
+            do {
+                try await serverProbe.probe(url, timeout: isLast ? ServerProbe.confirmed : ServerProbe.speculative)
+                return url
+            } catch AuthError.notHomeAssistant {
+                answered = true
+            } catch {
+                continue
+            }
         }
+
+        // "Something answered, but it wasn't Home Assistant" is the more actionable of the two.
+        throw answered ? AuthError.notHomeAssistant : AuthError.serverUnreachable
+    }
+
+    func confirmHTTPConnection() async {
+        guard let url = pendingHTTPURL else { return }
+        pendingHTTPURL = nil
+        isConnecting = true
+        // `resolve` already proved this address serves Home Assistant.
+        startSession(at: url)
     }
 
     func cancelHTTPWarning() {
         pendingHTTPURL = nil
     }
 
-    func startOAuth(url: URL) {
-        isConnecting = true
-        errorMessage = nil
-
+    private func startSession(at url: URL) {
         do {
             authSession = try oauthManager.prepare(serverURL: url)
         } catch {
             errorMessage = Localization.invalidURL
             isConnecting = false
         }
+    }
+
+    /// The sign-in page itself failed to load, so the address passed the probe but can't be used.
+    func authSessionFailed() {
+        authSession = nil
+        isConnecting = false
+        errorMessage = Localization.unreachable
     }
 
     func handleOAuthCallback(url: URL, session: OAuthFlowManager.AuthSession) async {
@@ -147,10 +207,26 @@ final class ServerSelectionViewModel {
     }
     #endif
 
+    /// Separated so the user knows whether to fix the address or fix the network.
+    static func message(for error: Error) -> String {
+        switch error {
+        case AuthError.notHomeAssistant: Localization.notHomeAssistant
+        default: Localization.unreachable
+        }
+    }
+
     enum Localization {
         static let invalidURLWithExample = String(localized: "Please enter a valid URL (e.g. http://192.168.1.100:8123)", comment: "Validation error when the manually entered server URL is malformed")
         static let invalidURL = String(localized: "Invalid server URL.", comment: "Error message when OAuth preparation fails for the given server URL")
         static let authFailed = String(localized: "Authentication failed. Please try again.", comment: "Error message shown when OAuth login fails")
+        static let unreachable = String(
+            localized: "Couldn't reach this address. Check it's correct and that you're connected to a network that can reach it.",
+            comment: "Error shown when the entered Home Assistant address cannot be reached at all"
+        )
+        static let notHomeAssistant = String(
+            localized: "This address answered, but it isn't a Home Assistant. Check the address and the port.",
+            comment: "Error shown when the entered address is reachable but serves something other than Home Assistant"
+        )
     }
 }
 
@@ -168,7 +244,6 @@ extension ServerSelectionViewModel: ServerAddressHandling {
     var canSubmit: Bool { canConnect }
 
     func submit() async -> Bool {
-        // `connectManual` only reports that the address parsed; preparing OAuth can still fail.
-        connectManual() && errorMessage == nil
+        await connectManual()
     }
 }
