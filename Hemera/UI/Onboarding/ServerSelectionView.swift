@@ -22,21 +22,12 @@ struct ServerSelectionView: View {
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $showManualEntry) {
             ServerAddressView(handler: viewModel, placement: .prominent)
+            .modifier(UnencryptedWarning(isPresented: httpWarning(whileManualEntry: true), viewModel: viewModel))
             .onDisappear { viewModel.errorMessage = nil }
         }
         .onAppear { viewModel.startDiscovery() }
         .onDisappear { viewModel.stopDiscovery() }
-        .alert(Localization.unencryptedTitle, isPresented: $viewModel.showHTTPWarning) {
-            Button(Localization.continueAction) {
-                Task { await viewModel.confirmHTTPConnection() }
-            }
-            .keyboardShortcut(.defaultAction)
-            Button(Localization.cancel, role: .cancel) {
-                viewModel.cancelHTTPWarning()
-            }
-        } message: {
-            Text(Localization.unencryptedMessage)
-        }
+        .modifier(UnencryptedWarning(isPresented: httpWarning(whileManualEntry: false), viewModel: viewModel))
         .alert(
             Localization.connectionFailedTitle,
             isPresented: Binding(
@@ -88,6 +79,17 @@ struct ServerSelectionView: View {
                 }
             }
         }
+    }
+
+    /**
+     A view covered by a pushed destination never presents, so the warning is attached to both
+     the root and the manual-entry screen, and the active one is whichever is on top.
+    */
+    private func httpWarning(whileManualEntry: Bool) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.showHTTPWarning && showManualEntry == whileManualEntry },
+            set: { viewModel.showHTTPWarning = $0 }
+        )
     }
 
     // MARK: - Discovery Content
@@ -164,9 +166,32 @@ struct ServerSelectionView: View {
     }
 }
 
+// MARK: - Unencrypted Warning
+
+/// One definition applied in two places — see `httpWarning(whileManualEntry:)` for why there are two.
+private struct UnencryptedWarning: ViewModifier {
+
+    @Binding var isPresented: Bool
+    let viewModel: ServerSelectionViewModel
+
+    func body(content: Content) -> some View {
+        content.alert(ServerSelectionView.Localization.unencryptedTitle, isPresented: $isPresented) {
+            Button(ServerSelectionView.Localization.continueAction) {
+                Task { await viewModel.confirmHTTPConnection() }
+            }
+            .keyboardShortcut(.defaultAction)
+            Button(ServerSelectionView.Localization.cancel, role: .cancel) {
+                viewModel.cancelHTTPWarning()
+            }
+        } message: {
+            Text(ServerSelectionView.Localization.unencryptedMessage)
+        }
+    }
+}
+
 // MARK: - Localization
 
-private extension ServerSelectionView {
+extension ServerSelectionView {
     enum Localization {
         static let title = String(localized: "Connect to Server", comment: "Navigation title for the server connection screen")
         static let connectionFailedTitle = String(localized: "Couldn’t Connect", comment: "Alert title shown when connecting to a Home Assistant server fails during onboarding")
