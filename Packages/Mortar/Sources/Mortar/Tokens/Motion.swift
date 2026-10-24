@@ -16,10 +16,10 @@ extension Mortar {
         public static var springSnappy: Animation { .spring(duration: 0.35, bounce: 0.12) }
 
         /// Light spilling out of a card's icon as its entity becomes active.
-        public static var glowExpand: Animation { .easeOut(duration: 0.45) }
+        public static var glowExpand: Animation { .easeOut(duration: slow) }
         /// The same glow drawn back into the icon — accelerating inwards as it shrinks.
         public static var glowCollapse: Animation { .easeIn(duration: glowCollapseDuration) }
-        public static let glowCollapseDuration: Double = slow
+        public static let glowCollapseDuration: Double = normal
         /// When the glow looks gone: before the curve ends, as its last scale hides behind the icon.
         public static let glowRetreatDuration: Double = glowCollapseDuration * 0.8
     }
