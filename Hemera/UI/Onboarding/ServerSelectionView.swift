@@ -175,7 +175,11 @@ private struct UnencryptedWarning: ViewModifier {
     let viewModel: ServerSelectionViewModel
 
     func body(content: Content) -> some View {
-        content.alert(ServerSelectionView.Localization.unencryptedTitle, isPresented: $isPresented) {
+        content.alert(
+            ServerSelectionView.Localization.unencryptedTitle,
+            isPresented: $isPresented,
+            presenting: viewModel.pendingHTTPURL
+        ) { _ in
             Button(ServerSelectionView.Localization.continueAction) {
                 Task { await viewModel.confirmHTTPConnection() }
             }
@@ -183,8 +187,8 @@ private struct UnencryptedWarning: ViewModifier {
             Button(ServerSelectionView.Localization.cancel, role: .cancel) {
                 viewModel.cancelHTTPWarning()
             }
-        } message: {
-            Text(ServerSelectionView.Localization.unencryptedMessage)
+        } message: { url in
+            Text(ServerSelectionView.Localization.unencryptedMessage(url.absoluteString))
         }
     }
 }
@@ -210,7 +214,12 @@ extension ServerSelectionView {
 
         // HTTP warning
         static let unencryptedTitle = String(localized: "Unencrypted Connection", comment: "Alert title warning about HTTP connection without encryption")
-        static let unencryptedMessage = String(localized: "This connection is not encrypted. For better security, use HTTPS.", comment: "Alert message explaining the security risk of HTTP connections")
+        static func unencryptedMessage(_ address: String) -> String {
+            String(
+                localized: "Home Assistant answered at \(address), but not over HTTPS. This connection won't be encrypted.",
+                comment: "Alert message naming the address that answered and explaining it is unencrypted. The placeholder is a full URL such as http://192.168.1.100:8123"
+            )
+        }
         static let continueAction = String(localized: "Continue", comment: "Button to proceed with unencrypted HTTP connection")
     }
 }

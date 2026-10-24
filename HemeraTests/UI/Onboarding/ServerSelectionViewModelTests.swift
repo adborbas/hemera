@@ -44,7 +44,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func connectManual_withValidHTTPURL_showsHTTPWarningAndReturnsTrue() async {
-        let viewModel = makeViewModel()
+        let viewModel = makeViewModel(probe: MockServerProbe(answering: ["http"]))
         viewModel.manualURL = "http://192.168.1.100:8123"
         let result = await viewModel.connectManual()
         #expect(result == true)
@@ -63,19 +63,67 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
-    func connectManual_prependsHTTPIfNoScheme_returnsTrue() async {
-        let viewModel = makeViewModel()
+    func connectManual_withNoScheme_prefersHTTPSAndNeverWarns() async {
+        // The whole point of resolving: a bare host that serves https must not nag about http.
+        let viewModel = makeViewModel(probe: MockServerProbe(answering: ["https", "http"]))
         viewModel.manualURL = "192.168.1.100:8123"
+
         let result = await viewModel.connectManual()
+
         #expect(result == true)
+        #expect(viewModel.showHTTPWarning == false)
+        #expect(viewModel.authSession?.serverURL.scheme == "https")
+    }
+
+    @Test
+    func connectManual_withNoScheme_fallsBackToHTTPAndWarnsNamingTheAddress() async {
+        let viewModel = makeViewModel(probe: MockServerProbe(answering: ["http"]))
+        viewModel.manualURL = "192.168.1.100:8123"
+
+        _ = await viewModel.connectManual()
+
+        // Warning only once http is known to be the one that works, and it names what answered.
         #expect(viewModel.showHTTPWarning == true)
+        #expect(viewModel.pendingHTTPURL?.absoluteString == "http://192.168.1.100:8123")
+        #expect(viewModel.authSession == nil)
+    }
+
+    @Test
+    func connectManual_withNoScheme_triesHTTPSFirstAndOnlyWaitsLongForTheLast() async {
+        /**
+         Order and patience are the contract: https is tried first so an address serving both
+         is reached encrypted, and the guess that isn't last gets a short timeout so a hung
+         port can't eat the whole attempt.
+        */
+        let probe = MockServerProbe(answering: [])
+        let viewModel = makeViewModel(probe: probe)
+        viewModel.manualURL = "192.168.1.100:8123"
+
+        _ = await viewModel.connectManual()
+
+        #expect(probe.probed.map { $0.url.scheme } == ["https", "http"])
+        #expect(probe.probed.map(\.timeout) == [ServerProbe.speculative, ServerProbe.confirmed])
+    }
+
+    @Test
+    func connectManual_withTypedScheme_neverTriesTheOther() async {
+        // A named scheme is the user's instruction, not a hint — we must not connect elsewhere.
+        let probe = MockServerProbe(answering: ["https"])
+        let viewModel = makeViewModel(probe: probe)
+        viewModel.manualURL = "http://192.168.1.100:8123"
+
+        _ = await viewModel.connectManual()
+
+        #expect(probe.probed.map { $0.url.scheme } == ["http"])
+        #expect(viewModel.authSession == nil)
+        #expect(viewModel.errorMessage != nil)
     }
 
     // MARK: - HTTP Warning
 
     @Test
     func connect_withHTTPURL_showsWarning() async {
-        let viewModel = makeViewModel()
+        let viewModel = makeViewModel(probe: MockServerProbe(answering: ["http"]))
         let url = URL(string: "http://192.168.1.100:8123")!
         await viewModel.connect(to: url)
         #expect(viewModel.showHTTPWarning == true)
@@ -93,7 +141,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func confirmHTTPConnection_startsOAuthWithPendingURL() async {
-        let viewModel = makeViewModel()
+        let viewModel = makeViewModel(probe: MockServerProbe(answering: ["http"]))
         let url = URL(string: "http://192.168.1.100:8123")!
         await viewModel.connect(to: url)
 
@@ -105,7 +153,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func cancelHTTPWarning_clearsPendingURL() async {
-        let viewModel = makeViewModel()
+        let viewModel = makeViewModel(probe: MockServerProbe(answering: ["http"]))
         let url = URL(string: "http://192.168.1.100:8123")!
         await viewModel.connect(to: url)
 
@@ -162,10 +210,10 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
-    func startOAuth_clearsPreviousErrorMessage() async {
+    func connect_clearsPreviousErrorMessage() async {
         let viewModel = makeViewModel()
         viewModel.errorMessage = "stale error"
-        await viewModel.startOAuth(url: URL(string: "https://ha.example.com:8123")!)
+        await viewModel.connect(to: URL(string: "https://ha.example.com:8123")!)
         #expect(viewModel.errorMessage == nil)
     }
 
@@ -178,10 +226,10 @@ struct ServerSelectionViewModelTests {
     */
 
     @Test
-    func startOAuth_whenAddressUnreachable_setsErrorAndOpensNoSession() async {
-        let viewModel = makeViewModel(probeError: AuthError.serverUnreachable)
+    func connect_whenAddressUnreachable_setsErrorAndOpensNoSession() async {
+        let viewModel = makeViewModel(probe: .failing(AuthError.serverUnreachable))
 
-        await viewModel.startOAuth(url: URL(string: "https://notahost.invalid")!)
+        await viewModel.connect(to: URL(string: "https://notahost.invalid")!)
 
         #expect(viewModel.authSession == nil)
         #expect(viewModel.isConnecting == false)
@@ -189,11 +237,11 @@ struct ServerSelectionViewModelTests {
     }
 
     @Test
-    func startOAuth_whenAddressIsNotHomeAssistant_saysSoRatherThanUnreachable() async {
+    func connect_whenAddressIsNotHomeAssistant_saysSoRatherThanUnreachable() async {
         // A reachable host that isn't Home Assistant needs a different fix from a network problem.
-        let viewModel = makeViewModel(probeError: AuthError.notHomeAssistant)
+        let viewModel = makeViewModel(probe: .failing(AuthError.notHomeAssistant))
 
-        await viewModel.startOAuth(url: URL(string: "https://example.com")!)
+        await viewModel.connect(to: URL(string: "https://example.com")!)
 
         #expect(viewModel.authSession == nil)
         #expect(viewModel.errorMessage == ServerSelectionViewModel.Localization.notHomeAssistant)
@@ -201,7 +249,7 @@ struct ServerSelectionViewModelTests {
 
     @Test
     func connectManual_whenProbeFails_reportsFailureSoFocusReturnsToTheField() async {
-        let viewModel = makeViewModel(probeError: AuthError.serverUnreachable)
+        let viewModel = makeViewModel(probe: .failing(AuthError.serverUnreachable))
         viewModel.manualURL = "https://notahost.invalid"
 
         let result = await viewModel.connectManual()
@@ -213,7 +261,7 @@ struct ServerSelectionViewModelTests {
     @Test
     func confirmHTTPConnection_whenProbeFails_setsErrorAndOpensNoSession() async {
         // The HTTP warning is consented to before the probe runs, so its failure has to surface too.
-        let viewModel = makeViewModel(probeError: AuthError.serverUnreachable)
+        let viewModel = makeViewModel(probe: .failing(AuthError.serverUnreachable))
         await viewModel.connect(to: URL(string: "http://192.168.1.100:8123")!)
 
         await viewModel.confirmHTTPConnection()
@@ -227,7 +275,7 @@ struct ServerSelectionViewModelTests {
     func authSessionFailed_dismissesSheetAndExplainsWhy() async {
         // The sign-in page can still fail to load after a passing probe — a TLS error, say.
         let viewModel = makeViewModel()
-        await viewModel.startOAuth(url: URL(string: "https://ha.example.com:8123")!)
+        await viewModel.connect(to: URL(string: "https://ha.example.com:8123")!)
         #expect(viewModel.authSession != nil)
 
         viewModel.authSessionFailed()
@@ -257,10 +305,7 @@ struct ServerSelectionViewModelTests {
 
 private extension ServerSelectionViewModelTests {
 
-    func makeViewModel(probeError: (any Error)? = nil) -> ServerSelectionViewModel {
-        ServerSelectionViewModel(
-            authManager: MockAuthManager(),
-            serverProbe: MockServerProbe(throwing: probeError)
-        )
+    func makeViewModel(probe: MockServerProbe = MockServerProbe()) -> ServerSelectionViewModel {
+        ServerSelectionViewModel(authManager: MockAuthManager(), serverProbe: probe)
     }
 }

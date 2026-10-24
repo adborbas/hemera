@@ -59,54 +59,82 @@ final class ServerSelectionViewModel {
 
     @discardableResult
     func connectManual() async -> Bool {
-        guard let url = ServerAddress.normalised(manualURL) else {
+        let candidates = ServerAddress.candidates(manualURL)
+        guard !candidates.isEmpty else {
             errorMessage = Localization.invalidURLWithExample
             return false
         }
 
-        await connect(to: url)
+        await connect(candidates: candidates)
         return errorMessage == nil
     }
 
+    /// A discovered server names its own scheme, so there is nothing to resolve.
     func connect(to url: URL) async {
-        errorMessage = nil
+        await connect(candidates: [url])
+    }
 
-        /**
-         The warning comes before the probe deliberately: probing already sends the cleartext
-         request the user is being asked to consent to.
-        */
-        if url.scheme?.lowercased() == "http" {
-            pendingHTTPURL = url
+    /**
+     Resolves the address, then warns only if the one that works is unencrypted.
+
+     This reverses the earlier ordering, where the warning came first so that no cleartext
+     request was sent without consent. Finding out whether http is even needed requires
+     asking, and the probe carries no credentials — it only reveals that someone asked this
+     host whether it runs Home Assistant. Warning on every scheme-less address instead told
+     people nothing: it fired just as often when https would have worked.
+    */
+    private func connect(candidates: [URL]) async {
+        errorMessage = nil
+        isConnecting = true
+
+        do {
+            let resolved = try await resolve(candidates)
+            guard resolved.scheme?.lowercased() == "http" else {
+                startSession(at: resolved)
+                return
+            }
+            isConnecting = false
+            pendingHTTPURL = resolved
             showHTTPWarning = true
-            return
+        } catch {
+            errorMessage = Self.message(for: error)
+            isConnecting = false
+        }
+    }
+
+    /// The first candidate that answers as Home Assistant wins.
+    private func resolve(_ candidates: [URL]) async throws -> URL {
+        var answered = false
+
+        for (index, url) in candidates.enumerated() {
+            let isLast = index == candidates.count - 1
+            do {
+                try await serverProbe.probe(url, timeout: isLast ? ServerProbe.confirmed : ServerProbe.speculative)
+                return url
+            } catch AuthError.notHomeAssistant {
+                answered = true
+            } catch {
+                continue
+            }
         }
 
-        await startOAuth(url: url)
+        // "Something answered, but it wasn't Home Assistant" is the more actionable of the two.
+        throw answered ? AuthError.notHomeAssistant : AuthError.serverUnreachable
     }
 
     func confirmHTTPConnection() async {
-        if let url = pendingHTTPURL {
-            pendingHTTPURL = nil
-            await startOAuth(url: url)
-        }
+        guard let url = pendingHTTPURL else { return }
+        pendingHTTPURL = nil
+        isConnecting = true
+        // `resolve` already proved this address serves Home Assistant.
+        startSession(at: url)
     }
 
     func cancelHTTPWarning() {
         pendingHTTPURL = nil
     }
 
-    func startOAuth(url: URL) async {
-        isConnecting = true
-        errorMessage = nil
-
-        do {
-            try await serverProbe.probe(url)
-        } catch {
-            errorMessage = Self.message(for: error)
-            isConnecting = false
-            return
-        }
-
+    private func startSession(at url: URL) {
         do {
             authSession = try oauthManager.prepare(serverURL: url)
         } catch {

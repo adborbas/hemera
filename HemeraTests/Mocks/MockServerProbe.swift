@@ -1,18 +1,42 @@
 import Foundation
 @testable import Hemera
 
-/// Succeeds unless given an error to throw, so tests never reach the network.
+/**
+ Answers per-scheme so resolution order can be asserted, and records what was asked.
+
+ Defaults to answering everything, so tests that don't care about resolution never reach
+ the network.
+*/
 final class MockServerProbe: ServerProbing, @unchecked Sendable {
 
-    private let error: (any Error)?
+    /// Schemes that answer as Home Assistant. `nil` means every scheme answers.
+    private let answering: Set<String>?
+    private let otherwise: any Error
 
-    init(throwing error: (any Error)? = nil) {
-        self.error = error
+    private let lock = NSLock()
+    private var _probed: [(url: URL, timeout: TimeInterval)] = []
+
+    var probed: [(url: URL, timeout: TimeInterval)] {
+        lock.lock(); defer { lock.unlock() }
+        return _probed
     }
 
-    func probe(_ serverURL: URL) async throws {
-        if let error {
-            throw error
-        }
+    init(answering: Set<String>? = nil, otherwise: any Error = AuthError.serverUnreachable) {
+        self.answering = answering
+        self.otherwise = otherwise
+    }
+
+    /// Nothing answers — every candidate fails with `error`.
+    static func failing(_ error: any Error) -> MockServerProbe {
+        MockServerProbe(answering: [], otherwise: error)
+    }
+
+    func probe(_ serverURL: URL, timeout: TimeInterval) async throws {
+        lock.lock()
+        _probed.append((serverURL, timeout))
+        lock.unlock()
+
+        guard let answering else { return }
+        guard answering.contains(serverURL.scheme ?? "") else { throw otherwise }
     }
 }

@@ -8,17 +8,22 @@ import Foundation
  sheet that silently never loads.
 */
 protocol ServerProbing: Sendable {
-    /// Throws `AuthError.serverUnreachable` or `AuthError.notHomeAssistant` if the address can't sign us in.
-    func probe(_ serverURL: URL) async throws
+    /**
+     Throws `AuthError.serverUnreachable` or `AuthError.notHomeAssistant` if the address can't sign us in.
+
+     `timeout` is the caller's patience. Resolving a bare host tries a scheme the user never
+     named, so that guess gets a short one — the cost of being wrong is a delay the user did
+     not ask for.
+    */
+    func probe(_ serverURL: URL, timeout: TimeInterval) async throws
 }
 
 struct ServerProbe: ServerProbing {
 
-    private let timeout: TimeInterval
-
-    init(timeout: TimeInterval = 10) {
-        self.timeout = timeout
-    }
+    /// A scheme the user actually typed is worth waiting for.
+    static let confirmed: TimeInterval = 10
+    /// A scheme we guessed at is not — falling through to the other one quickly matters more.
+    static let speculative: TimeInterval = 3
 
     /**
      `/auth/providers` is the login page's own unauthenticated endpoint, so anything able to
@@ -26,7 +31,7 @@ struct ServerProbe: ServerProbing {
      user has to act on differently: a transport error means the address or the network is
      wrong, a bad answer means the address reached something that isn't Home Assistant.
     */
-    func probe(_ serverURL: URL) async throws {
+    func probe(_ serverURL: URL, timeout: TimeInterval) async throws {
         var request = URLRequest(url: serverURL.appendingPathComponent("/auth/providers"))
         request.timeoutInterval = timeout
 
@@ -44,6 +49,7 @@ struct ServerProbe: ServerProbing {
             throw AuthError.notHomeAssistant
         }
     }
+
 }
 
 /**
