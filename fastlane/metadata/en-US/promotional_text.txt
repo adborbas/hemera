@@ -1,0 +1,1 @@
+Control lights, blinds, climate, switches and more from a beautiful native dashboard. Hemera brings your Home Assistant setup to iPhone and iPad.

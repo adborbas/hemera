@@ -21,7 +21,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane ios cut_release
 ```
 
-Cut a new release branch and bump the marketing version
+Cut a release branch for the next version
 
 ### ios beta
 
@@ -38,6 +38,22 @@ Build a signed release and upload it to TestFlight
 ```
 
 Tag, create a GitHub release, and merge the release branch back to main
+
+### ios prepare_release
+
+```sh
+[bundle exec] fastlane ios prepare_release
+```
+
+Prepare an App Store version for review (does not submit)
+
+### ios publish_if_live
+
+```sh
+[bundle exec] fastlane ios publish_if_live
+```
+
+Publish the pending release if App Store Connect reports it live
 
 ----
 

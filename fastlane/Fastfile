@@ -2,59 +2,45 @@ default_platform(:ios)
 
 XCCONFIG = "Config/Shared.xcconfig".freeze
 BETA_GROUP = "Testers (all builds)".freeze # internal group set to auto-receive all builds
+APP_IDENTIFIER = "com.adborbas.hemera.app".freeze
 
 platform :ios do
   # ---------------------------------------------------------------------------
   # 1. Cut a new release
-  #    Branch release/<version> from main, then advance main to the next
-  #    development version so main never sits on a released version and always
-  #    stays ahead of the release branch. main normally already holds <version>
-  #    (it tracks the in-development version), so the release branch just pins it.
-  #    The main advance goes through an auto-merged PR (main is protected), so
-  #    GH_TOKEN must be a PAT with admin rights — see RELEASING.md.
-  #    Usage: bundle exec fastlane cut_release version:1.4.0
+  #    Branch release/<version> from main and pin <version> on it. The version
+  #    is a release counter derived from the tags — the next release after v2.0
+  #    is 3.0 — so nothing has to be decided or bumped ahead of time. Pass
+  #    version: explicitly for a hotfix (2.0 -> 2.1).
+  #    Usage: bundle exec fastlane cut_release
   # ---------------------------------------------------------------------------
-  desc "Cut a release branch and advance main to the next development version"
+  desc "Cut a release branch for the next version"
   lane :cut_release do |options|
-    version = options[:version] or UI.user_error!("Missing `version:` (e.g. version:1.4.0)")
-    branch = "release/#{version}"
-    next_version = next_minor_version(version)
+    version = options[:version]
+    version = nil if version.to_s.strip.empty?
 
     ensure_git_status_clean
-    sh("git", "fetch", "origin", "main")
+    sh("git", "fetch", "origin", "main", "--tags")
 
-    # Create the release branch, pinned at <version>. main normally already holds
-    # this version, so this is usually a no-op; record it only if it differs.
-    sh("git", "checkout", "-B", branch, "origin/main")
-    if get_xcconfig_value(key: "MARKETING_VERSION") != version
-      set_xcconfig_value(key: "MARKETING_VERSION", value: version)
-      git_commit(path: XCCONFIG, message: "Prepare release #{version}")
+    version ||= next_release_version
+    branch = "release/#{version}"
+
+    # Skipped when already done, so the release train can be re-run after a
+    # later stage fails without tripping over the branch it already cut.
+    if remote_branch_exists?(branch)
+      UI.important("#{branch} already exists on origin — leaving it untouched.")
+    else
+      # Pin <version> on the branch. main holds whatever was released last, so
+      # this commits the new number unless the two already agree.
+      sh("git", "checkout", "-B", branch, "origin/main")
+      if get_xcconfig_value(key: "MARKETING_VERSION") != version
+        set_xcconfig_value(key: "MARKETING_VERSION", value: version)
+        git_commit(path: XCCONFIG, message: "Prepare release #{version}")
+      end
+      push_to_git_remote(local_branch: branch, remote_branch: branch, force: false)
     end
-    push_to_git_remote(local_branch: branch, remote_branch: branch, force: false)
 
-    # Advance main to the next development version. main is protected: direct
-    # pushes are rejected (changes must go through a PR), so the bump goes on a
-    # short-lived branch that is opened as a PR and admin-merged. Opening the PR
-    # satisfies the non-bypassable "changes via PR" rule; admin-merge bypasses the
-    # required review and "Unit Tests" check (enforce_admins is off) for this
-    # trivial one-line bump. This requires GH_TOKEN to be a PAT with admin rights
-    # — the default Actions token is write-only and cannot admin-merge.
-    bump_branch = "chore/bump-main-#{next_version}"
-    sh("git", "checkout", "-B", bump_branch, "origin/main")
-    set_xcconfig_value(key: "MARKETING_VERSION", value: next_version)
-    git_commit(path: XCCONFIG, message: "Bump main to #{next_version} for development")
-    push_to_git_remote(local_branch: bump_branch, remote_branch: bump_branch, force: false)
-
-    sh(
-      "gh", "pr", "create",
-      "--base", "main",
-      "--head", bump_branch,
-      "--title", "Bump main to #{next_version} for development",
-      "--body", "Advance main to the next in-development version after cutting #{branch}."
-    )
-    sh("gh", "pr", "merge", bump_branch, "--squash", "--admin", "--delete-branch")
-
-    UI.success("Cut #{branch} at #{version}; advanced main to #{next_version} via an auto-merged PR. Run the Upload to TestFlight lane next.")
+    github_output("version", version)
+    UI.success("Cut #{branch} at #{version}. main picks the version up when the release is published and back-merged.")
   end
 
   # ---------------------------------------------------------------------------
@@ -98,6 +84,7 @@ platform :ios do
       initial_build_number: 0
     ) + 1
     set_xcconfig_value(key: "CURRENT_PROJECT_VERSION", value: next_build.to_s)
+    github_output("build_number", next_build)
 
     # The project uses automatic signing for local development, but on CI there's
     # no Apple account to resolve a profile, so the archive must use manual
@@ -157,10 +144,13 @@ platform :ios do
     sh("git", "checkout", branch)
     sh("git", "reset", "--hard", "origin/#{branch}")
 
-    add_git_tag(tag: tag)
-    push_git_tags(tag: tag)
-
-    sh("gh", "release", "create", tag, "--title", version, "--notes", "Release #{version}")
+    if remote_tag_exists?(tag)
+      UI.important("#{tag} is already tagged — skipping the tag and GitHub release.")
+    else
+      add_git_tag(tag: tag)
+      push_git_tags(tag: tag)
+      sh("gh", "release", "create", tag, "--title", version, "--notes", "Release #{version}")
+    end
 
     # Open a PR to merge the release branch back into main — but only if the
     # branch has commits main doesn't already have (e.g. fixes made during
@@ -178,7 +168,18 @@ platform :ios do
         "--title", "Merge #{branch} back to main",
         "--body", "Back-merge of the shipped #{tag} release into main."
       )
-      UI.success("Published #{tag}. Opened a back-merge PR for #{branch} → main.")
+      # Admin-merged like the version bump: these commits already shipped, and
+      # requiring a review here would stall the unattended publish.
+      sh("gh", "pr", "merge", branch, "--merge", "--admin")
+      UI.success("Published #{tag} and merged #{branch} back into main.")
+    end
+
+    # The tag now marks the shipped commit, so the branch has done its job.
+    # Deleting it is also what makes publish_if_live a no-op on later runs.
+    # Merging the PR may already have deleted it: the repo deletes head
+    # branches on merge.
+    if remote_branch_exists?(branch)
+      sh("git", "push", "origin", "--delete", branch)
     end
   end
 
@@ -209,12 +210,28 @@ platform :ios do
     # uploaded to TestFlight for this version.
     build_number = options[:build]
     build_number = nil if build_number.to_s.strip.empty?
-    build_number ||= latest_testflight_build_number(api_key: api_key, version: version)
+    # initial_build_number is what the action returns when the version has no
+    # build at all; 0 makes that case recognisable instead of a plausible "1"
+    # that the wait below would then poll until it times out.
+    build_number ||= latest_testflight_build_number(
+      api_key: api_key,
+      version: version,
+      initial_build_number: 0
+    )
+    if build_number.to_i.zero?
+      UI.user_error!("No TestFlight build found for #{version} — run the beta lane first.")
+    end
+
+    app = Spaceship::ConnectAPI::App.find(APP_IDENTIFIER)
+    UI.user_error!("Could not find app #{APP_IDENTIFIER} on App Store Connect") if app.nil?
+
+    # Wait before deliver, so a build that will never arrive fails the lane
+    # before any metadata is written.
+    build = wait_for_processed_build!(app: app, version: version, build_number: build_number)
 
     deliver(
       api_key: api_key,
       app_version: version,
-      build_number: build_number.to_s,
       skip_binary_upload: true,   # the build is uploaded by the beta lane
       skip_screenshots: true,     # screenshots are managed manually in ASC
       skip_metadata: false,       # push release_notes from fastlane/metadata
@@ -224,7 +241,51 @@ platform :ios do
       force: true                 # no interactive HTML preview on CI
     )
 
-    UI.success("Prepared App Store version #{version} (build #{build_number}) for review. Submit it in App Store Connect when ready.")
+    # deliver only attaches a build on its way to submitting for review, which
+    # this lane deliberately does not do — so without this the version is left
+    # with no build at all, and passing `build_number:` to deliver would only
+    # have suppressed a binary upload that skip_binary_upload already blocks.
+    asc_version = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    UI.user_error!("No editable App Store version to attach build #{build_number} to") if asc_version.nil?
+    asc_version.select_build(build_id: build.id)
+
+    UI.success("Prepared App Store version #{version} with build #{build_number} attached. Submit it in App Store Connect when ready.")
+  end
+
+  # ---------------------------------------------------------------------------
+  # 5. Publish automatically once Apple releases the version
+  #    Driven by a schedule: publishes only when the live App Store version
+  #    still has a release branch, which `publish` deletes when it is done.
+  #    Usage: bundle exec fastlane publish_if_live
+  # ---------------------------------------------------------------------------
+  desc "Publish the pending release if App Store Connect reports it live"
+  lane :publish_if_live do
+    app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_P8"),
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    app = Spaceship::ConnectAPI::App.find(APP_IDENTIFIER)
+    UI.user_error!("Could not find app #{APP_IDENTIFIER} on App Store Connect") if app.nil?
+
+    live = app.get_live_app_store_version
+    if live.nil?
+      UI.important("Nothing is live on the App Store yet.")
+      next
+    end
+
+    version = live.version_string
+    sh("git", "fetch", "origin")
+    unless remote_branch_exists?("release/#{version}")
+      UI.message("#{version} is live and release/#{version} is already retired — nothing to do.")
+      next
+    end
+
+    UI.important("#{version} is live on the App Store — publishing it.")
+    publish(version: version)
   end
 end
 
@@ -238,11 +299,14 @@ def set_xcconfig_value(key:, value:)
   UI.message("Set #{key} = #{value} in #{XCCONFIG}")
 end
 
-# Next development version: bump the minor, reset the patch.
-# "1.4.0" -> "1.5.0", "1.4" -> "1.5.0".
-def next_minor_version(version)
-  major, minor, = version.split(".").map(&:to_i)
-  "#{major || 0}.#{(minor || 0) + 1}.0"
+# The next release number: one past the highest release ever tagged. Hotfixes
+# move the second component (2.0 -> 2.1) and are cut by passing version:
+# explicitly, so they never influence what the next release is called.
+def next_release_version
+  tags = sh("git", "tag", "--list", "v*", log: false).split("\n")
+  highest = tags.filter_map { |tag| tag.strip.delete_prefix("v").split(".").first&.to_i }.max
+  UI.user_error!("No v* tags found to count releases from") if highest.nil?
+  "#{highest + 1}.0"
 end
 
 # Read a KEY's value from Config/Shared.xcconfig.
@@ -270,5 +334,55 @@ def ensure_open_version_train!
       "Its TestFlight train is closed for new builds. " \
       "Run `fastlane cut_release version:<next>` to bump the marketing version first."
     )
+  end
+end
+
+# True if <branch> exists on origin. `git ls-remote` exits 0 with no output
+# when nothing matches, so the output is what tells the two apart.
+def remote_branch_exists?(branch)
+  !sh("git", "ls-remote", "--heads", "origin", branch, log: false).strip.empty?
+end
+
+# True if <tag> exists on origin.
+def remote_tag_exists?(tag)
+  !sh("git", "ls-remote", "--tags", "origin", tag, log: false).strip.empty?
+end
+
+# Publish a value for later jobs in the same GitHub Actions workflow. A no-op
+# everywhere else, so the lanes stay runnable locally.
+def github_output(name, value)
+  path = ENV["GITHUB_OUTPUT"]
+  return if path.to_s.empty?
+  File.open(path, "a") { |file| file.puts("#{name}=#{value}") }
+end
+
+# Block until <build_number> for <version> is processed, and return it.
+# Polls that exact build on purpose: pilot's own wait watches the oldest
+# processing build instead, which is the hang the beta lane refuses to risk.
+def wait_for_processed_build!(app:, version:, build_number:, timeout: 2700, interval: 30)
+  states = Spaceship::ConnectAPI::Build::ProcessingState
+  deadline = Time.now + timeout
+
+  loop do
+    build = Spaceship::ConnectAPI::Build.all(
+      app_id: app.id,
+      version: version,
+      build_number: build_number.to_s,
+      platform: Spaceship::ConnectAPI::Platform::IOS
+    ).first
+    state = build&.processing_state
+
+    return build if state == states::VALID
+
+    if [states::FAILED, states::INVALID].include?(state)
+      UI.user_error!("Build #{build_number} for #{version} finished processing as #{state}.")
+    end
+
+    if Time.now > deadline
+      UI.user_error!("Timed out after #{timeout}s waiting for build #{build_number} (#{version}) to process.")
+    end
+
+    UI.message("Build #{build_number} for #{version} is #{state || 'not visible yet'} — checking again in #{interval}s.")
+    sleep(interval)
   end
 end

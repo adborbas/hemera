@@ -1,0 +1,41 @@
+name: Auto-publish When Live
+
+# Tags, releases and back-merges a version once Apple has actually released it.
+# Nothing to configure per release: the lane publishes only while a release
+# branch for the live version still exists, and publishing deletes it.
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish Released Version
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Publish if live
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: bundle exec fastlane publish_if_live
