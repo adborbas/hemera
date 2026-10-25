@@ -29,11 +29,11 @@ swift test --package-path Packages/AppStoreScreenshots
 
 ## Code Standards
 
-This project follows specific conventions for architecture, style, and testing. See `.claude/rules/` for detailed guides:
+This project follows specific conventions for architecture, style, and testing. See `.agents/rules/` for detailed guides:
 
-- **Architecture** (`.claude/rules/architecture.md`) — MVVM + Coordinator pattern, Service Locator DI, Entity pattern
-- **Swift Style** (`.claude/rules/swift-style.md`) — Naming, types, observation, SwiftUI patterns, design tokens
-- **Testing** (`.claude/rules/testing.md`) — Swift Testing, mock patterns, test structure
+- **Architecture** (`.agents/rules/architecture.md`) — MVVM + Coordinator pattern, Service Locator DI, Entity pattern
+- **Swift Style** (`.agents/rules/swift-style.md`) — Naming, types, observation, SwiftUI patterns, design tokens
+- **Testing** (`.agents/rules/testing.md`) — Swift Testing, mock patterns, test structure
 
 **Quick highlights:**
 - Use `@Observable` view models (not `ObservableObject`/Combine)
@@ -81,7 +81,7 @@ PRs will be reviewed for:
 
 New to the codebase? Start with:
 
-1. **`.claude/rules/architecture.md`** — dependency flow, MVVM structure, entity pattern
+1. **`.agents/rules/architecture.md`** — dependency flow, MVVM structure, entity pattern
 2. **Adding a new entity type** — see the "Common Workflows" section in `CLAUDE.md`
 
 The codebase uses:
@@ -94,7 +94,7 @@ The codebase uses:
 ## Questions?
 
 - Start a GitHub Discussion for questions or ideas
-- Check `.claude/rules/` for conventions
+- Check `.agents/rules/` for conventions
 - Look at existing entity modules (e.g., `Hemera/Entities/Light/`) for patterns
 
 Thank you for contributing!
