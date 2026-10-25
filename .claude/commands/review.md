@@ -9,7 +9,7 @@ Work through each category below. For each finding, cite the file and line numbe
 ### 1. Code Style Consistency
 
 Compare new/changed code against existing patterns in the codebase. Check:
-- Does it follow the conventions in `.claude/rules/swift-style.md`?
+- Does it follow the conventions in `.agents/rules/swift-style.md`?
 - Are `@Observable @MainActor final class` used for view models (not `ObservableObject`)?
 - Are Mortar tokens used instead of raw values for spacing, animation, radii, shadows?
 - Is the localization pattern followed (`String(localized:comment:)` in `private enum Localization`)?
@@ -18,7 +18,7 @@ Compare new/changed code against existing patterns in the codebase. Check:
 
 ### 2. Architecture & SOLID Principles
 
-Check against `.claude/rules/architecture.md`. Focus on:
+Check against `.agents/rules/architecture.md`. Focus on:
 - **Single Responsibility**: Does each type have one clear purpose? Are view models doing too much?
 - **Open/Closed**: Can the change be extended without modifying existing code? Is the Entity pattern followed for new entity types?
 - **Liskov Substitution**: Do protocol conformances fulfill the contract? Can implementations be swapped (production/demo/test)?
@@ -56,7 +56,7 @@ Flag these clearly as "out of scope" observations — they're informational, not
 ### 5. Test Coverage
 
 - Are there new or updated tests for the changed behavior?
-- Do tests follow `.claude/rules/testing.md`? (Swift Testing, `@MainActor struct`, hand-written mocks, `#expect`)
+- Do tests follow `.agents/rules/testing.md`? (Swift Testing, `@MainActor struct`, hand-written mocks, `#expect`)
 - Is the test naming consistent (`func method_scenario_expected()`)?
 - For new entity types: is `MockController` updated? Are card VM tests added?
 - For new view models: are the key transformations and interactions tested?
