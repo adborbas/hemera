@@ -23,6 +23,8 @@ struct CircularTemperatureSlider: View {
 
     @State private var activeHandle: Handle?
 
+    private var arc: TemperatureArc { TemperatureArc(range: range, step: step) }
+
     private enum Handle {
         case single
         case low
@@ -31,9 +33,6 @@ struct CircularTemperatureSlider: View {
 
     // MARK: - Geometry Constants
 
-    private static let startAngle: Double = 135
-    private static let endAngle: Double = 405
-    private static let sweepAngle: Double = 270
     private static let trackWidth: CGFloat = 20
     private static let handleRadius: CGFloat = 14
     private static let currentTempMarkerRadius: CGFloat = handleRadius - 2
@@ -112,8 +111,8 @@ struct CircularTemperatureSlider: View {
                             AngularGradient(
                                 colors: gradientColors,
                                 center: .center,
-                                startAngle: .degrees(Self.startAngle),
-                                endAngle: .degrees(Self.endAngle)
+                                startAngle: .degrees(TemperatureArc.startAngle),
+                                endAngle: .degrees(TemperatureArc.endAngle)
                             ),
                             style: StrokeStyle(lineWidth: Self.trackWidth, lineCap: .round)
                         )
@@ -155,8 +154,8 @@ struct CircularTemperatureSlider: View {
             path.addArc(
                 center: center,
                 radius: radius,
-                startAngle: .degrees(Self.startAngle),
-                endAngle: .degrees(Self.endAngle),
+                startAngle: .degrees(TemperatureArc.startAngle),
+                endAngle: .degrees(TemperatureArc.endAngle),
                 clockwise: false
             )
         }
@@ -165,8 +164,8 @@ struct CircularTemperatureSlider: View {
     // MARK: - Markers & Handles
 
     private func currentTempMarker(center: CGPoint, radius: CGFloat, temperature: Double) -> some View {
-        let angle = angleForTemperature(temperature)
-        let point = pointOnArc(center: center, radius: radius, angleDegrees: angle)
+        let angle = arc.angle(forTemperature: temperature)
+        let point = TemperatureArc.point(center: center, radius: radius, angleDegrees: angle)
         return Circle()
             .fill(Color(PlatformColor.systemGray2))
             .frame(width: Self.currentTempMarkerRadius * 2, height: Self.currentTempMarkerRadius * 2)
@@ -174,8 +173,8 @@ struct CircularTemperatureSlider: View {
     }
 
     private func handleView(center: CGPoint, radius: CGFloat, temperature: Double, color: Color) -> some View {
-        let angle = angleForTemperature(temperature)
-        let point = pointOnArc(center: center, radius: radius, angleDegrees: angle)
+        let angle = arc.angle(forTemperature: temperature)
+        let point = TemperatureArc.point(center: center, radius: radius, angleDegrees: angle)
         return Circle()
             .fill(color)
             .frame(width: Self.handleRadius * 2, height: Self.handleRadius * 2)
@@ -215,12 +214,11 @@ struct CircularTemperatureSlider: View {
     private func dragGesture(center: CGPoint, radius: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { gesture in
-                let location = gesture.location
-                let angle = angleFromPoint(location, center: center)
+                let angle = TemperatureArc.angle(from: gesture.location, center: center)
 
-                guard isAngleOnArc(angle) else { return }
+                guard TemperatureArc.isOnArc(angle) else { return }
 
-                let temperature = temperatureForAngle(angle)
+                let temperature = arc.temperature(forAngle: angle)
 
                 if activeHandle == nil {
                     activeHandle = closestHandle(to: temperature)
@@ -247,58 +245,16 @@ struct CircularTemperatureSlider: View {
     }
 
     private func updateTemperature(_ temperature: Double, for handle: Handle?) {
-        let clamped = min(max(temperature, range.lowerBound), range.upperBound)
-        let stepped = (clamped / step).rounded() * step
-
         switch handle {
         case .single:
-            targetTemperature = stepped
+            targetTemperature = arc.snap(temperature)
         case .low:
-            targetLow = min(stepped, targetHigh - 1)
+            targetLow = arc.lowSetpoint(temperature, below: targetHigh)
         case .high:
-            targetHigh = max(stepped, targetLow + 1)
+            targetHigh = arc.highSetpoint(temperature, above: targetLow)
         case nil:
             break
         }
-    }
-
-    // MARK: - Angle / Temperature Mapping
-
-    private func angleForTemperature(_ temperature: Double) -> Double {
-        let fraction = (temperature - range.lowerBound) / (range.upperBound - range.lowerBound)
-        let clampedFraction = min(max(fraction, 0), 1)
-        return Self.startAngle + clampedFraction * Self.sweepAngle
-    }
-
-    private func temperatureForAngle(_ angle: Double) -> Double {
-        let normalizedAngle = angle < Self.startAngle ? angle + 360 : angle
-        let fraction = (normalizedAngle - Self.startAngle) / Self.sweepAngle
-        let clampedFraction = min(max(fraction, 0), 1)
-        return range.lowerBound + clampedFraction * (range.upperBound - range.lowerBound)
-    }
-
-    private func pointOnArc(center: CGPoint, radius: CGFloat, angleDegrees: Double) -> CGPoint {
-        let radians = angleDegrees * Double.pi / 180
-        return CGPoint(
-            x: center.x + radius * Foundation.cos(radians),
-            y: center.y + radius * Foundation.sin(radians)
-        )
-    }
-
-    private func angleFromPoint(_ point: CGPoint, center: CGPoint) -> Double {
-        let dx = Double(point.x - center.x)
-        let dy = Double(point.y - center.y)
-        var angle = Foundation.atan2(dy, dx) * 180 / Double.pi
-        if angle < 0 { angle += 360 }
-        return angle
-    }
-
-    private func isAngleOnArc(_ angle: Double) -> Bool {
-        // The arc goes from 135° to 405° (45°). The gap is from 45° to 135°.
-        // An angle is on the arc if it's NOT in the gap.
-        let normalizedAngle = angle < 0 ? angle + 360 : angle.truncatingRemainder(dividingBy: 360)
-        // Gap is from 45° to 135°
-        return !(normalizedAngle > 45 && normalizedAngle < 135)
     }
 }
 

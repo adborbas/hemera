@@ -10,13 +10,7 @@ struct AreaDetailView: View {
     @Namespace private var overlayTransition
     @State private var showClimateSubtitle = true
     @State private var overlayItem: OverlayItem?
-    @State private var isHideMode = false
-    /**
-     Gates the Show/Hide reveal/removal animation so it fires only around a mode
-     toggle, not during ordinary browsing (e.g. a background sync tile change).
-    */
-    @State private var animatesTileChanges = false
-    @State private var animationResetTask: Task<Void, Never>?
+    @State private var hideMode = AreaHideMode()
 
     var body: some View {
         Group {
@@ -29,8 +23,8 @@ struct AreaDetailView: View {
                     showClimateSubtitle: $showClimateSubtitle,
                     overlayTransition: overlayTransition,
                     horizontalSizeClass: horizontalSizeClass,
-                    isHideMode: isHideMode,
-                    animatesTileChanges: animatesTileChanges,
+                    isHideMode: hideMode.isActive,
+                    animatesTileChanges: hideMode.animatesTileChanges,
                     onEnterHideMode: { setHideMode(true) }
                 )
             case .unassigned:
@@ -39,8 +33,8 @@ struct AreaDetailView: View {
                     overlayItem: $overlayItem,
                     overlayTransition: overlayTransition,
                     horizontalSizeClass: horizontalSizeClass,
-                    isHideMode: isHideMode,
-                    animatesTileChanges: animatesTileChanges,
+                    isHideMode: hideMode.isActive,
+                    animatesTileChanges: hideMode.animatesTileChanges,
                     onEnterHideMode: { setHideMode(true) }
                 )
             }
@@ -48,7 +42,7 @@ struct AreaDetailView: View {
         .navigationTitle(viewModel.areaName)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            if isHideMode {
+            if hideMode.isActive {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Localization.done) {
                         setHideMode(false)
@@ -76,23 +70,14 @@ struct AreaDetailView: View {
                 }
         }
         .haWebViewCover(presenter: viewModel.haWebViewPresenter)
+        .onDisappear { hideMode.endAnimationWindow() }
     }
 
-    /**
-     Enters or leaves Show/Hide mode, arming the tile animation for the brief
-     transition window only (reset shortly after). A light haptic marks entering.
-    */
     private func setHideMode(_ on: Bool) {
-        animationResetTask?.cancel()
-        animatesTileChanges = true
-        isHideMode = on
         if on {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        animationResetTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(500))
-            animatesTileChanges = false
-        }
+        hideMode.setActive(on)
     }
 }
 
@@ -320,69 +305,6 @@ private struct AreaDetailSection: View {
     }
 }
 
-// MARK: - Hide Toggle Button
-
-/**
- Toggle control shown in Show/Hide mode, positioned and styled like the Home
- layout resize button. Its icon shows the action it performs — an eye-slash on a
- shown entity (tap to hide), an open eye on a hidden one (tap to show). The
- current state is conveyed by the tile dimming, not the icon.
-*/
-private struct HideToggleButton: View {
-    let isHidden: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(
-                isHidden ? Localization.show : Localization.hide,
-                systemImage: isHidden ? "eye" : "eye.slash"
-            )
-            .labelStyle(.iconOnly)
-            .contentTransition(.symbolEffect(.replace))
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: Mortar.IconSize.s, height: Mortar.IconSize.s)
-            .background(
-                Circle()
-                    .fill(.thinMaterial)
-                    .environment(\.colorScheme, .dark)
-            )
-            // Minimum tap target (HIG) around the smaller visible circle.
-            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .transition(.scale.combined(with: .opacity))
-    }
-}
-
-// MARK: - All Hidden Placeholder
-
-/// Shown in an area whose every entity is hidden, giving the user a way back
-/// into Show/Hide mode to reveal them (the grid is otherwise empty and offers
-/// no tile to long-press).
-private struct AllHiddenPlaceholder: View {
-    let action: () -> Void
-
-    var body: some View {
-        VStack(spacing: Mortar.Spacing.m) {
-            Image(systemName: "eye.slash")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text(Localization.title)
-                .font(.headline)
-            Text(Localization.subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button(Localization.showHidden, action: action)
-                .buttonStyle(.borderedProminent)
-                .padding(.top, Mortar.Spacing.xs)
-        }
-    }
-}
-
 // MARK: - Localization
 
 private extension AreaDetailView {
@@ -393,25 +315,10 @@ private extension AreaDetailView {
     }
 }
 
-private extension HideToggleButton {
-    enum Localization {
-        static let hide = String(localized: "Hide", comment: "Accessibility label for the button that hides a currently-shown entity in show/hide mode")
-        static let show = String(localized: "Show", comment: "Accessibility label for the button that reveals a currently-hidden entity in show/hide mode")
-    }
-}
-
 private extension AreaDetailSection {
     enum Localization {
         static let showHideItems = String(localized: "Show/Hide Items", comment: "Context menu action that enters a mode for hiding or revealing entities in an area")
         static let addToHome = String(localized: "Add to Home", comment: "Context menu action to pin an entity to the Home screen")
         static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
-    }
-}
-
-private extension AllHiddenPlaceholder {
-    enum Localization {
-        static let title = String(localized: "All Items Hidden", comment: "Title of the placeholder shown when every entity in an area is hidden")
-        static let subtitle = String(localized: "Every item in this area is hidden. Reveal items to show them here again.", comment: "Explanation under the all-items-hidden placeholder")
-        static let showHidden = String(localized: "Show Hidden Items", comment: "Button that enters show/hide mode so hidden entities can be revealed")
     }
 }

@@ -144,11 +144,22 @@ final class HADataSyncService {
     /// cold start and the UI stays responsive. Entity upserts that match an
     /// existing `@Model` mutate it in place, firing `@Observable` for any
     /// card view that already references it.
+    /// Step order is load-bearing: entities, then floors, then the areas linking to them, then prunes.
     func applySyncPayload(_ payload: SyncPayload) async {
         if let iconTranslations = payload.iconTranslations {
             iconResolver.update(iconTranslations)
         }
 
+        await applyEntities(payload)
+        let floorsById = applyFloors(payload)
+        await applyAreas(payload, floorsById: floorsById)
+        applyPrunes(payload)
+        await applyDeviceMappings(payload)
+
+        saveBatch("final sync")
+    }
+
+    private func applyEntities(_ payload: SyncPayload) async {
         for (index, entity) in payload.entities.enumerated() {
             entityRegistry.upsert(from: entity, in: mainContext)
             if (index + 1).isMultiple(of: Self.yieldBatchSize) {
@@ -173,23 +184,26 @@ final class HADataSyncService {
          reaching here implies entities were fetched; the empty-set guard is belt-and-braces.
          */
         HomeTile.pruneOrphaned(keeping: serverEntityIds, in: mainContext)
+    }
 
-        // Upsert floors before areas so area→floor links can resolve. Only
-        // when the floor fetch succeeded (non-nil) — see `fetchFloorRegistry`.
+    /// Returns the lookup area→floor links resolve through. Skipped when the fetch failed.
+    private func applyFloors(_ payload: SyncPayload) -> [String: FloorEntity] {
+        guard let floors = payload.floors else { return [:] }
+
         var floorsById: [String: FloorEntity] = [:]
-        if let floors = payload.floors {
-            for floor in floors {
-                let entity = FloorEntity.upsert(
-                    id: floor.floorId,
-                    name: floor.name,
-                    level: floor.level,
-                    sortOrder: payload.floorSortOrder[floor.floorId] ?? 0,
-                    in: mainContext
-                )
-                floorsById[floor.floorId] = entity
-            }
+        for floor in floors {
+            floorsById[floor.floorId] = FloorEntity.upsert(
+                id: floor.floorId,
+                name: floor.name,
+                level: floor.level,
+                sortOrder: payload.floorSortOrder[floor.floorId] ?? 0,
+                in: mainContext
+            )
         }
+        return floorsById
+    }
 
+    private func applyAreas(_ payload: SyncPayload, floorsById: [String: FloorEntity]) async {
         /**
          Reconcile area membership before reassigning: null out area links for
          entities the server no longer places in any area, so an entity un-assigned
@@ -203,13 +217,11 @@ final class HADataSyncService {
         }
 
         for (index, mapping) in payload.areaMappings.enumerated() {
-            let sortOrder = payload.areaSortOrder[mapping.area_id] ?? index
-            let icon = payload.areaIcons[mapping.area_id]
             let area = AreaEntity.upsert(
                 id: mapping.area_id,
                 name: mapping.area_name,
-                icon: icon,
-                sortOrder: sortOrder,
+                icon: payload.areaIcons[mapping.area_id],
+                sortOrder: payload.areaSortOrder[mapping.area_id] ?? index,
                 in: mainContext
             )
             // Reassign floor only when the fetch succeeded, so a transient
@@ -226,7 +238,9 @@ final class HADataSyncService {
                 await Task.yield()
             }
         }
+    }
 
+    private func applyPrunes(_ payload: SyncPayload) {
         /**
          Prune areas the server no longer has — but only when the fetch
          succeeded, so a transient failure never wipes persisted areas. Deleting
@@ -241,7 +255,9 @@ final class HADataSyncService {
         if let floors = payload.floors {
             pruneFloors(keeping: Set(floors.map(\.floorId)))
         }
+    }
 
+    private func applyDeviceMappings(_ payload: SyncPayload) async {
         for (index, mapping) in payload.deviceMappings.enumerated() {
             entityRegistry.assignDeviceId(mapping.deviceId, toEntityWithId: mapping.entityId, in: mainContext)
             if (index + 1).isMultiple(of: Self.yieldBatchSize) {
@@ -249,8 +265,6 @@ final class HADataSyncService {
                 await Task.yield()
             }
         }
-
-        saveBatch("final sync")
     }
 
     private func pruneFloors(keeping serverFloorIds: Set<String>) {
@@ -315,8 +329,8 @@ final class HADataSyncService {
         let (entities, entityRegistryResult, areaRegistry, floorRegistry, iconTranslations) = try await (
             entitiesTask, entityRegistryTask, areaRegistryTask, floorRegistryTask, iconTranslationsTask
         )
-        let deviceMappings = entityRegistryResult.mappings
-        let hiddenEntityIds = entityRegistryResult.hiddenEntityIds
+        let deviceMappings = entityRegistryResult?.deviceMappings ?? []
+        let hiddenEntityIds = entityRegistryResult?.hiddenEntityIds
 
         /**
          Degrade area mapping like the other registry fetches: a failure yields
@@ -393,83 +407,33 @@ final class HADataSyncService {
 
     // MARK: - Registry Fetching
 
-    /**
-     Fetches the entity registry once: entity→device mappings for device linking,
-     and the set of entity IDs Home Assistant marks hidden (`hidden_by != nil`).
-     `hiddenEntityIds` is `nil` on failure so a transient error never clears
-     persisted HA-hidden state; device mappings degrade to `[]`.
-    */
-    private func fetchEntityRegistry() async -> (mappings: [DeviceMapping], hiddenEntityIds: Set<String>?) {
+    /// `nil` on failure, so a transient error never clears persisted HA-hidden state.
+    private func fetchEntityRegistry() async -> EntityRegistrySnapshot? {
         do {
             let request = HARequest(type: .webSocket("config/entity_registry/list"), data: [:])
-            let response = try await conn.send(request)
-
-            guard case let .array(entries) = response else { return ([], nil) }
-
-            var mappings: [DeviceMapping] = []
-            var hiddenEntityIds: Set<String> = []
-            for entry in entries {
-                guard case let .dictionary(dict) = entry,
-                      let entityId = dict["entity_id"] as? String
-                else { continue }
-                if let deviceId = dict["device_id"] as? String {
-                    mappings.append(DeviceMapping(entityId: entityId, deviceId: deviceId))
-                }
-                // `hidden_by` is a non-null string ("user"/"integration") when hidden.
-                if dict["hidden_by"] as? String != nil {
-                    hiddenEntityIds.insert(entityId)
-                }
-            }
-            return (mappings, hiddenEntityIds)
+            return EntityRegistrySnapshot.decode(try await conn.send(request))
         } catch {
             Log.error("Failed to fetch entity registry — proceeding without device linking or HA-hidden filtering", cause: error)
-            return ([], nil)
+            return nil
         }
     }
 
-    /// Fetches area entries from the HA area registry, preserving registry order.
-    /// Returns an empty array on failure so sort order falls back gracefully.
+    /// Preserves registry order. Degrades to `[]`: order is cosmetic, nothing deletes rows on it.
     private func fetchAreaRegistry() async -> [AreaRegistryEntry] {
         do {
             let request = HARequest(type: .webSocket("config/area_registry/list"), data: [:])
-            let response = try await conn.send(request)
-
-            guard case let .array(entries) = response else { return [] }
-
-            return entries.compactMap { entry -> AreaRegistryEntry? in
-                guard case let .dictionary(dict) = entry,
-                      let areaId = dict["area_id"] as? String
-                else { return nil }
-                let floorId = dict["floor_id"] as? String
-                let icon = dict["icon"] as? String
-                return AreaRegistryEntry(areaId: areaId, floorId: floorId, icon: icon)
-            }
+            return AreaRegistryEntry.decodeList(try await conn.send(request)) ?? []
         } catch {
             Log.error("Failed to fetch area registry — proceeding without floor-based ordering", cause: error)
             return []
         }
     }
 
-    /// Fetches floor entries from the HA floor registry.
-    ///
-    /// Returns `nil` on failure (so callers can distinguish a transient error
-    /// from a genuinely empty registry and avoid wiping persisted floors), and
-    /// an empty array when Home Assistant simply has no floors defined.
+    /// `[]` means no floors and prunes every stored one, so a failure must report `nil` instead.
     private func fetchFloorRegistry() async -> [FloorRegistryEntry]? {
         do {
             let request = HARequest(type: .webSocket("config/floor_registry/list"), data: [:])
-            let response = try await conn.send(request)
-
-            guard case let .array(entries) = response else { return [] }
-
-            return entries.compactMap { entry -> FloorRegistryEntry? in
-                guard case let .dictionary(dict) = entry,
-                      let floorId = dict["floor_id"] as? String,
-                      let name = dict["name"] as? String
-                else { return nil }
-                let level = dict["level"] as? Int
-                return FloorRegistryEntry(floorId: floorId, name: name, level: level)
-            }
+            return FloorRegistryEntry.decodeList(try await conn.send(request))
         } catch {
             Log.error("Failed to fetch floor registry — keeping existing floors", cause: error)
             return nil
@@ -547,10 +511,4 @@ private extension HADataSyncService {
             comment: "Toast shown when the initial data sync with Home Assistant fails"
         )
     }
-}
-
-/// Maps an entity to its parent device from the HA entity registry.
-struct DeviceMapping: Sendable {
-    let entityId: String
-    let deviceId: String
 }
