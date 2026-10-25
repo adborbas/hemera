@@ -1,0 +1,117 @@
+name: Release Train
+
+# Cut, upload to TestFlight and prepare the App Store version in one go.
+# The numbered workflows below it stay as the manual recovery path for a single
+# stage. Re-running this whole train after a failure is safe: cut_release skips
+# whatever it already did.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (defaults to the next release number)'
+        required: false
+
+env:
+  XCODE_VERSION: '26.2'
+
+permissions:
+  contents: write
+
+jobs:
+  cut:
+    name: Cut Release Branch
+    runs-on: macos-15
+    if: github.actor == 'adborbas'
+    outputs:
+      version: ${{ steps.cut.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # Only pushes a branch, so the checkout token is enough — no PAT, and no
+      # PR to merge past branch protection.
+      - name: Cut release
+        id: cut
+        run: bundle exec fastlane cut_release version:"${{ inputs.version }}"
+
+  beta:
+    name: Upload to TestFlight
+    needs: cut
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: release
+    outputs:
+      build: ${{ steps.beta.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/${{ needs.cut.outputs.version }}
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Local.xcconfig
+        run: |
+          echo "DEVELOPMENT_TEAM = ${{ vars.DEVELOPMENT_TEAM }}" > Config/Local.xcconfig
+
+      - name: Configure SSH for match certs repo
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MATCH_DEPLOY_KEY }}" > ~/.ssh/match_ed25519
+          chmod 600 ~/.ssh/match_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          echo -e "Host github.com\n  IdentityFile ~/.ssh/match_ed25519\n  IdentitiesOnly yes" >> ~/.ssh/config
+
+      - name: Upload to TestFlight
+        id: beta
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bundle exec fastlane beta
+
+  prepare:
+    name: Prepare App Store Version
+    needs: [cut, beta]
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/${{ needs.cut.outputs.version }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      # Waits for the build this run uploaded to finish processing, then
+      # attaches it — so it is normal for this job to idle for a while.
+      - name: Prepare App Store version
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          bundle exec fastlane prepare_release \
+            version:"${{ needs.cut.outputs.version }}" \
+            build:"${{ needs.beta.outputs.build }}"
