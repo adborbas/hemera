@@ -19,6 +19,7 @@ public struct EntityCard<Content: View, BackgroundOverlay: View>: View {
 
     private let tintColor: Color?
     private let isActive: Bool
+    private let isWorking: Bool
     private let glowsFromIcon: Bool
     @ViewBuilder private let content: () -> Content
     @ViewBuilder private let backgroundOverlay: () -> BackgroundOverlay
@@ -27,12 +28,14 @@ public struct EntityCard<Content: View, BackgroundOverlay: View>: View {
     public init(
         tintColor: Color? = nil,
         isActive: Bool = false,
+        isWorking: Bool = false,
         glowsFromIcon: Bool = false,
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder backgroundOverlay: @escaping () -> BackgroundOverlay
     ) {
         self.tintColor = tintColor
         self.isActive = isActive
+        self.isWorking = isWorking
         self.glowsFromIcon = glowsFromIcon
         self.content = content
         self.backgroundOverlay = backgroundOverlay
@@ -47,6 +50,7 @@ public struct EntityCard<Content: View, BackgroundOverlay: View>: View {
                    alignment: .leading)
             .cardBackground(tint: tintColor,
                             isActive: isActive,
+                            isWorking: isWorking,
                             glowsFromIcon: glowsFromIcon,
                             litOverlay: backgroundOverlay)
     }
@@ -56,11 +60,13 @@ extension EntityCard where BackgroundOverlay == EmptyView {
     public init(
         tintColor: Color? = nil,
         isActive: Bool = false,
+        isWorking: Bool = false,
         glowsFromIcon: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.init(tintColor: tintColor,
                   isActive: isActive,
+                  isWorking: isWorking,
                   glowsFromIcon: glowsFromIcon,
                   content: content) { EmptyView() }
     }
@@ -73,11 +79,12 @@ extension EntityCard where Content == AdaptiveCardContent<AnyView, AnyView>, Bac
     public init<Icon: View, Label: View>(
         tintColor: Color? = nil,
         isActive: Bool = false,
+        isWorking: Bool = false,
         glowsFromIcon: Bool = false,
         @ViewBuilder icon: @escaping () -> Icon,
         @ViewBuilder label: @escaping () -> Label
     ) {
-        self.init(tintColor: tintColor, isActive: isActive, glowsFromIcon: glowsFromIcon) {
+        self.init(tintColor: tintColor, isActive: isActive, isWorking: isWorking, glowsFromIcon: glowsFromIcon) {
             AdaptiveCardContent(
                 icon: { AnyView(icon()) },
                 label: { AnyView(label()) }
@@ -91,12 +98,13 @@ extension EntityCard where Content == AdaptiveCardContent<AnyView, AnyView> {
     public init<Icon: View, Label: View>(
         tintColor: Color? = nil,
         isActive: Bool = false,
+        isWorking: Bool = false,
         glowsFromIcon: Bool = false,
         @ViewBuilder icon: @escaping () -> Icon,
         @ViewBuilder label: @escaping () -> Label,
         @ViewBuilder backgroundOverlay: @escaping () -> BackgroundOverlay
     ) {
-        self.init(tintColor: tintColor, isActive: isActive, glowsFromIcon: glowsFromIcon, content: {
+        self.init(tintColor: tintColor, isActive: isActive, isWorking: isWorking, glowsFromIcon: glowsFromIcon, content: {
             AdaptiveCardContent(
                 icon: { AnyView(icon()) },
                 label: { AnyView(label()) }

@@ -125,7 +125,7 @@ Custom component library providing the visual foundation for the app. Always use
 
 **Components**: `EntityCard`, `CardIcon`, `CardLabel`, `CardRow`, `CardBackground`, `EntityControlPanel`, `VerticalSlider`, `PillPicker`
 
-**Token namespaces**: `Mortar.Spacing`, `Mortar.Motion`, `Mortar.Radii`, `Mortar.Shadow`, `Mortar.StrokeWidth`, `Mortar.IconSize`, `Mortar.SemanticColor`, `Mortar.PlatformColors`
+**Token namespaces**: `Mortar.Spacing`, `Mortar.Motion`, `Mortar.Radii`, `Mortar.Shadow`, `Mortar.strokeWidth`, `Mortar.IconSize`, `Mortar.SemanticColor`, `Mortar.PlatformColors`
 
 ## Common Workflows
 
