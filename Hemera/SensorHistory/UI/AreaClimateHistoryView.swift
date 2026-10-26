@@ -1,3 +1,4 @@
+import Accessibility
 import Charts
 import Mortar
 import SwiftUI
@@ -19,8 +20,9 @@ struct AreaClimateHistoryView: View {
 
     var body: some View {
         let now = Date()
+        let range = viewModel.selectedRange
         // The plot's x-domain follows the selected range so it rescales with the picker.
-        let window = now.addingTimeInterval(-viewModel.selectedRange.interval)...now
+        let window = now.addingTimeInterval(-range.interval)...now
 
         NavigationStack {
             VStack(spacing: Mortar.Spacing.l) {
@@ -36,7 +38,8 @@ struct AreaClimateHistoryView: View {
                 selectionHeader
 
                 ScrollView {
-                    plot(state: viewModel.series, isLoading: viewModel.isLoading, window: window)
+                    plot(state: viewModel.series, isLoading: viewModel.isLoading,
+                         window: window, range: range)
                         .padding(Mortar.Spacing.l)
                 }
             }
@@ -72,17 +75,18 @@ struct AreaClimateHistoryView: View {
     private func plot(
         state: AreaClimateHistoryViewModel.SeriesState,
         isLoading: Bool,
-        window: ClosedRange<Date>
+        window: ClosedRange<Date>,
+        range: TimeRange
     ) -> some View {
         if isLoading, case .loaded = state {
-            chartFor(state: state, window: window)
+            chartFor(state: state, window: window, range: range)
                 .opacity(Self.staleOpacity)
                 .overlay {
                     ProgressView()
                         .controlSize(.small)
                 }
         } else {
-            chartFor(state: state, window: window)
+            chartFor(state: state, window: window, range: range)
         }
     }
 
@@ -90,7 +94,8 @@ struct AreaClimateHistoryView: View {
     @ViewBuilder
     private func chartFor(
         state: AreaClimateHistoryViewModel.SeriesState,
-        window: ClosedRange<Date>
+        window: ClosedRange<Date>,
+        range: TimeRange
     ) -> some View {
         switch state {
         case .loading:
@@ -112,6 +117,7 @@ struct AreaClimateHistoryView: View {
                     Text(Localization.retry)
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityLabel(Localization.retryAction)
             }
             .frame(height: Self.plotHeight)
 
@@ -144,6 +150,17 @@ struct AreaClimateHistoryView: View {
                 .chartXSelection(value: $viewModel.selectedDate)
                 .chartLegend(.hidden)
                 .frame(height: Self.plotHeight)
+                .accessibilityChartDescriptor(
+                    ClimateChartDescriptor(
+                        title: String(format: Localization.chartTitle, series.sensorName, series.unit),
+                        summary: String(format: Localization.chartRange, rangeLabel(range)),
+                        unit: series.unit,
+                        range: range,
+                        window: window,
+                        samples: series.samples,
+                        xAxisTitle: Localization.timeAxis
+                    )
+                )
             }
         }
     }
@@ -190,6 +207,7 @@ struct AreaClimateHistoryView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
     /// Formats a bucket's span; the 24-hour range omits the date, the others include it.
@@ -221,6 +239,12 @@ private extension AreaClimateHistoryView {
         static let thirtyDays = String(localized: "30 Days", comment: "Picker option showing the last 30 days of climate history")
         static let noReading = String(localized: "No reading", comment: "Shown for a measurement that has no sample at the scrubbed position, eg. inside a recording gap")
         static let dragPrompt = String(localized: "Drag across the chart to read a value", comment: "Idle text in the climate-history readout, shown before any position is scrubbed")
+        /// VoiceOver heading for the chart; names the sensor and the measurement it shows.
+        static let chartTitle = String(localized: "Climate history of %1$@ (%2$@)", comment: "Audio-graph heading naming the sensor and its measurement, eg. Temperature (°C)")
+        /// The window a chart covers, spoken alongside its audio graph.
+        static let chartRange = String(localized: "Over the last %1$@", comment: "The selected range the chart's audio graph covers, eg. Over the last 24 hours")
+        /// Accessibility label for the retry button after a climate-history fetch fails.
+        static let retryAction = String(localized: "Retry loading climate history", comment: "Accessibility label on a retry button after a climate-history fetch fails")
     }
 
     /// Maps each range to its picker label; the enum carries no display text.
@@ -240,6 +264,92 @@ private extension AreaClimateHistoryView {
 
     /// Reserves height for the readout, so scrubbing shifts the plot neither up nor down.
     static let selectionHeaderHeight: CGFloat = 80
+}
+
+// MARK: - Accessibility descriptor
+
+/**
+ A sendable audio-graph descriptor built from a settled series, so VoiceOver hears
+ the recorded values and never a point that the run split dropped.
+ */
+extension AreaClimateHistoryView {
+    struct ClimateChartDescriptor: AXChartDescriptorRepresentable, Sendable {
+
+        let title: String
+        let summary: String
+        let unit: String
+        let range: TimeRange
+        let window: ClosedRange<Date>
+        let samples: [ClimateSample]
+        let xAxisTitle: String
+
+        func makeChartDescriptor() -> AXChartDescriptor {
+            let start = window.lowerBound.timeIntervalSinceReferenceDate
+            let end = window.upperBound.timeIntervalSinceReferenceDate
+            let means = samples.map(\.mean)
+
+            let y: ClosedRange<Double>
+            if let lo = means.min(), let hi = means.max() {
+                y = lo...hi
+            } else {
+                y = 0...1
+            }
+
+            let xAxis = AXNumericDataAxisDescriptor(
+                title: xAxisTitle,
+                range: start...end,
+                gridlinePositions: [],
+                valueDescriptionProvider: {
+                    Self.time(range, Date(timeIntervalSinceReferenceDate: $0))
+                }
+            )
+            let yAxis = AXNumericDataAxisDescriptor(
+                title: unit,
+                range: y,
+                gridlinePositions: [],
+                valueDescriptionProvider: {
+                    $0.formatted(.number.precision(.fractionLength(1))) + unit
+                }
+            )
+
+            // One series per run keeps each gap a break, and adds nothing where a sample is absent.
+            var series: [AXDataSeriesDescriptor] = []
+            for run in ClimateSampleRuns.split(samples) {
+                let points = run.map { sample in
+                    AXDataPoint(
+                        x: sample.start.timeIntervalSinceReferenceDate,
+                        y: sample.mean,
+                        label: pointLabel(sample)
+                    )
+                }
+                series.append(AXDataSeriesDescriptor(name: title, isContinuous: true, dataPoints: points))
+            }
+
+            return AXChartDescriptor(
+                title: title,
+                summary: summary,
+                xAxis: xAxis,
+                yAxis: yAxis,
+                series: series
+            )
+        }
+
+        /// A sample's interval then its mean and unit, mirroring the scrub readout.
+        private func pointLabel(_ sample: ClimateSample) -> String {
+            let span = "\(Self.time(range, sample.start)) – \(Self.time(range, sample.end)) "
+            return span + "\(sample.mean.formatted(.number.precision(.fractionLength(1))))\(unit)"
+        }
+
+        /// A time in the selected range's style; the day drops the date, the others keep it.
+        private static func time(_ range: TimeRange, _ date: Date) -> String {
+            switch range {
+            case .day:
+                return date.formatted(date: .omitted, time: .shortened)
+            case .week, .month:
+                return date.formatted(date: .abbreviated, time: .shortened)
+            }
+        }
+    }
 }
 
 #if DEBUG
