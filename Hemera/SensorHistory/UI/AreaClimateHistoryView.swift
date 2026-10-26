@@ -2,22 +2,24 @@ import Charts
 import Mortar
 import SwiftUI
 
-/// Stacked temperature and humidity charts for an area's representative sensors.
+/// One climate measurement's history for an area's representative sensor.
 struct AreaClimateHistoryView: View {
 
     @Bindable var viewModel: AreaClimateHistoryViewModel
     let areaName: String
+    let color: Color
 
     @Environment(\.dismiss) private var dismiss
 
-    init(viewModel: AreaClimateHistoryViewModel, areaName: String) {
+    init(viewModel: AreaClimateHistoryViewModel, areaName: String, color: Color) {
         self.viewModel = viewModel
         self.areaName = areaName
+        self.color = color
     }
 
     var body: some View {
         let now = Date()
-        // Both plots share one domain, derived from the selected range so they rescale together.
+        // The plot's x-domain follows the selected range so it rescales with the picker.
         let window = now.addingTimeInterval(-viewModel.selectedRange.interval)...now
 
         NavigationStack {
@@ -30,15 +32,12 @@ struct AreaClimateHistoryView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal, Mortar.Spacing.l)
 
-                // A fixed-height readout above the plots so scrubbing shifts nothing below it.
+                // A fixed-height readout above the plot so scrubbing shifts nothing below it.
                 selectionHeader
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: Mortar.Spacing.xl) {
-                        plot(state: viewModel.temperature, color: .warm, window: window)
-                        plot(state: viewModel.humidity, color: .cool, window: window)
-                    }
-                    .padding(Mortar.Spacing.l)
+                    plot(state: viewModel.series, window: window)
+                        .padding(Mortar.Spacing.l)
                 }
             }
             .navigationTitle(areaName)
@@ -65,17 +64,13 @@ struct AreaClimateHistoryView: View {
 
     // MARK: - Plot
 
-    /// One measurement's current outcome. `.unavailable` draws nothing at all.
+    /// The measurement's chart for the selected range; gaps split into separate runs.
     @ViewBuilder
     private func plot(
         state: AreaClimateHistoryViewModel.SeriesState,
-        color: Color,
         window: ClosedRange<Date>
     ) -> some View {
         switch state {
-        case .unavailable:
-            EmptyView()
-
         case .loading:
             ProgressView()
                 .controlSize(.small)
@@ -109,14 +104,13 @@ struct AreaClimateHistoryView: View {
                         }
                     }
                     if let selectedDate = viewModel.selectedDate {
-                        // A thin secondary rule marks the shared scrub position the user is reading.
+                        // A thin secondary rule marks the scrub position the user is reading.
                         RuleMark(x: .value(Localization.timeAxis, selectedDate))
                             .foregroundStyle(.secondary)
                             .lineStyle(StrokeStyle(lineWidth: 1))
                     }
                 }
                 .chartXScale(domain: window)
-                // Both plots bind to one date, so dragging either reads out both measurements.
                 .chartXSelection(value: $viewModel.selectedDate)
                 .chartLegend(.hidden)
                 .frame(height: Self.plotHeight)
@@ -126,7 +120,7 @@ struct AreaClimateHistoryView: View {
 
     // MARK: - Readout header
 
-    /// Both measurements at the scrub position, reserved at a fixed height so nothing below moves.
+    /// The reading at the scrub position, reserved at a fixed height so nothing below moves.
     private var selectionHeader: some View {
         selectionContent
             .frame(height: Self.selectionHeaderHeight, alignment: .top)
@@ -135,20 +129,13 @@ struct AreaClimateHistoryView: View {
 
     @ViewBuilder
     private var selectionContent: some View {
-        if viewModel.selectedDate == nil {
-            // Nothing selected: keep the space filled so the plots don't jump on first drag.
+        if viewModel.selectedDate != nil, let readout = viewModel.readout {
+            measurementBlock(readout)
+        } else {
+            // Nothing selected: fill the space so the plot doesn't jump on first drag.
             Text(Localization.dragPrompt)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-        } else {
-            VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
-                if let temperatureReadout = viewModel.temperatureReadout {
-                    measurementBlock(temperatureReadout)
-                }
-                if let humidityReadout = viewModel.humidityReadout {
-                    measurementBlock(humidityReadout)
-                }
-            }
         }
     }
 
@@ -197,12 +184,12 @@ private extension AreaClimateHistoryView {
         static let meanAxis = String(localized: "Mean", comment: "Vertical axis key for a climate-history chart, holding each bucket's mean")
         /// Not user-facing: the legend is hidden, this only keeps each run a separate series.
         static let runKey = "Run"
-        static let range = String(localized: "Time range", comment: "Title of the picker that chooses how far back the area's climate-history charts reach")
+        static let range = String(localized: "Time range", comment: "Title of the picker that chooses how far back the area's climate-history chart reaches")
         static let twentyFourHours = String(localized: "24 Hours", comment: "Picker option showing the last 24 hours of climate history")
         static let sevenDays = String(localized: "7 Days", comment: "Picker option showing the last 7 days of climate history")
         static let thirtyDays = String(localized: "30 Days", comment: "Picker option showing the last 30 days of climate history")
         static let noReading = String(localized: "No reading", comment: "Shown for a measurement that has no sample at the scrubbed position, eg. inside a recording gap")
-        static let dragPrompt = String(localized: "Drag across the charts to read a value", comment: "Idle text in the climate-history readout, shown before any position is scrubbed")
+        static let dragPrompt = String(localized: "Drag across the chart to read a value", comment: "Idle text in the climate-history readout, shown before any position is scrubbed")
     }
 
     /// Maps each range to its picker label; the enum carries no display text.
@@ -214,10 +201,10 @@ private extension AreaClimateHistoryView {
         }
     }
 
-    /// Fixed, readable height shared by both plots so neither sizes to the container.
+    /// Fixed height for the plot so it doesn't size to the container.
     static let plotHeight: CGFloat = 200
 
-    /// Enough for two two-line readouts, so scrubbing shifts the plots neither up nor down.
+    /// Reserves height for the readout, so scrubbing shifts the plot neither up nor down.
     static let selectionHeaderHeight: CGFloat = 80
 }
 
@@ -249,19 +236,12 @@ fileprivate struct PreviewClimateHistory: View {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         ).mainContext
 
-        let area = AreaEntity(areaId: "preview.lobby", name: "Lobby")
-        let temperature = SensorEntity(entityId: "sensor.lobby.temperature", name: "Temperature",
-                                       state: "20", deviceClass: "temperature", unitOfMeasurement: "°C")
-        let humidity = SensorEntity(entityId: "sensor.lobby.humidity", name: "Humidity",
-                                    state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
-        temperature.area = area
-        humidity.area = area
-        context.insert(area)
-        context.insert(temperature)
-        context.insert(humidity)
+        let sensor = SensorEntity(entityId: "sensor.lobby.temperature", name: "Temperature",
+                                  state: "20", deviceClass: "temperature", unitOfMeasurement: "°C")
+        context.insert(sensor)
 
-        let viewModel = AreaClimateHistoryViewModel(area: area, provider: StubHistoryProvider())
-        return AreaClimateHistoryView(viewModel: viewModel, areaName: area.name)
+        let viewModel = AreaClimateHistoryViewModel(sensor: sensor, fallbackUnit: "°", provider: StubHistoryProvider())
+        return AreaClimateHistoryView(viewModel: viewModel, areaName: "Lobby", color: .warm)
     }
 }
 

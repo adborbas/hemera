@@ -100,12 +100,8 @@ private struct AreaContentView: View {
     let onEnterHideMode: () -> Void
 
     @State private var showsClimateHistory = false
-    /// Held in state so a body re-evaluation cannot swap in a fresh, unloaded view model.
-    @State private var climateHistoryViewModel: AreaClimateHistoryViewModel?
-
-    private var climateLabel: String? {
-        AreaDisplayHelpers.climateLabel(from: area.sensors)
-    }
+    /// Held in state with its colour so a re-render cannot swap in a fresh, unloaded view model.
+    @State private var climateHistoryTarget: ClimateHistoryTarget?
 
     var body: some View {
         GeometryReader { proxy in
@@ -116,36 +112,7 @@ private struct AreaContentView: View {
             let sections = viewModel.sections(for: area, includingHidden: isHideMode)
 
             ScrollView {
-                if let climate = climateLabel {
-                    Button {
-                        guard let session = ServiceLocator.shared.session else { return }
-                        climateHistoryViewModel = AreaClimateHistoryViewModel(
-                            area: area,
-                            provider: session.sensorHistoryProvider
-                        )
-                        showsClimateHistory = true
-                    } label: {
-                        Text(climate)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, TileGridConstants.padding)
-                    .opacity(showClimateSubtitle ? 1 : 0)
-                    .onScrollVisibilityChange(threshold: 0.5) { isVisible in
-                        showClimateSubtitle = isVisible
-                    }
-                    .sheet(isPresented: $showsClimateHistory, onDismiss: { climateHistoryViewModel = nil }) {
-                        if let climateHistoryViewModel {
-                            AreaClimateHistoryView(
-                                viewModel: climateHistoryViewModel,
-                                areaName: area.name
-                            )
-                            .presentationDetents([.large])
-                        }
-                    }
-                }
+                climateSummaryRow
 
                 if sections.isEmpty, !isHideMode, viewModel.hasHiddenEntities(for: area) {
                     AllHiddenPlaceholder(action: onEnterHideMode)
@@ -172,6 +139,92 @@ private struct AreaContentView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Climate history sheet
+
+    /// An area's temperature and humidity, each a tappable link to its own history.
+    @ViewBuilder
+    private var climateSummaryRow: some View {
+        let (temperatureText, humidityText) = AreaDisplayHelpers.climateSummary(from: area.sensors)
+        let representatives = AreaDisplayHelpers.representativeSensors(from: area.sensors)
+
+        if temperatureText != nil || humidityText != nil {
+            HStack(spacing: 0) {
+                if let temperatureText, let temperature = representatives.temperature {
+                    climateHistoryButton(
+                        text: temperatureText,
+                        sensor: temperature,
+                        fallbackUnit: "°",
+                        color: .warm
+                    )
+                }
+
+                // The bullet joins the two readings; a lone reading shows on its own.
+                if temperatureText != nil, humidityText != nil {
+                    Text(" · ")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let humidityText, let humidity = representatives.humidity {
+                    climateHistoryButton(
+                        text: humidityText,
+                        sensor: humidity,
+                        fallbackUnit: "%",
+                        color: .cool
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, TileGridConstants.padding)
+            .opacity(showClimateSubtitle ? 1 : 0)
+            .onScrollVisibilityChange(threshold: 0.5) { isVisible in
+                showClimateSubtitle = isVisible
+            }
+            .sheet(isPresented: $showsClimateHistory, onDismiss: { climateHistoryTarget = nil }) {
+                if let target = climateHistoryTarget {
+                    AreaClimateHistoryView(
+                        viewModel: target.viewModel,
+                        areaName: area.name,
+                        color: target.color
+                    )
+                    .presentationDetents([.large])
+                }
+            }
+        }
+    }
+
+    /// A tappable reading that opens its own sensor's history sheet.
+    private func climateHistoryButton(
+        text: String,
+        sensor: SensorEntity,
+        fallbackUnit: String,
+        color: Color
+    ) -> some View {
+        Button {
+            guard let session = ServiceLocator.shared.session else { return }
+            climateHistoryTarget = ClimateHistoryTarget(
+                viewModel: AreaClimateHistoryViewModel(
+                    sensor: sensor,
+                    fallbackUnit: fallbackUnit,
+                    provider: session.sensorHistoryProvider
+                ),
+                color: color
+            )
+            showsClimateHistory = true
+        } label: {
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// A view model and the colour to draw its single series.
+    private struct ClimateHistoryTarget {
+        let viewModel: AreaClimateHistoryViewModel
+        let color: Color
     }
 }
 

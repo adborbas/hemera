@@ -1,8 +1,8 @@
 import Foundation
 
 /**
- Loads climate history for an area's representative temperature and humidity sensors
- over the selected range, caching each settled success for the presentation's life.
+ Loads climate history for one sensor over the selected range, caching each settled
+ success for the presentation's life.
  */
 @Observable
 @MainActor
@@ -15,7 +15,7 @@ final class AreaClimateHistoryViewModel {
     }
 
     /**
-     One measurement at the scrub position: its sensor name and unit, plus the sample under it.
+     The reading under the scrub position: its sensor name and unit, plus the sample.
      `mean` and `interval` are `nil` together when it lands in a gap or the series isn't loaded.
      */
     struct Readout {
@@ -30,75 +30,58 @@ final class AreaClimateHistoryViewModel {
         case loaded(ClimateSeries)
         case noRecordedHistory
         case failed
-        case unavailable
     }
 
-    private(set) var temperature: SeriesState
-    private(set) var humidity: SeriesState
+    private(set) var series: SeriesState
 
     /// Range the user has chosen; changing it triggers a load of that window.
     var selectedRange: TimeRange = .day
 
-    /// The scrub position both charts read from; `nil` means nothing is selected.
+    /// The scrub position the chart reads from; `nil` means nothing is selected.
     var selectedDate: Date?
 
-    var temperatureReadout: Readout? { readout(for: temperature) }
-    var humidityReadout: Readout? { readout(for: humidity) }
+    var readout: Readout? { readout(for: series) }
 
     private let provider: any SensorHistoryProviding
-    private let temperatureSensor: SensorEntity?
-    private let humiditySensor: SensorEntity?
+    private let sensor: SensorEntity
+    private let fallbackUnit: String
 
     /**
-     Settled-success outcomes per range, cached for this instance's life only.
+     A settled-success outcome per range, cached for this instance's life only.
      A `.failed` is never stored, so a transient error can't poison a range.
      */
-    private var temperatureCache: [TimeRange: SeriesState] = [:]
-    private var humidityCache: [TimeRange: SeriesState] = [:]
+    private var cache: [TimeRange: SeriesState] = [:]
 
-    init(area: AreaEntity, provider: any SensorHistoryProviding) {
+    init(sensor: SensorEntity, fallbackUnit: String, provider: any SensorHistoryProviding) {
+        self.sensor = sensor
+        self.fallbackUnit = fallbackUnit
         self.provider = provider
-        let representatives = AreaDisplayHelpers.representativeSensors(from: area.sensors)
-        self.temperatureSensor = representatives.temperature
-        self.humiditySensor = representatives.humidity
-        temperature = Self.initialSeriesState(for: representatives.temperature)
-        humidity = Self.initialSeriesState(for: representatives.humidity)
+        series = .loading
     }
 
     // MARK: - Loading
 
     /**
-     Loads the two series for the selected range. A range already settled in this
-     presentation renders from cache and issues no request; otherwise both fetch concurrently.
+     Loads the series for the selected range. A range already settled in this
+     presentation renders from cache and issues no request.
      */
     func load() async {
         let range = selectedRange
-        let cachedTemperature = temperatureCache[range]
-        let cachedHumidity = humidityCache[range]
-        if let cachedTemperature, let cachedHumidity {
-            temperature = cachedTemperature
-            humidity = cachedHumidity
+        if let cached = cache[range] {
+            series = cached
             return
         }
 
-        // The two series fetch concurrently; one measurement's outcome never waits on the other.
-        async let nextTemperature = resolve(temperatureSensor, unit: "°", cached: cachedTemperature, range: range)
-        async let nextHumidity = resolve(humiditySensor, unit: "%", cached: cachedHumidity, range: range)
+        series = await fetch(range: range)
 
-        let resolvedTemperature = await nextTemperature
-        let resolvedHumidity = await nextHumidity
-        temperature = resolvedTemperature
-        humidity = resolvedHumidity
-
-        if Self.isCacheable(resolvedTemperature) { temperatureCache[range] = resolvedTemperature }
-        if Self.isCacheable(resolvedHumidity) { humidityCache[range] = resolvedHumidity }
+        if Self.isCacheable(series) { cache[range] = series }
     }
 
     // MARK: - Private
 
     /**
-     Resolves the sample under the selected position for one measurement, or `nil` when
-     nothing is selected, the series isn't loaded, or the position lands in a gap.
+     The sample at the selected position, or `nil` when nothing is selected or the
+     series isn't loaded; a gap yields a readout with no sample fields.
      */
     private func readout(for state: SeriesState) -> Readout? {
         guard let date = selectedDate, case let .loaded(series) = state else { return nil }
@@ -114,18 +97,7 @@ final class AreaClimateHistoryViewModel {
         )
     }
 
-    private func resolve(
-        _ sensor: SensorEntity?,
-        unit: String,
-        cached: SeriesState?,
-        range: TimeRange
-    ) async -> SeriesState {
-        if let cached { return cached }
-        return await fetch(sensor, fallbackUnit: unit, range: range)
-    }
-
-    private func fetch(_ sensor: SensorEntity?, fallbackUnit: String, range: TimeRange) async -> SeriesState {
-        guard let sensor else { return .unavailable }
+    private func fetch(range: TimeRange) async -> SeriesState {
         do {
             let samples = try await provider.history(forEntityId: sensor.entityId, range: range)
             return .loaded(ClimateSeries(
@@ -144,11 +116,7 @@ final class AreaClimateHistoryViewModel {
     private static func isCacheable(_ state: SeriesState) -> Bool {
         switch state {
         case .loaded, .noRecordedHistory: return true
-        case .loading, .failed, .unavailable: return false
+        case .loading, .failed: return false
         }
-    }
-
-    private static func initialSeriesState(for sensor: SensorEntity?) -> SeriesState {
-        sensor == nil ? .unavailable : .loading
     }
 }
