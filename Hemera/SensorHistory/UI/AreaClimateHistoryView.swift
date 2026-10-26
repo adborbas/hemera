@@ -5,10 +5,15 @@ import SwiftUI
 /// Stacked temperature and humidity charts for an area's representative sensors.
 struct AreaClimateHistoryView: View {
 
-    var viewModel: AreaClimateHistoryViewModel
+    @Bindable var viewModel: AreaClimateHistoryViewModel
     let areaName: String
 
     @Environment(\.dismiss) private var dismiss
+
+    init(viewModel: AreaClimateHistoryViewModel, areaName: String) {
+        self.viewModel = viewModel
+        self.areaName = areaName
+    }
 
     var body: some View {
         let now = Date()
@@ -24,6 +29,9 @@ struct AreaClimateHistoryView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, Mortar.Spacing.l)
+
+                // A fixed-height readout above the plots so scrubbing shifts nothing below it.
+                selectionHeader
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: Mortar.Spacing.xl) {
@@ -100,11 +108,80 @@ struct AreaClimateHistoryView: View {
                             .foregroundStyle(color)
                         }
                     }
+                    if let selectedDate = viewModel.selectedDate {
+                        // A thin secondary rule marks the shared scrub position the user is reading.
+                        RuleMark(x: .value(Localization.timeAxis, selectedDate))
+                            .foregroundStyle(.secondary)
+                            .lineStyle(StrokeStyle(lineWidth: 1))
+                    }
                 }
                 .chartXScale(domain: window)
+                // Both plots bind to one date, so dragging either reads out both measurements.
+                .chartXSelection(value: $viewModel.selectedDate)
                 .chartLegend(.hidden)
                 .frame(height: Self.plotHeight)
             }
+        }
+    }
+
+    // MARK: - Readout header
+
+    /// Both measurements at the scrub position, reserved at a fixed height so nothing below moves.
+    private var selectionHeader: some View {
+        selectionContent
+            .frame(height: Self.selectionHeaderHeight, alignment: .top)
+            .padding(.horizontal, Mortar.Spacing.l)
+    }
+
+    @ViewBuilder
+    private var selectionContent: some View {
+        if viewModel.selectedDate == nil {
+            // Nothing selected: keep the space filled so the plots don't jump on first drag.
+            Text(Localization.dragPrompt)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
+            VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
+                if let temperatureReadout = viewModel.temperatureReadout {
+                    measurementBlock(temperatureReadout)
+                }
+                if let humidityReadout = viewModel.humidityReadout {
+                    measurementBlock(humidityReadout)
+                }
+            }
+        }
+    }
+
+    /// A measurement's name, interval, and mean, or a gap notice when the position lands in one.
+    @ViewBuilder
+    private func measurementBlock(_ readout: AreaClimateHistoryViewModel.Readout) -> some View {
+        VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
+            Text(readout.sensorName)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if let interval = readout.interval, let mean = readout.mean {
+                HStack(spacing: Mortar.Spacing.s) {
+                    Text(formatInterval(interval))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(mean.formatted(.number.precision(.fractionLength(1))) + readout.unit)")
+                        .font(.callout)
+                }
+            } else {
+                Text(Localization.noReading)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Formats a bucket's span; the 24-hour range omits the date, the others include it.
+    private func formatInterval(_ interval: Range<Date>) -> String {
+        switch viewModel.selectedRange {
+        case .day:
+            return interval.formatted(date: .omitted, time: .shortened)
+        case .week, .month:
+            return interval.formatted(date: .abbreviated, time: .shortened)
         }
     }
 }
@@ -124,6 +201,8 @@ private extension AreaClimateHistoryView {
         static let twentyFourHours = String(localized: "24 Hours", comment: "Picker option showing the last 24 hours of climate history")
         static let sevenDays = String(localized: "7 Days", comment: "Picker option showing the last 7 days of climate history")
         static let thirtyDays = String(localized: "30 Days", comment: "Picker option showing the last 30 days of climate history")
+        static let noReading = String(localized: "No reading", comment: "Shown for a measurement that has no sample at the scrubbed position, eg. inside a recording gap")
+        static let dragPrompt = String(localized: "Drag across the charts to read a value", comment: "Idle text in the climate-history readout, shown before any position is scrubbed")
     }
 
     /// Maps each range to its picker label; the enum carries no display text.
@@ -137,6 +216,9 @@ private extension AreaClimateHistoryView {
 
     /// Fixed, readable height shared by both plots so neither sizes to the container.
     static let plotHeight: CGFloat = 200
+
+    /// Enough for two two-line readouts, so scrubbing shifts the plots neither up nor down.
+    static let selectionHeaderHeight: CGFloat = 80
 }
 
 #if DEBUG

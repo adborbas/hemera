@@ -273,6 +273,190 @@ struct AreaClimateHistoryViewModelTests {
         #expect(provider.requests.count == requestCount)
     }
 
+    // MARK: - Selection and readout
+
+    /// Scrubbing inside a bucket reads out that bucket's mean for each measurement.
+    @Test
+    func selectionInsideSampleResolvesThatSampleForBothMeasurements() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = [
+            "sensor.lobby.temperature": .samples(samples(20.5)),
+            "sensor.lobby.humidity": .samples(samples(47.5)),
+        ]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        await viewModel.load()
+
+        // samples(_:) lays one 300s bucket at [1000, 1300); 1100 falls inside it.
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+
+        #expect(viewModel.temperatureReadout?.mean == 20.5)
+        #expect(viewModel.humidityReadout?.mean == 47.5)
+    }
+
+    /// The interval is half-open: a bucket's own `start` resolves that bucket.
+    @Test
+    func selectionOnSampleStartResolvesThatSampleNotTheNext() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(10, 20, 30))]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature], in: context), provider: provider)
+
+        await viewModel.load()
+
+        // buckets are [1000, 1300)=10, [1300, 1600)=20, [1600, 1900)=30; 1300 is the middle start.
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1300)
+
+        #expect(viewModel.temperatureReadout?.mean == 20)
+    }
+
+    /// The interval is half-open: a bucket's `end` does not resolve that bucket, it resolves the next.
+    @Test
+    func selectionOnSampleEndResolvesTheNextSample() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(10, 20, 30))]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature], in: context), provider: provider)
+
+        await viewModel.load()
+
+        // 1600 is the end of the [1300, 1600)=20 bucket, so it resolves the [1600, 1900)=30 bucket.
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1600)
+
+        #expect(viewModel.temperatureReadout?.mean == 30)
+    }
+
+    /// A date in one series' gap resolves nil for it while the other series still reads out.
+    @Test
+    func selectionInsideGapResolvesNilForThatMeasurementWhileOtherResolves() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        // Temperature skips [1300, 1600); humidity holds one wide bucket across the same span.
+        let temperatureSamples = [
+            ClimateSample(start: Date(timeIntervalSince1970: 1000), end: Date(timeIntervalSince1970: 1300), mean: 20.0),
+            ClimateSample(start: Date(timeIntervalSince1970: 1600), end: Date(timeIntervalSince1970: 1900), mean: 22.0),
+        ]
+        let humiditySamples = [
+            ClimateSample(start: Date(timeIntervalSince1970: 1000), end: Date(timeIntervalSince1970: 2000), mean: 45.0),
+        ]
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = [
+            "sensor.lobby.temperature": .samples(temperatureSamples),
+            "sensor.lobby.humidity": .samples(humiditySamples),
+        ]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        await viewModel.load()
+
+        // 1450 lands inside temperature's gap but inside humidity's single bucket.
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1450)
+
+        let temperatureReadout = viewModel.temperatureReadout
+        let humidityReadout = viewModel.humidityReadout
+
+        // Temperature's gap yields a readout with no sample; humidity's wide bucket still reads.
+        #expect(temperatureReadout != nil)
+        #expect(temperatureReadout?.mean == nil)
+        #expect(temperatureReadout?.interval == nil)
+        #expect(humidityReadout?.mean == 45.0)
+        #expect(humidityReadout?.interval != nil)
+    }
+
+    /// A date outside every bucket resolves nil.
+    @Test
+    func selectionOutsideLoadedSeriesResolvesNil() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(20.0))]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature], in: context), provider: provider)
+
+        await viewModel.load()
+
+        let outsideAfter = Date(timeIntervalSince1970: 5000)
+        let outsideBefore = Date(timeIntervalSince1970: 500)
+        viewModel.selectedDate = outsideAfter
+        #expect(viewModel.temperatureReadout?.mean == nil)
+        viewModel.selectedDate = outsideBefore
+        #expect(viewModel.temperatureReadout?.mean == nil)
+    }
+
+    /// Clearing the scrub position leaves nothing to read for either measurement.
+    @Test
+    func clearingSelectedDateLeavesNoReadout() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = [
+            "sensor.lobby.temperature": .samples(samples(20.0)),
+            "sensor.lobby.humidity": .samples(samples(45.0)),
+        ]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        await viewModel.load()
+
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+        #expect(viewModel.temperatureReadout?.mean != nil)
+        #expect(viewModel.humidityReadout?.mean != nil)
+
+        viewModel.selectedDate = nil
+        #expect(viewModel.temperatureReadout == nil)
+        #expect(viewModel.humidityReadout == nil)
+    }
+
+    /// An `.unavailable` measurement resolves nil; the other still reads.
+    @Test
+    func selectionWithUnavailableMeasurementResolvesNilWithoutCrashing() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(20.0))]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature], in: context), provider: provider)
+
+        await viewModel.load()
+
+        guard case .unavailable = viewModel.humidity else {
+            Issue.record("humidity expected unavailable, got \(viewModel.humidity)")
+            return
+        }
+
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+        #expect(viewModel.humidityReadout == nil)
+        #expect(viewModel.temperatureReadout?.mean == 20.0)
+    }
+
+    /// A measurement whose fetch failed resolves nil without crashing; the other still reads.
+    @Test
+    func selectionWithFailedMeasurementResolvesNilWithoutCrashing() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = [
+            "sensor.lobby.temperature": .samples(samples(20.0)),
+            "sensor.lobby.humidity": .failure(GenericHistoryError()),
+        ]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        await viewModel.load()
+
+        guard case .failed = viewModel.humidity else {
+            Issue.record("humidity expected failed, got \(viewModel.humidity)")
+            return
+        }
+
+        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+        #expect(viewModel.humidityReadout == nil)
+        #expect(viewModel.temperatureReadout?.mean == 20.0)
+    }
+
     // MARK: - Helpers
 
     private func sensor(_ entityId: String, name: String, deviceClass: String, unit: String?) -> SensorEntity {

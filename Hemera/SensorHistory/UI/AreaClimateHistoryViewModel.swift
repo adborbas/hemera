@@ -14,6 +14,17 @@ final class AreaClimateHistoryViewModel {
         let samples: [ClimateSample]
     }
 
+    /**
+     One measurement at the scrub position: its sensor name and unit, plus the sample under it.
+     `mean` and `interval` are `nil` together when it lands in a gap or the series isn't loaded.
+     */
+    struct Readout {
+        let sensorName: String
+        let unit: String
+        let mean: Double?
+        let interval: Range<Date>?
+    }
+
     enum SeriesState {
         case loading
         case loaded(ClimateSeries)
@@ -27,6 +38,12 @@ final class AreaClimateHistoryViewModel {
 
     /// Range the user has chosen; changing it triggers a load of that window.
     var selectedRange: TimeRange = .day
+
+    /// The scrub position both charts read from; `nil` means nothing is selected.
+    var selectedDate: Date?
+
+    var temperatureReadout: Readout? { readout(for: temperature) }
+    var humidityReadout: Readout? { readout(for: humidity) }
 
     private let provider: any SensorHistoryProviding
     private let temperatureSensor: SensorEntity?
@@ -78,6 +95,24 @@ final class AreaClimateHistoryViewModel {
     }
 
     // MARK: - Private
+
+    /**
+     Resolves the sample under the selected position for one measurement, or `nil` when
+     nothing is selected, the series isn't loaded, or the position lands in a gap.
+     */
+    private func readout(for state: SeriesState) -> Readout? {
+        guard let date = selectedDate, case let .loaded(series) = state else { return nil }
+        // A sample is under the position on the half-open interval `start..<end`.
+        guard let sample = series.samples.first(where: { $0.start <= date && date < $0.end }) else {
+            return Readout(sensorName: series.sensorName, unit: series.unit, mean: nil, interval: nil)
+        }
+        return Readout(
+            sensorName: series.sensorName,
+            unit: series.unit,
+            mean: sample.mean,
+            interval: sample.start..<sample.end
+        )
+    }
 
     private func resolve(
         _ sensor: SensorEntity?,
