@@ -2,7 +2,7 @@ import Charts
 import Mortar
 import SwiftUI
 
-/// Stacked 24-hour temperature and humidity charts for an area's representative sensors.
+/// Stacked temperature and humidity charts for an area's representative sensors.
 struct AreaClimateHistoryView: View {
 
     var viewModel: AreaClimateHistoryViewModel
@@ -12,15 +12,26 @@ struct AreaClimateHistoryView: View {
 
     var body: some View {
         let now = Date()
-        let window = now.addingTimeInterval(-Self.xWindowInterval)...now
+        // Both plots share one domain, derived from the selected range so they rescale together.
+        let window = now.addingTimeInterval(-viewModel.selectedRange.interval)...now
 
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Mortar.Spacing.xl) {
-                    plot(state: viewModel.temperature, color: .warm, window: window)
-                    plot(state: viewModel.humidity, color: .cool, window: window)
+            VStack(spacing: Mortar.Spacing.l) {
+                Picker(Localization.range, selection: rangeSelection) {
+                    ForEach(TimeRange.allCases, id: \.self) { range in
+                        Text(rangeLabel(range)).tag(range)
+                    }
                 }
-                .padding(Mortar.Spacing.l)
+                .pickerStyle(.segmented)
+                .padding(.horizontal, Mortar.Spacing.l)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Mortar.Spacing.xl) {
+                        plot(state: viewModel.temperature, color: .warm, window: window)
+                        plot(state: viewModel.humidity, color: .cool, window: window)
+                    }
+                    .padding(Mortar.Spacing.l)
+                }
             }
             .navigationTitle(areaName)
             .toolbar {
@@ -31,8 +42,17 @@ struct AreaClimateHistoryView: View {
                     }
                 }
             }
-            .task { await viewModel.load() }
+            .task(id: viewModel.selectedRange) { await viewModel.load() }
         }
+    }
+
+    // MARK: - Range picker
+
+    private var rangeSelection: Binding<TimeRange> {
+        Binding(
+            get: { viewModel.selectedRange },
+            set: { viewModel.selectedRange = $0 }
+        )
     }
 
     // MARK: - Plot
@@ -91,15 +111,25 @@ private extension AreaClimateHistoryView {
         static let close = String(localized: "Close", comment: "Toolbar button that dismisses the area's climate-history sheet")
         static let noRecordedHistory = String(localized: "No recorded history", comment: "Shown under a climate chart when the sensor has no stored long-term statistics")
         static let loadFailed = String(localized: "Couldn't load history", comment: "Shown under a climate chart when the history fetch failed and may be retried later")
-        static let timeAxis = String(localized: "Time", comment: "Horizontal axis key for a climate-history chart, over the past 24 hours")
+        static let timeAxis = String(localized: "Time", comment: "Horizontal axis key for a climate-history chart, over the selected range")
         static let meanAxis = String(localized: "Mean", comment: "Vertical axis key for a climate-history chart, holding each bucket's mean")
+        static let range = String(localized: "Time range", comment: "Title of the picker that chooses how far back the area's climate-history charts reach")
+        static let twoDaysHours = String(localized: "24 Hours", comment: "Picker option showing the last 24 hours of climate history")
+        static let sevenDays = String(localized: "7 Days", comment: "Picker option showing the last 7 days of climate history")
+        static let thirtyDays = String(localized: "30 Days", comment: "Picker option showing the last 30 days of climate history")
+    }
+
+    /// Maps each range to its picker label; the enum carries no display text.
+    func rangeLabel(_ range: TimeRange) -> String {
+        switch range {
+        case .day: return Localization.twoDaysHours
+        case .week: return Localization.sevenDays
+        case .month: return Localization.thirtyDays
+        }
     }
 
     /// Fixed, readable height shared by both plots so neither sizes to the container.
     static let plotHeight: CGFloat = 200
-
-    /// 24 hours, the window both charts share — a vertical line means one instant.
-    static let xWindowInterval: TimeInterval = 24 * 60 * 60
 }
 
 #if DEBUG

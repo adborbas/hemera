@@ -159,6 +159,120 @@ struct AreaClimateHistoryViewModelTests {
         #expect(series.unit == "%")
     }
 
+    // MARK: - Range selection and caching
+
+    @Test
+    func init_selectedRangeDefaultsToDay() {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature], in: context), provider: MockSensorHistoryProvider())
+
+        #expect(viewModel.selectedRange == .day)
+    }
+
+    @Test
+    func load_selectingWeek_requestsWeekRangeForBothSensors() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = []
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+
+        #expect(provider.requests.contains { $0.entityId == "sensor.lobby.temperature" && $0.range == .week })
+        #expect(provider.requests.contains { $0.entityId == "sensor.lobby.humidity" && $0.range == .week })
+    }
+
+    @Test
+    func load_selectingMonth_requestsMonthRangeForBothSensors() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = []
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        viewModel.selectedRange = .month
+        await viewModel.load()
+
+        #expect(provider.requests.contains { $0.entityId == "sensor.lobby.temperature" && $0.range == .month })
+        #expect(provider.requests.contains { $0.entityId == "sensor.lobby.humidity" && $0.range == .month })
+    }
+
+    @Test
+    func load_reselectingAFetchedRange_issuesNoFurtherRequest() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = []
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+        let requestCount = provider.requests.count
+
+        // Selecting an already-fetched range again must render from cache without a request.
+        await viewModel.load()
+
+        #expect(provider.requests.count == requestCount)
+    }
+
+    @Test
+    func load_rangeWhoseFetchFailed_isReRequestedOnReselect() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = [
+            "sensor.lobby.temperature": .failure(GenericHistoryError()),
+            "sensor.lobby.humidity": .failure(GenericHistoryError()),
+        ]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+        guard case .failed = viewModel.temperature, case .failed = viewModel.humidity else {
+            Issue.record("both series expected failed, got \(viewModel.temperature) / \(viewModel.humidity)")
+            return
+        }
+        let requestCount = provider.requests.count
+
+        // A failure is never cached, so selecting the same range re-requests both sensors.
+        await viewModel.load()
+
+        #expect(provider.requests.count == requestCount + 2)
+    }
+
+    @Test
+    func load_noRecordedHistoryOutcome_isCachedAndNotReRequested() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+        let humidity = sensor("sensor.lobby.humidity", name: "Humidity", deviceClass: "humidity", unit: "%")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = [
+            "sensor.lobby.temperature": .failure(SensorHistoryError.noRecordedHistory),
+            "sensor.lobby.humidity": .failure(SensorHistoryError.noRecordedHistory),
+        ]
+        let viewModel = AreaClimateHistoryViewModel(area: area(with: [temperature, humidity], in: context), provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+        guard case .noRecordedHistory = viewModel.temperature, case .noRecordedHistory = viewModel.humidity else {
+            Issue.record("both series expected noRecordedHistory, got \(viewModel.temperature) / \(viewModel.humidity)")
+            return
+        }
+        let requestCount = provider.requests.count
+
+        // A settled no-history outcome is cached, so re-selecting the range issues no request.
+        await viewModel.load()
+
+        #expect(provider.requests.count == requestCount)
+    }
+
     // MARK: - Helpers
 
     private func sensor(_ entityId: String, name: String, deviceClass: String, unit: String?) -> SensorEntity {

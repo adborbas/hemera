@@ -1,8 +1,8 @@
 import Foundation
 
 /**
- Loads the last day of climate history for an area's representative temperature and
- humidity sensors, keeping each measurement's outcome explicit.
+ Loads climate history for an area's representative temperature and humidity sensors
+ over the selected range, caching each settled success for the presentation's life.
  */
 @Observable
 @MainActor
@@ -25,9 +25,19 @@ final class AreaClimateHistoryViewModel {
     private(set) var temperature: SeriesState
     private(set) var humidity: SeriesState
 
+    /// Range the user has chosen; changing it triggers a load of that window.
+    var selectedRange: TimeRange = .day
+
     private let provider: any SensorHistoryProviding
     private let temperatureSensor: SensorEntity?
     private let humiditySensor: SensorEntity?
+
+    /**
+     Settled-success outcomes per range, cached for this instance's life only.
+     A `.failed` is never stored, so a transient error can't poison a range.
+     */
+    private var temperatureCache: [TimeRange: SeriesState] = [:]
+    private var humidityCache: [TimeRange: SeriesState] = [:]
 
     init(area: AreaEntity, provider: any SensorHistoryProviding) {
         self.provider = provider
@@ -40,28 +50,49 @@ final class AreaClimateHistoryViewModel {
 
     // MARK: - Loading
 
+    /**
+     Loads the two series for the selected range. A range already settled in this
+     presentation renders from cache and issues no request; otherwise both fetch concurrently.
+     */
     func load() async {
+        let range = selectedRange
+        let cachedTemperature = temperatureCache[range]
+        let cachedHumidity = humidityCache[range]
+        if let cachedTemperature, let cachedHumidity {
+            temperature = cachedTemperature
+            humidity = cachedHumidity
+            return
+        }
+
         // The two series fetch concurrently; one measurement's outcome never waits on the other.
-        async let temperatureResult = fetchTemperature()
-        async let humidityResult = fetchHumidity()
-        temperature = await temperatureResult
-        humidity = await humidityResult
+        async let nextTemperature = resolve(temperatureSensor, unit: "°", cached: cachedTemperature, range: range)
+        async let nextHumidity = resolve(humiditySensor, unit: "%", cached: cachedHumidity, range: range)
+
+        let resolvedTemperature = await nextTemperature
+        let resolvedHumidity = await nextHumidity
+        temperature = resolvedTemperature
+        humidity = resolvedHumidity
+
+        if Self.isCacheable(resolvedTemperature) { temperatureCache[range] = resolvedTemperature }
+        if Self.isCacheable(resolvedHumidity) { humidityCache[range] = resolvedHumidity }
     }
 
     // MARK: - Private
 
-    private func fetchTemperature() async -> SeriesState {
-        await fetch(temperatureSensor, fallbackUnit: "°")
+    private func resolve(
+        _ sensor: SensorEntity?,
+        unit: String,
+        cached: SeriesState?,
+        range: TimeRange
+    ) async -> SeriesState {
+        if let cached { return cached }
+        return await fetch(sensor, fallbackUnit: unit, range: range)
     }
 
-    private func fetchHumidity() async -> SeriesState {
-        await fetch(humiditySensor, fallbackUnit: "%")
-    }
-
-    private func fetch(_ sensor: SensorEntity?, fallbackUnit: String) async -> SeriesState {
+    private func fetch(_ sensor: SensorEntity?, fallbackUnit: String, range: TimeRange) async -> SeriesState {
         guard let sensor else { return .unavailable }
         do {
-            let samples = try await provider.history(forEntityId: sensor.entityId, range: .day)
+            let samples = try await provider.history(forEntityId: sensor.entityId, range: range)
             return .loaded(ClimateSeries(
                 sensorName: sensor.name,
                 unit: sensor.unitOfMeasurement ?? fallbackUnit,
@@ -71,6 +102,14 @@ final class AreaClimateHistoryViewModel {
             return .noRecordedHistory
         } catch {
             return .failed
+        }
+    }
+
+    /// Only settled successes are worth keeping; a `.failed` must stay re-fetchable.
+    private static func isCacheable(_ state: SeriesState) -> Bool {
+        switch state {
+        case .loaded, .noRecordedHistory: return true
+        case .loading, .failed, .unavailable: return false
         }
     }
 
