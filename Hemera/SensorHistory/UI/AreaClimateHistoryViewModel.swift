@@ -34,6 +34,9 @@ final class AreaClimateHistoryViewModel {
 
     private(set) var series: SeriesState
 
+    /// Whether a range's fetch is in flight, separate from `series` so a chart can stay while it loads.
+    private(set) var isLoading: Bool = false
+
     /// Range the user has chosen; changing it triggers a load of that window.
     var selectedRange: TimeRange = .day
 
@@ -71,13 +74,30 @@ final class AreaClimateHistoryViewModel {
             series = cached
             return
         }
+        await request(range: range)
+    }
 
-        series = await fetch(range: range)
-
-        if Self.isCacheable(series) { cache[range] = series }
+    /**
+     Re-requests the selected range, ignoring the cache: a `.failed` is never
+     stored, so a retry genuinely re-fetches the sensor's history.
+     */
+    func retry() async {
+        await request(range: selectedRange)
     }
 
     // MARK: - Private
+
+    /**
+     Fetches and stores an outcome for a range, flagging the transfer as in
+     flight and caching only the settled states that `isCacheable` keeps.
+     */
+    private func request(range: TimeRange) async {
+        isLoading = true
+        defer { isLoading = false }
+        let outcome = await fetch(range: range)
+        series = outcome
+        if Self.isCacheable(outcome) { cache[range] = outcome }
+    }
 
     /**
      The sample at the selected position, or `nil` when nothing is selected or the

@@ -144,6 +144,139 @@ struct AreaClimateHistoryViewModelTests {
         #expect(provider.requests.count == requestCount)
     }
 
+    // MARK: - In flight and retry
+
+    /// The transfer flag is idle before a load and idle again once it settles.
+    @Test
+    func load_transferFlagIsIdleBeforeAndAfter() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = []
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        #expect(viewModel.isLoading == false)
+
+        await viewModel.load()
+
+        #expect(viewModel.isLoading == false)
+    }
+
+    /// A failed range re-requests on retry, because a failure is never cached.
+    @Test
+    func load_aFailedRange_retryReRequestsTheSameRange() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .failure(GenericHistoryError())]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+        guard case .failed = viewModel.series else {
+            Issue.record("series expected failed, got \(viewModel.series)")
+            return
+        }
+        let afterFailure = provider.requests.count
+
+        await viewModel.retry()
+
+        // The retry genuinely re-fetches, so the recorded request count grows by one.
+        #expect(provider.requests.count == afterFailure + 1)
+        #expect(provider.requests.last?.range == .week)
+    }
+
+    /// A retry that succeeds swaps `.failed` for `.loaded`.
+    @Test
+    func load_aSuccessfulRetry_replacesFailedWithLoaded() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .failure(GenericHistoryError())]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+        guard case .failed = viewModel.series else {
+            Issue.record("series expected failed, got \(viewModel.series)")
+            return
+        }
+
+        // Flip the mock to succeed, then retry; the new result must replace `.failed`.
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(20.5))]
+        await viewModel.retry()
+
+        guard case .loaded(let series) = viewModel.series else {
+            Issue.record("series expected loaded after a successful retry, got \(viewModel.series)")
+            return
+        }
+        #expect(series.samples.count == 1)
+    }
+
+    /// An absent statistic surfaces as `.noRecordedHistory`, never `.failed`.
+    @Test
+    func load_anAbsentStatistic_exposesNoRecordedHistoryNeverFailed() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .failure(SensorHistoryError.noRecordedHistory)]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        viewModel.selectedRange = .week
+        await viewModel.load()
+
+        // A guard passing proves the outcome is `.noRecordedHistory`, and thus not `.failed`.
+        guard case .noRecordedHistory = viewModel.series else {
+            Issue.record("an absent statistic must surface as .noRecordedHistory, got \(viewModel.series)")
+            return
+        }
+    }
+
+    /// Selecting a range that fetches must not drop the chart to a loading spinner.
+    @Test
+    func load_aNewRangeInFlight_keepsThePreviouslyLoadedSeries() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        /**
+         The 24-hour range settles at once; the 7-day range blocks until released,
+         so the test can read the model while its fetch is in flight.
+         */
+        let provider = GatedHistoryProvider(
+            gatedRange: .week,
+            results: [.day: samples(20.0), .week: samples(21.0, 22.0)]
+        )
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+        guard case .loaded(let daySeries) = viewModel.series else {
+            Issue.record("expected the 24-hour range to settle, got \(viewModel.series)")
+            return
+        }
+        #expect(daySeries.samples.count == 1)
+
+        viewModel.selectedRange = .week
+        let loading = Task { await viewModel.load() }
+        while provider.requests.last?.range != .week { await Task.yield() }
+
+        // While the new range is in flight, the stale series stays and the flag is up.
+        #expect(viewModel.isLoading == true)
+        guard case .loaded(let stale) = viewModel.series else {
+            Issue.record("the loaded series dropped to \(viewModel.series) while a range was loading")
+            return
+        }
+        #expect(stale.samples.count == 1)
+
+        provider.release()
+        await loading.value
+        #expect(viewModel.isLoading == false)
+
+        guard case .loaded(let weekSeries) = viewModel.series else {
+            Issue.record("expected the 7-day range to settle, got \(viewModel.series)")
+            return
+        }
+        #expect(weekSeries.samples.count == 2)
+    }
+
     // MARK: - Selection and readout
 
     /// Scrubbing inside a bucket reads out that bucket's mean.
@@ -290,5 +423,67 @@ struct AreaClimateHistoryViewModelTests {
             let start = Date(timeIntervalSince1970: 1000 + TimeInterval(index) * 300)
             return ClimateSample(start: start, end: start.addingTimeInterval(300), mean: value)
         }
+    }
+}
+
+/// Blocks one range's request until released, so a test can read the model mid-fetch.
+private final class GatedHistoryProvider: SensorHistoryProviding, @unchecked Sendable {
+
+    struct Request { let entityId: String; let range: TimeRange }
+
+    var requests: [Request] {
+        withLock { _requests }
+    }
+
+    private let lock = NSLock()
+    private var _requests: [Request] = []
+    private var gate: CheckedContinuation<Void, Never>?
+    private var released = false
+    private let gatedRange: TimeRange
+    private let results: [TimeRange: [ClimateSample]]
+
+    init(gatedRange: TimeRange, results: [TimeRange: [ClimateSample]]) {
+        self.gatedRange = gatedRange
+        self.results = results
+    }
+
+    /// Locking stays in synchronous helpers, away from the async path.
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
+    }
+
+    private func register(_ continuation: CheckedContinuation<Void, Never>) {
+        withLock {
+            if released {
+                continuation.resume()
+            } else {
+                gate = continuation
+            }
+        }
+    }
+
+    private func awaitGate() async {
+        await withCheckedContinuation { continuation in
+            register(continuation)
+        }
+    }
+
+    /// Lets a blocked request finish, so a test can act while it was in flight.
+    func release() {
+        withLock {
+            released = true
+            gate?.resume()
+            gate = nil
+        }
+    }
+
+    func history(forEntityId entityId: String, range: TimeRange) async throws -> [ClimateSample] {
+        withLock { _requests.append(Request(entityId: entityId, range: range)) }
+        if range == gatedRange {
+            await awaitGate()
+        }
+        return results[range] ?? []
     }
 }

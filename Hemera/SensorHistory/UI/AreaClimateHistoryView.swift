@@ -36,7 +36,7 @@ struct AreaClimateHistoryView: View {
                 selectionHeader
 
                 ScrollView {
-                    plot(state: viewModel.series, window: window)
+                    plot(state: viewModel.series, isLoading: viewModel.isLoading, window: window)
                         .padding(Mortar.Spacing.l)
                 }
             }
@@ -64,9 +64,31 @@ struct AreaClimateHistoryView: View {
 
     // MARK: - Plot
 
-    /// The measurement's chart for the selected range; gaps split into separate runs.
+    /**
+     While a range loads, the last chart stays dimmed under a spinner; a first
+     load has nothing behind its spinner.
+     */
     @ViewBuilder
     private func plot(
+        state: AreaClimateHistoryViewModel.SeriesState,
+        isLoading: Bool,
+        window: ClosedRange<Date>
+    ) -> some View {
+        if isLoading, case .loaded = state {
+            chartFor(state: state, window: window)
+                .opacity(Self.staleOpacity)
+                .overlay {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+        } else {
+            chartFor(state: state, window: window)
+        }
+    }
+
+    /// The measurement's chart for the selected range; gaps split into separate runs.
+    @ViewBuilder
+    private func chartFor(
         state: AreaClimateHistoryViewModel.SeriesState,
         window: ClosedRange<Date>
     ) -> some View {
@@ -80,10 +102,18 @@ struct AreaClimateHistoryView: View {
         case .noRecordedHistory:
             Text(Localization.noRecordedHistory)
                 .foregroundStyle(.secondary)
+                .frame(height: Self.plotHeight)
 
         case .failed:
-            Text(Localization.loadFailed)
-                .foregroundStyle(.secondary)
+            VStack(spacing: Mortar.Spacing.s) {
+                Text(Localization.loadFailed)
+                    .foregroundStyle(.secondary)
+                Button(action: { Task { await viewModel.retry() } }) {
+                    Text(Localization.retry)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(height: Self.plotHeight)
 
         case let .loaded(series):
             VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
@@ -178,8 +208,9 @@ struct AreaClimateHistoryView: View {
 private extension AreaClimateHistoryView {
     enum Localization {
         static let close = String(localized: "Close", comment: "Toolbar button that dismisses the area's climate-history sheet")
-        static let noRecordedHistory = String(localized: "No recorded history", comment: "Shown under a climate chart when the sensor has no stored long-term statistics")
-        static let loadFailed = String(localized: "Couldn't load history", comment: "Shown under a climate chart when the history fetch failed and may be retried later")
+        static let noRecordedHistory = String(localized: "Home Assistant isn't recording history for this sensor", comment: "Shown under a climate chart when Home Assistant keeps no long-term statistics for the sensor, which is normal")
+        static let loadFailed = String(localized: "Couldn't load history", comment: "Shown under a climate chart when the history fetch failed, next to a retry button")
+        static let retry = String(localized: "Retry", comment: "The button that re-fetches a climate range whose history failed to load")
         static let timeAxis = String(localized: "Time", comment: "Horizontal axis key for a climate-history chart, over the selected range")
         static let meanAxis = String(localized: "Mean", comment: "Vertical axis key for a climate-history chart, holding each bucket's mean")
         /// Not user-facing: the legend is hidden, this only keeps each run a separate series.
@@ -203,6 +234,9 @@ private extension AreaClimateHistoryView {
 
     /// Fixed height for the plot so it doesn't size to the container.
     static let plotHeight: CGFloat = 200
+
+    /// How dim a still-loaded chart reads while a newer range loads over it.
+    static let staleOpacity: Double = 0.5
 
     /// Reserves height for the readout, so scrubbing shifts the plot neither up nor down.
     static let selectionHeaderHeight: CGFloat = 80
