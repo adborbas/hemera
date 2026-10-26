@@ -20,14 +20,21 @@ struct AreaStatusIcon: Identifiable, Hashable {
 /// model state with no presentation lifecycle of their own.
 enum AreaDisplayHelpers {
 
-    static func climateSummary(from sensors: [SensorEntity]) -> (String?, String?) {
-        let temp = sensors.first { $0.deviceClass == "temperature" && !$0.isHiddenInHA }
+    static func representativeSensors(
+        from sensors: [SensorEntity]
+    ) -> (temperature: SensorEntity?, humidity: SensorEntity?) {
+        let temperature = sensors.first { $0.deviceClass == "temperature" && !$0.isHiddenInHA }
         let humidity = sensors.first { $0.deviceClass == "humidity" && !$0.isHiddenInHA }
+        return (temperature, humidity)
+    }
 
-        let tempStr = temp.flatMap { Double($0.state) }
+    static func climateSummary(from sensors: [SensorEntity]) -> (String?, String?) {
+        let (temperature, humidity) = representativeSensors(from: sensors)
+
+        let tempStr = temperature.flatMap { Double($0.state) }
             .map { (value: Double) -> String in
                 let number = value.formatted(.number.precision(.fractionLength(1)))
-                return number + (temp?.unitOfMeasurement ?? "°")
+                return number + (temperature?.unitOfMeasurement ?? "°")
             }
         let humStr = humidity.flatMap { Double($0.state) }
             .map { (value: Double) -> String in
@@ -36,6 +43,12 @@ enum AreaDisplayHelpers {
             }
 
         return (tempStr, humStr)
+    }
+
+    static func climateLabel(from sensors: [SensorEntity]) -> String? {
+        let (temperature, humidity) = climateSummary(from: sensors)
+        let parts = [temperature, humidity].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     static func statusIcons(

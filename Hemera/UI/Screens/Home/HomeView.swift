@@ -202,9 +202,7 @@ private struct AreaCardView: View {
     }
 
     private var climateLabel: String? {
-        let (temp, humidity) = AreaDisplayHelpers.climateSummary(from: area.sensors)
-        let parts = [temp, humidity].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        AreaDisplayHelpers.climateLabel(from: area.sensors)
     }
 
     var body: some View {

@@ -73,6 +73,92 @@ struct AreaDisplayHelpersTests {
         #expect(h == nil)
     }
 
+    // MARK: - representativeSensors
+
+    @Test
+    func representativeSensors_withMixedSensors_returnsFirstVisibleOfEachClass() {
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let laterTemp = SensorEntity(entityId: "sensor.temp.later", name: "Late", state: "30", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let hum = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+
+        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(from: [temp, hum, laterTemp])
+
+        #expect(temperature?.entityId == "sensor.temp")
+        #expect(humidity?.entityId == "sensor.humidity")
+    }
+
+    @Test
+    func representativeSensors_withHiddenSensorFirst_skipsItForLaterVisible() {
+        let hidden = SensorEntity(entityId: "sensor.temp.hidden", name: "Hidden", state: "18", deviceClass: "temperature", unitOfMeasurement: "°C")
+        hidden.isHiddenInHA = true
+        let visible = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+
+        let (temperature, _) = AreaDisplayHelpers.representativeSensors(from: [hidden, visible])
+
+        #expect(temperature?.entityId == "sensor.temp")
+    }
+
+    @Test
+    func representativeSensors_withNoMatchingSensor_returnsNilForBoth() {
+        let illuminance = SensorEntity(entityId: "sensor.lux", name: "Lux", state: "100", deviceClass: "illuminance", unitOfMeasurement: "lx")
+
+        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(from: [illuminance])
+
+        #expect(temperature == nil)
+        #expect(humidity == nil)
+    }
+
+    // MARK: - climateLabel
+
+    @Test
+    func climateLabel_withTemperatureAndHumidity_joinsWithBulletSeparator() {
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+
+        let label = AreaDisplayHelpers.climateLabel(from: [temp, humidity])
+
+        let expected = 21.0.formatted(.number.precision(.fractionLength(1))) + "°C · "
+            + 47.0.formatted(.number.precision(.fractionLength(1))) + "%"
+        #expect(label == expected)
+    }
+
+    @Test
+    func climateLabel_withOnlyTemperature_returnsJustTemperature() {
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+
+        let label = AreaDisplayHelpers.climateLabel(from: [temp])
+
+        #expect(label == 21.0.formatted(.number.precision(.fractionLength(1))) + "°C")
+    }
+
+    @Test
+    func climateLabel_withOnlyHumidity_returnsJustHumidity() {
+        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+
+        let label = AreaDisplayHelpers.climateLabel(from: [humidity])
+
+        #expect(label == 47.0.formatted(.number.precision(.fractionLength(1))) + "%")
+    }
+
+    @Test
+    func climateLabel_withUnreadableTemperature_omitsItWithoutPlaceholder() {
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "unavailable", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+
+        let label = AreaDisplayHelpers.climateLabel(from: [temp, humidity])
+
+        #expect(label == 47.0.formatted(.number.precision(.fractionLength(1))) + "%")
+    }
+
+    @Test
+    func climateLabel_withNoClimateSensor_returnsNil() {
+        let illuminance = SensorEntity(entityId: "sensor.lux", name: "Lux", state: "100", deviceClass: "illuminance", unitOfMeasurement: "lx")
+
+        let label = AreaDisplayHelpers.climateLabel(from: [illuminance])
+
+        #expect(label == nil)
+    }
+
     // MARK: - statusIcons
 
     @Test
