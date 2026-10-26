@@ -99,6 +99,8 @@ private struct AreaContentView: View {
     let animatesTileChanges: Bool
     let onEnterHideMode: () -> Void
 
+    @State private var showsClimateHistory = false
+
     private var climateLabel: String? {
         AreaDisplayHelpers.climateLabel(from: area.sensors)
     }
@@ -113,15 +115,29 @@ private struct AreaContentView: View {
 
             ScrollView {
                 if let climate = climateLabel {
-                    Text(climate)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, TileGridConstants.padding)
-                        .opacity(showClimateSubtitle ? 1 : 0)
-                        .onScrollVisibilityChange(threshold: 0.5) { isVisible in
-                            showClimateSubtitle = isVisible
+                    Button {
+                        showsClimateHistory = true
+                    } label: {
+                        Text(climate)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, TileGridConstants.padding)
+                    .opacity(showClimateSubtitle ? 1 : 0)
+                    .onScrollVisibilityChange(threshold: 0.5) { isVisible in
+                        showClimateSubtitle = isVisible
+                    }
+                    .sheet(isPresented: $showsClimateHistory) {
+                        if let session = ServiceLocator.shared.session {
+                            AreaClimateHistoryView(
+                                viewModel: .init(area: area, provider: session.sensorHistoryProvider),
+                                areaName: area.name
+                            )
+                            .presentationDetents([.large])
                         }
+                    }
                 }
 
                 if sections.isEmpty, !isHideMode, viewModel.hasHiddenEntities(for: area) {
