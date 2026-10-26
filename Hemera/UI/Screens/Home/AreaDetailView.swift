@@ -100,6 +100,8 @@ private struct AreaContentView: View {
     let onEnterHideMode: () -> Void
 
     @State private var showsClimateHistory = false
+    /// Held in state so a body re-evaluation cannot swap in a fresh, unloaded view model.
+    @State private var climateHistoryViewModel: AreaClimateHistoryViewModel?
 
     private var climateLabel: String? {
         AreaDisplayHelpers.climateLabel(from: area.sensors)
@@ -116,6 +118,11 @@ private struct AreaContentView: View {
             ScrollView {
                 if let climate = climateLabel {
                     Button {
+                        guard let session = ServiceLocator.shared.session else { return }
+                        climateHistoryViewModel = AreaClimateHistoryViewModel(
+                            area: area,
+                            provider: session.sensorHistoryProvider
+                        )
                         showsClimateHistory = true
                     } label: {
                         Text(climate)
@@ -129,10 +136,10 @@ private struct AreaContentView: View {
                     .onScrollVisibilityChange(threshold: 0.5) { isVisible in
                         showClimateSubtitle = isVisible
                     }
-                    .sheet(isPresented: $showsClimateHistory) {
-                        if let session = ServiceLocator.shared.session {
+                    .sheet(isPresented: $showsClimateHistory, onDismiss: { climateHistoryViewModel = nil }) {
+                        if let climateHistoryViewModel {
                             AreaClimateHistoryView(
-                                viewModel: .init(area: area, provider: session.sensorHistoryProvider),
+                                viewModel: climateHistoryViewModel,
                                 areaName: area.name
                             )
                             .presentationDetents([.large])
