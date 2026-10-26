@@ -1,4 +1,5 @@
 import Foundation
+import HAKit
 
 /// Errors decoding a `recorder/statistics_during_period` response.
 enum SensorHistoryError: Error {
@@ -32,6 +33,13 @@ enum SensorHistoryDecoding {
                 )
             }
             .sorted { $0.start < $1.start }
+    }
+
+    /// Decodes an `HAData` dictionary payload, reusing the single `Data` parser below.
+    static func decode(_ haData: HAData, for statisticId: String) throws -> [ClimateSample] {
+        guard case let .dictionary(dict) = haData else { throw SensorHistoryError.noRecordedHistory }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try decode(data, for: statisticId)
     }
 
     // MARK: - Payload

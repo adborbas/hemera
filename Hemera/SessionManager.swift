@@ -137,7 +137,8 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
             mainContext: demoContext,
             restClient: DemoRESTClient(),
             errorNotifier: ErrorNotifier(),
-            resync: { }
+            resync: { },
+            sensorHistoryProvider: DemoSensorHistoryProvider()
         )
     }
 
@@ -233,7 +234,8 @@ private extension SessionManager {
             mainContext: container.mainContext,
             restClient: restClient,
             errorNotifier: errorNotifier,
-            resync: { [weak self] in await self?.performResync() }
+            resync: { [weak self] in await self?.performResync() },
+            sensorHistoryProvider: SensorHistoryService(connectionManager: connectionManager)
         )
 
         connectionManager.connect()
