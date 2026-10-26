@@ -88,16 +88,21 @@ struct AreaClimateHistoryView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
+                // One line per run, so a gap reads as a break rather than a straight line.
                 Chart {
-                    ForEach(series.samples, id: \.start) { sample in
-                        LineMark(
-                            x: .value(Localization.timeAxis, sample.start),
-                            y: .value(Localization.meanAxis, sample.mean)
-                        )
-                        .foregroundStyle(color)
+                    ForEach(Array(ClimateSampleRuns.split(series.samples).enumerated()), id: \.offset) { run in
+                        ForEach(run.element, id: \.start) { sample in
+                            LineMark(
+                                x: .value(Localization.timeAxis, sample.start),
+                                y: .value(Localization.meanAxis, sample.mean),
+                                series: .value(Localization.runKey, run.offset)
+                            )
+                            .foregroundStyle(color)
+                        }
                     }
                 }
                 .chartXScale(domain: window)
+                .chartLegend(.hidden)
                 .frame(height: Self.plotHeight)
             }
         }
@@ -113,8 +118,10 @@ private extension AreaClimateHistoryView {
         static let loadFailed = String(localized: "Couldn't load history", comment: "Shown under a climate chart when the history fetch failed and may be retried later")
         static let timeAxis = String(localized: "Time", comment: "Horizontal axis key for a climate-history chart, over the selected range")
         static let meanAxis = String(localized: "Mean", comment: "Vertical axis key for a climate-history chart, holding each bucket's mean")
+        /// Not user-facing: the legend is hidden, this only keeps each run a separate series.
+        static let runKey = "Run"
         static let range = String(localized: "Time range", comment: "Title of the picker that chooses how far back the area's climate-history charts reach")
-        static let twoDaysHours = String(localized: "24 Hours", comment: "Picker option showing the last 24 hours of climate history")
+        static let twentyFourHours = String(localized: "24 Hours", comment: "Picker option showing the last 24 hours of climate history")
         static let sevenDays = String(localized: "7 Days", comment: "Picker option showing the last 7 days of climate history")
         static let thirtyDays = String(localized: "30 Days", comment: "Picker option showing the last 30 days of climate history")
     }
@@ -122,7 +129,7 @@ private extension AreaClimateHistoryView {
     /// Maps each range to its picker label; the enum carries no display text.
     func rangeLabel(_ range: TimeRange) -> String {
         switch range {
-        case .day: return Localization.twoDaysHours
+        case .day: return Localization.twentyFourHours
         case .week: return Localization.sevenDays
         case .month: return Localization.thirtyDays
         }
