@@ -289,6 +289,44 @@ struct CoverCardViewModelTests {
         #expect(vm.isOpen == false)
     }
 
+    // MARK: - isMoving
+
+    @Test
+    func isMoving_opening_isTrue() {
+        let vm = makeViewModel(state: .opening)
+        #expect(vm.isMoving == true)
+    }
+
+    @Test
+    func isMoving_closing_isTrue() {
+        let vm = makeViewModel(state: .closing)
+        #expect(vm.isMoving == true)
+    }
+
+    @Test
+    func isMoving_open_isFalse() {
+        let vm = makeViewModel(state: .open)
+        #expect(vm.isMoving == false)
+    }
+
+    @Test
+    func isMoving_closed_isFalse() {
+        let vm = makeViewModel(state: .closed)
+        #expect(vm.isMoving == false)
+    }
+
+    @Test
+    func isMoving_unknown_isFalse() {
+        let vm = makeViewModel(state: .unknown)
+        #expect(vm.isMoving == false)
+    }
+
+    @Test
+    func isMoving_unavailable_isFalse() {
+        let vm = makeViewModel(state: .unavailable)
+        #expect(vm.isMoving == false)
+    }
+
     // MARK: - Tint Color
 
     @Test

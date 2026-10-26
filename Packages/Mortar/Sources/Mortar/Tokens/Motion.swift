@@ -22,5 +22,8 @@ extension Mortar {
         public static let glowCollapseDuration: Double = normal
         /// When the glow looks gone: before the curve ends, as its last scale hides behind the icon.
         public static let glowRetreatDuration: Double = glowCollapseDuration * 0.8
+
+        /// Points per second an activity indicator's segment travels — one lap of a small tile in ~1.5s.
+        public static let borderTravelSpeed: CGFloat = 375
     }
 }

@@ -3,12 +3,23 @@ import SwiftUI
 private struct CardBackgroundModifier<LitOverlay: View>: ViewModifier {
     let tint: Color?
     let isActive: Bool
+    let isWorking: Bool
     let glowsFromIcon: Bool
     @ViewBuilder let litOverlay: () -> LitOverlay
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
+        background(of: content)
+            .overlay {
+                ActivityBorder(color: tint ?? PlatformColor.systemGray,
+                               isActive: isWorking && !reduceMotion,
+                               cornerRadius: Mortar.Radii.l)
+            }
+    }
+
+    @ViewBuilder
+    private func background(of content: Content) -> some View {
         content.backgroundPreferenceValue(CardIconCenterKey.self) { iconAnchor in
             // Reduce Motion takes the plain fill: same two resting states, reached without travel.
             if glowsFromIcon, !reduceMotion, let tint, let iconAnchor {
@@ -53,6 +64,7 @@ extension View {
     /// - Inactive cards use `secondarySystemBackground` regardless of mode.
     ///
     /// When `tint` is `nil`, uses `secondarySystemBackground` regardless of mode.
+    /// `isWorking` traces the card's border with a travelling segment while a task is in flight.
     ///
     /// `glowsFromIcon` reveals the wash with a glow growing out of the content's `CardIcon`,
     /// reaching the same two resting states. `litOverlay` draws on top of the wash — put a value
@@ -60,11 +72,13 @@ extension View {
     public func cardBackground<LitOverlay: View>(
         tint: Color? = nil,
         isActive: Bool = false,
+        isWorking: Bool = false,
         glowsFromIcon: Bool = false,
         @ViewBuilder litOverlay: @escaping () -> LitOverlay = { EmptyView() }
     ) -> some View {
         modifier(CardBackgroundModifier(tint: tint,
                                         isActive: isActive,
+                                        isWorking: isWorking,
                                         glowsFromIcon: glowsFromIcon,
                                         litOverlay: litOverlay))
     }

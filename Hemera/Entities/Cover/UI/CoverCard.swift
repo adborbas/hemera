@@ -11,7 +11,9 @@ struct CoverCard: View {
     }
 
     var body: some View {
-        EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOpen) {
+        EntityCard(tintColor: viewModel.tintColor,
+                   isActive: viewModel.isOpen,
+                   isWorking: viewModel.isMoving) {
             CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()

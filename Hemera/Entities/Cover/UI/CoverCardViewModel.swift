@@ -78,6 +78,11 @@ final class CoverCardViewModel: Identifiable {
         }
     }
 
+    /// Mid-travel, which Home Assistant reports as its own state rather than a position change.
+    var isMoving: Bool {
+        state == .opening || state == .closing
+    }
+
     var isOpen: Bool {
         switch state {
         case .open, .opening, .closing: true
