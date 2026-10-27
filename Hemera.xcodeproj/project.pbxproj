@@ -34,8 +34,8 @@
 /* Begin PBXFileReference section */
 		6449A3DB2EC9CB1B00D56CD2 /* Hemera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hemera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		64C9207A2EE0374D004DD20E /* HemeraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -118,14 +118,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		64D1B0022FA0000100D2E3A2 /* Config */ = {
-			isa = PBXGroup;
-			children = (
-				64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */,
-			);
-			path = Config;
-			sourceTree = "<group>";
-		};
 		6449A3DC2EC9CB1B00D56CD2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -134,6 +126,14 @@
 				64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		64D1B0022FA0000100D2E3A2 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -451,22 +451,23 @@
 		6449A3E72EC9CB1C00D56CD2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Hemera/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Hemera Dev";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Hemera searches for Home Assistant servers on your local network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -487,10 +488,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Hemera/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Hemera Dev";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Hemera searches for Home Assistant servers on your local network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
