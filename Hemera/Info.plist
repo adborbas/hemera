@@ -2,16 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIImageName</key>
-		<string>LaunchLogo</string>
-	</dict>
 	<key>NSAppTransportSecurity</key>
-	<!-- Users point Hemera at their own Home Assistant, often over plain HTTP on a LAN or a
-	     mesh VPN. ATS exception domains are static, so a user-entered host cannot be declared
-	     ahead of time and arbitrary loads is the only option. Do NOT add NSAllowsLocalNetworking
-	     alongside it: iOS ignores NSAllowsArbitraryLoads whenever that key is present. -->
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
@@ -20,7 +11,10 @@
 	<array>
 		<string>_home-assistant._tcp</string>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIImageName</key>
+		<string>LaunchLogo</string>
+	</dict>
 </dict>
 </plist>

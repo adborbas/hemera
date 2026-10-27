@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "Hemera"
+               BlueprintIdentifier = "6449A3DA2EC9CB1B00D56CD2"
                BuildableName = "Hemera.app"
                BlueprintName = "Hemera"
                ReferencedContainer = "container:Hemera.xcodeproj">
@@ -34,7 +34,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "HemeraTests"
+               BlueprintIdentifier = "64C920792EE0374D004DD20E"
                BuildableName = "HemeraTests.xctest"
                BlueprintName = "HemeraTests"
                ReferencedContainer = "container:Hemera.xcodeproj">
@@ -44,7 +44,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "HemeraUITests"
+               BlueprintIdentifier = "64D100052FA0000100E1F1A1"
                BuildableName = "HemeraUITests.xctest"
                BlueprintName = "HemeraUITests"
                ReferencedContainer = "container:Hemera.xcodeproj">
@@ -66,7 +66,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "Hemera"
+            BlueprintIdentifier = "6449A3DA2EC9CB1B00D56CD2"
             BuildableName = "Hemera.app"
             BlueprintName = "Hemera"
             ReferencedContainer = "container:Hemera.xcodeproj">
@@ -83,7 +83,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "Hemera"
+            BlueprintIdentifier = "6449A3DA2EC9CB1B00D56CD2"
             BuildableName = "Hemera.app"
             BlueprintName = "Hemera"
             ReferencedContainer = "container:Hemera.xcodeproj">
