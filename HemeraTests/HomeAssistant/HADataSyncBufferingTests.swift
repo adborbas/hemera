@@ -26,10 +26,8 @@ struct HADataSyncBufferingTests {
 
         let url = URL(string: "http://localhost:8123")!
         let connectionManager = HAConnectionManager(urlProvider: { url }, tokenProvider: { "" })
-        let restClient = HARESTClient(urlProvider: { url }, tokenProvider: { "" })
         service = HADataSyncService(
             connectionManager: connectionManager,
-            restClient: restClient,
             mainContext: context,
             entityRegistry: EntityRegistry.shared,
             iconResolver: IconTranslationsFixture.resolver(),

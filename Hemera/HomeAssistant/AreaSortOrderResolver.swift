@@ -3,11 +3,13 @@ import Foundation
 /// An area entry from the Home Assistant area registry WebSocket API.
 struct AreaRegistryEntry: Sendable {
     let areaId: String
+    let name: String
     let floorId: String?
     let icon: String?
 
-    init(areaId: String, floorId: String?, icon: String? = nil) {
+    init(areaId: String, name: String, floorId: String?, icon: String? = nil) {
         self.areaId = areaId
+        self.name = name
         self.floorId = floorId
         self.icon = icon
     }
