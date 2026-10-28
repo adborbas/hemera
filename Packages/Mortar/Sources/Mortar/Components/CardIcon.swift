@@ -45,7 +45,6 @@ public struct CardIcon: View {
                 onTap?()
             }
             .allowsHitTesting(onTap != nil)
-            .anchorPreference(key: CardIconCenterKey.self, value: .center) { $0 }
     }
 
     /**

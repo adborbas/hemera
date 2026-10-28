@@ -27,25 +27,17 @@ struct LightCardViewModelTests {
         #expect(vm.tintColor == .yellow)
     }
 
-    // MARK: - Lit Appearance
+    // MARK: - Optimistic Icon
 
-    /**
-     The card holds its lit look while the glow retracts, so an off light must still be able to
-     render the on-state icon — otherwise the bulb goes dark over a card that is still washed.
-    */
+    /// The icon follows the tap, not the server, so a pending toggle already reads as lit.
     @Test
-    func litAppearance_whileOff_rendersOnState() {
+    func iconName_whileToggleIsPending_rendersOnState() {
         let vm = makeViewModel(state: .off)
-        #expect(vm.iconName(lit: true) == "lightbulb")
-        #expect(vm.iconBackgroundColor(lit: true) == .yellow)
-    }
 
-    /// Without the override the entity's own state decides, so nothing about the resting card moves.
-    @Test
-    func litAppearance_notLit_matchesEntityState() {
-        let vm = makeViewModel(state: .off)
-        #expect(vm.iconName(lit: false) == vm.iconName)
-        #expect(vm.iconBackgroundColor(lit: false) == vm.iconBackgroundColor)
+        vm.toggle()
+
+        #expect(vm.iconName == "lightbulb")
+        #expect(vm.iconBackgroundColor == .yellow)
     }
 
     // MARK: - HA Icon Override
