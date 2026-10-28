@@ -403,13 +403,13 @@ final class HADataSyncService {
 
     // MARK: - Registry Fetching
 
-    /// `nil` on failure, so a transient error never clears persisted HA-hidden state.
+    /// `nil` on failure: a transient error must not clear HA-hidden state or wipe area membership.
     private func fetchEntityRegistry() async -> EntityRegistrySnapshot? {
         do {
             let request = HARequest(type: .webSocket("config/entity_registry/list"), data: [:])
             return EntityRegistrySnapshot.decode(try await conn.send(request))
         } catch {
-            Log.error("Failed to fetch entity registry — proceeding without device linking or HA-hidden filtering", cause: error)
+            Log.error("Failed to fetch entity registry — proceeding without device linking, area membership or HA-hidden filtering", cause: error)
             return nil
         }
     }
