@@ -26,7 +26,6 @@ struct IconTranslationsSyncTests {
         resolver = IconResolver(translations: IconTranslationsFixture.translations)
         service = HADataSyncService(
             connectionManager: HAConnectionManager(urlProvider: { url }, tokenProvider: { "" }),
-            restClient: HARESTClient(urlProvider: { url }, tokenProvider: { "" }),
             mainContext: container.mainContext,
             entityRegistry: EntityRegistry.shared,
             iconResolver: resolver,

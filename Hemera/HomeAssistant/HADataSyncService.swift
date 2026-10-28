@@ -25,7 +25,6 @@ final class HADataSyncService {
     private static let yieldBatchSize = 50
 
     private let connectionManager: HAConnectionManager
-    private let restClient: HARESTClient
     private let mainContext: ModelContext
     private let entityRegistry: EntityRegistry
     private let errorNotifier: ErrorNotifier?
@@ -68,7 +67,6 @@ final class HADataSyncService {
 
     init(
         connectionManager: HAConnectionManager,
-        restClient: HARESTClient,
         mainContext: ModelContext,
         entityRegistry: EntityRegistry,
         errorNotifier: ErrorNotifier? = nil,
@@ -76,7 +74,6 @@ final class HADataSyncService {
         onSyncComplete: @MainActor @escaping () -> Void
     ) {
         self.connectionManager = connectionManager
-        self.restClient = restClient
         self.mainContext = mainContext
         self.entityRegistry = entityRegistry
         self.errorNotifier = errorNotifier
@@ -218,17 +215,17 @@ final class HADataSyncService {
 
         for (index, mapping) in payload.areaMappings.enumerated() {
             let area = AreaEntity.upsert(
-                id: mapping.area_id,
-                name: mapping.area_name,
-                icon: payload.areaIcons[mapping.area_id],
-                sortOrder: payload.areaSortOrder[mapping.area_id] ?? index,
+                id: mapping.areaId,
+                name: mapping.areaName,
+                icon: payload.areaIcons[mapping.areaId],
+                sortOrder: payload.areaSortOrder[mapping.areaId] ?? index,
                 in: mainContext
             )
             // Reassign floor only when the fetch succeeded, so a transient
             // failure never clears existing links. `nil` when the area has no
             // floor or references a floor that no longer exists.
             if payload.floors != nil {
-                area.floor = payload.areaFloorIds[mapping.area_id].flatMap { floorsById[$0] }
+                area.floor = payload.areaFloorIds[mapping.areaId].flatMap { floorsById[$0] }
             }
             for entityId in mapping.entities {
                 entityRegistry.assignArea(area, toEntityWithId: entityId, in: mainContext)
@@ -247,7 +244,7 @@ final class HADataSyncService {
          an area nullifies its inverse entity links, moving them to Unassigned.
          */
         if payload.areaMappingsFetchSucceeded {
-            AreaEntity.prune(keeping: Set(payload.areaMappings.map(\.area_id)), in: mainContext)
+            AreaEntity.prune(keeping: Set(payload.areaMappings.map(\.areaId)), in: mainContext)
         }
 
         // Prune floors the server no longer has — but only when the fetch
@@ -296,12 +293,9 @@ final class HADataSyncService {
         let areaSortOrder: [String: Int]
         let areaIcons: [String: String]
         /**
-         Whether the area-mapping fetch succeeded. `false` when the fetch failed
-         (and `areaMappings` degraded to `[]`), which suppresses the destructive
-         area reconciliation — clearing entity links and pruning area rows — so a
-         transient failure never wipes persisted area membership. Mirrors the
-         `floors: [FloorRegistryEntry]?` nil-means-failed signal.
-         */
+         Whether every registry the mapping derives from was fetched. `false` suppresses clearing
+         entity links and pruning areas, so a transient failure never wipes stored membership.
+        */
         let areaMappingsFetchSucceeded: Bool
         /// Floor registry entries, or `nil` when the floor fetch failed.
         /// `nil` suppresses floor upserts, area→floor reassignment and pruning
@@ -320,36 +314,38 @@ final class HADataSyncService {
         )
 
         async let entitiesTask = conn.send(statesRequest)
-        async let areaMappingsTask = restClient.fetchAreaMappings()
         async let entityRegistryTask = fetchEntityRegistry()
         async let areaRegistryTask = fetchAreaRegistry()
+        async let deviceRegistryTask = fetchDeviceRegistry()
         async let floorRegistryTask = fetchFloorRegistry()
         async let iconTranslationsTask = fetchIconTranslations()
 
-        let (entities, entityRegistryResult, areaRegistry, floorRegistry, iconTranslations) = try await (
-            entitiesTask, entityRegistryTask, areaRegistryTask, floorRegistryTask, iconTranslationsTask
+        let (entities, entityRegistryResult, areaRegistry, deviceRegistry, floorRegistry, iconTranslations) = try await (
+            entitiesTask, entityRegistryTask, areaRegistryTask, deviceRegistryTask, floorRegistryTask, iconTranslationsTask
         )
         let deviceMappings = entityRegistryResult?.deviceMappings ?? []
         let hiddenEntityIds = entityRegistryResult?.hiddenEntityIds
 
         /**
-         Degrade area mapping like the other registry fetches: a failure yields
-         nil → [] so a transient template error leaves entities rendering ungrouped
-         instead of aborting the whole sync. `nil` also distinguishes "fetch failed"
-         from "server genuinely has no areas", suppressing the destructive area
-         reconciliation (clear + prune) that would otherwise wipe links on failure.
-         */
-        let fetchedAreaMappings = try? await areaMappingsTask
-        let areaMappings = fetchedAreaMappings ?? []
+         Membership comes from registries every Home Assistant user can read. A failed fetch yields
+         no mapping and reports failure, so the reconciliation below leaves stored membership alone.
+        */
+        let areaMappingsFetchSucceeded = areaRegistry != nil && entityRegistryResult != nil && deviceRegistry != nil
+        let areaMappings = AreaMappingResolver.resolve(
+            areas: areaRegistry ?? [],
+            entityAreaIds: entityRegistryResult?.entityAreaIds ?? [:],
+            deviceMappings: deviceMappings,
+            devices: deviceRegistry ?? []
+        )
 
-        let areaSortOrder = AreaSortOrderResolver.resolve(areas: areaRegistry, floors: floorRegistry ?? [])
+        let areaSortOrder = AreaSortOrderResolver.resolve(areas: areaRegistry ?? [], floors: floorRegistry ?? [])
         let floorSortOrder = FloorSortOrderResolver.resolve(floors: floorRegistry ?? [])
         let areaIcons = Dictionary(
-            areaRegistry.compactMap { entry in entry.icon.map { (entry.areaId, $0) } },
+            (areaRegistry ?? []).compactMap { entry in entry.icon.map { (entry.areaId, $0) } },
             uniquingKeysWith: { _, new in new }
         )
         let areaFloorIds = Dictionary(
-            areaRegistry.compactMap { entry in entry.floorId.map { (entry.areaId, $0) } },
+            (areaRegistry ?? []).compactMap { entry in entry.floorId.map { (entry.areaId, $0) } },
             uniquingKeysWith: { _, new in new }
         )
 
@@ -360,7 +356,7 @@ final class HADataSyncService {
             hiddenEntityIds: hiddenEntityIds,
             areaSortOrder: areaSortOrder,
             areaIcons: areaIcons,
-            areaMappingsFetchSucceeded: fetchedAreaMappings != nil,
+            areaMappingsFetchSucceeded: areaMappingsFetchSucceeded,
             floors: floorRegistry,
             floorSortOrder: floorSortOrder,
             areaFloorIds: areaFloorIds,
@@ -418,14 +414,25 @@ final class HADataSyncService {
         }
     }
 
-    /// Preserves registry order. Degrades to `[]`: order is cosmetic, nothing deletes rows on it.
-    private func fetchAreaRegistry() async -> [AreaRegistryEntry] {
+    /// Preserves registry order. `nil` on failure: `[]` would read as "no areas" and prune every stored one.
+    private func fetchAreaRegistry() async -> [AreaRegistryEntry]? {
         do {
             let request = HARequest(type: .webSocket("config/area_registry/list"), data: [:])
-            return AreaRegistryEntry.decodeList(try await conn.send(request)) ?? []
+            return AreaRegistryEntry.decodeList(try await conn.send(request))
         } catch {
-            Log.error("Failed to fetch area registry — proceeding without floor-based ordering", cause: error)
-            return []
+            Log.error("Failed to fetch area registry — keeping existing areas", cause: error)
+            return nil
+        }
+    }
+
+    /// `nil` on failure, so entities keep the area membership their device gave them.
+    private func fetchDeviceRegistry() async -> [DeviceRegistryEntry]? {
+        do {
+            let request = HARequest(type: .webSocket("config/device_registry/list"), data: [:])
+            return DeviceRegistryEntry.decodeList(try await conn.send(request))
+        } catch {
+            Log.error("Failed to fetch device registry — proceeding without device-inherited areas", cause: error)
+            return nil
         }
     }
 

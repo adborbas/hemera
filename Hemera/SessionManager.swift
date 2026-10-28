@@ -205,7 +205,6 @@ private extension SessionManager {
 
         let syncService = HADataSyncService(
             connectionManager: connectionManager,
-            restClient: restClient,
             mainContext: container.mainContext,
             entityRegistry: .shared,
             errorNotifier: errorNotifier,

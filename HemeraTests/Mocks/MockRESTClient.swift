@@ -12,8 +12,4 @@ final class MockRESTClient: HARESTClienting {
             return stubbedVersion
         }
     }
-
-    nonisolated func fetchAreaMappings() async throws -> [AreaMapping] {
-        []
-    }
 }
