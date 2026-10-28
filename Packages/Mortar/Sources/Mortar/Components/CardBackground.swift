@@ -1,43 +1,27 @@
 import SwiftUI
 
-private struct CardBackgroundModifier<LitOverlay: View>: ViewModifier {
+private struct CardBackgroundModifier<BackgroundOverlay: View>: ViewModifier {
     let tint: Color?
     let isActive: Bool
     let isWorking: Bool
-    let glowsFromIcon: Bool
-    @ViewBuilder let litOverlay: () -> LitOverlay
+    @ViewBuilder let backgroundOverlay: () -> BackgroundOverlay
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
-        background(of: content)
+        content
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: Mortar.Radii.l, style: .continuous)
+                        .fill(fillColor)
+                    backgroundOverlay()
+                }
+            }
             .overlay {
                 ActivityBorder(color: tint ?? PlatformColor.systemGray,
                                isActive: isWorking && !reduceMotion,
                                cornerRadius: Mortar.Radii.l)
             }
-    }
-
-    @ViewBuilder
-    private func background(of content: Content) -> some View {
-        content.backgroundPreferenceValue(CardIconCenterKey.self) { iconAnchor in
-            // Reduce Motion takes the plain fill: same two resting states, reached without travel.
-            if glowsFromIcon, !reduceMotion, let tint, let iconAnchor {
-                // Only to resolve the anchor — the background already spans the card's bounds.
-                GeometryReader { geometry in
-                    CardGlowBackground(tint: tint,
-                                       isActive: isActive,
-                                       iconCenter: geometry[iconAnchor],
-                                       litOverlay: litOverlay)
-                }
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: Mortar.Radii.l, style: .continuous)
-                        .fill(fillColor)
-                    litOverlay()
-                }
-            }
-        }
     }
 
     private var fillColor: Color {
@@ -66,20 +50,16 @@ extension View {
     /// When `tint` is `nil`, uses `secondarySystemBackground` regardless of mode.
     /// `isWorking` traces the card's border with a travelling segment while a task is in flight.
     ///
-    /// `glowsFromIcon` reveals the wash with a glow growing out of the content's `CardIcon`,
-    /// reaching the same two resting states. `litOverlay` draws on top of the wash — put a value
-    /// indicator there, not over the card, so the glow carries it in and out too.
-    public func cardBackground<LitOverlay: View>(
+    /// `backgroundOverlay` draws on top of the fill, within the card's rounded shape.
+    public func cardBackground<BackgroundOverlay: View>(
         tint: Color? = nil,
         isActive: Bool = false,
         isWorking: Bool = false,
-        glowsFromIcon: Bool = false,
-        @ViewBuilder litOverlay: @escaping () -> LitOverlay = { EmptyView() }
+        @ViewBuilder backgroundOverlay: @escaping () -> BackgroundOverlay = { EmptyView() }
     ) -> some View {
         modifier(CardBackgroundModifier(tint: tint,
                                         isActive: isActive,
                                         isWorking: isWorking,
-                                        glowsFromIcon: glowsFromIcon,
-                                        litOverlay: litOverlay))
+                                        backgroundOverlay: backgroundOverlay))
     }
 }

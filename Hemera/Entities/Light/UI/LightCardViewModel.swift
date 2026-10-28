@@ -89,21 +89,17 @@ final class LightCardViewModel: Identifiable {
         set { light.isHidden = newValue }
     }
 
-    var iconName: String? { iconName(lit: isOn) }
-
-    /// `lit` forces the on-state icon; otherwise the entity's state wins, so unavailable stays so.
-    func iconName(lit: Bool) -> String? {
+    /// Reads `isOn`, not the entity's state, so an optimistic toggle lights the icon at once.
+    var iconName: String? {
         iconResolver.iconName(
             domain: LightEntity.domain,
-            state: lit ? LightEntity.State.on.rawValue : light.state.rawValue,
+            state: isOn ? LightEntity.State.on.rawValue : light.state.rawValue,
             entityIcon: light.icon
         )
     }
 
-    var iconBackgroundColor: Color { iconBackgroundColor(lit: isOn) }
-
-    func iconBackgroundColor(lit: Bool) -> Color {
-        lit ? .yellow : PlatformColor.systemGray3
+    var iconBackgroundColor: Color {
+        isOn ? .yellow : PlatformColor.systemGray3
     }
 
     var tintColor: Color { .yellow }

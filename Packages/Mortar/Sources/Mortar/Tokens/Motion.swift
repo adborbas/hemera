@@ -15,14 +15,6 @@ extension Mortar {
         /// Entrance-quality spring — slightly longer than springBouncy for visual settling.
         public static var springSnappy: Animation { .spring(duration: 0.35, bounce: 0.12) }
 
-        /// Light spilling out of a card's icon as its entity becomes active.
-        public static var glowExpand: Animation { .easeOut(duration: slow) }
-        /// The same glow drawn back into the icon — accelerating inwards as it shrinks.
-        public static var glowCollapse: Animation { .easeIn(duration: glowCollapseDuration) }
-        public static let glowCollapseDuration: Double = normal
-        /// When the glow looks gone: before the curve ends, as its last scale hides behind the icon.
-        public static let glowRetreatDuration: Double = glowCollapseDuration * 0.8
-
         /// Points per second an activity indicator's segment travels — one lap of a small tile in ~1.5s.
         public static let borderTravelSpeed: CGFloat = 375
     }
