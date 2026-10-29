@@ -1,5 +1,6 @@
 import Foundation
 import HAKit
+import HemeraLog
 
 /**
  Fetches a window of climate history over the shared WebSocket via
@@ -20,7 +21,26 @@ final class SensorHistoryService: SensorHistoryProviding {
     func history(forEntityId entityId: String, range: TimeRange) async throws -> [ClimateSample] {
         let request = Self.request(entityId: entityId, range: range)
         let response = try await connection.send(request)
-        return try SensorHistoryDecoding.decode(response, for: entityId)
+        do {
+            let samples = try SensorHistoryDecoding.decode(response, for: entityId)
+            Log.info("Climate history for \(entityId) over \(range.period): \(samples.count) samples")
+            return samples
+        } catch {
+            Log.error(
+                "Climate history for \(entityId) over \(range.period) unreadable — \(Self.shape(of: response))",
+                cause: error
+            )
+            throw error
+        }
+    }
+
+    /// Names what the server actually sent, so an empty chart can be told from an unexpected shape.
+    private static func shape(of response: HAData) -> String {
+        if case let .dictionary(dictionary) = response {
+            let keys = dictionary.keys.sorted().joined(separator: ", ")
+            return keys.isEmpty ? "empty dictionary" : "dictionary keys: \(keys)"
+        }
+        return String(describing: response).prefix(200).description
     }
 
     /**
