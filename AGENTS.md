@@ -62,6 +62,20 @@ swift test --package-path Packages/TileGridEngine
 swift test --package-path Packages/AppStoreScreenshots
 ```
 
+## Branches
+
+Name the branch for the change, never for the tooling that created it. An agent workspace creates
+its branch with a generated name (`legit-ostrich`, `grill-area-temperature-humidity-history-chart`);
+rename it before the first commit:
+
+```bash
+git branch -m <kebab-case-summary>
+```
+
+Two to four words describing the change — `climate-history-per-area`, `fix-cover-tilt-position`.
+Renaming after the workspace exists is expected and safe: the worktree directory keeps its
+generated name, only the branch changes.
+
 ## Conventions
 
 Read the relevant rule file before writing code:
