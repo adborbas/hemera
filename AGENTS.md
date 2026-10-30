@@ -16,46 +16,16 @@ Hemera is an open-source Home Assistant client for iOS, built with SwiftUI. Lice
 
 ## Project Structure
 
-```
-seville/
-├── Hemera/                          # Main app target
-│   ├── HemeraApp.swift              # @main entry point
-│   ├── AppEnvironment.swift         # App-lifetime container (SwiftData, ScreenManager)
-│   ├── ServiceLocator.swift         # Session-scoped DI hub
-│   ├── SessionManager.swift         # Session lifecycle (connect/disconnect/demo)
-│   ├── Auth/                        # OAuth flow, token refresh, Keychain
-│   ├── Demo/                        # DemoDataProvider, DemoController
-│   ├── Entities/                    # Per-domain entity modules (Light, Cover, Switch, etc.)
-│   │   ├── <Domain>/               # One directory per HA domain
-│   │   │   ├── <Domain>Entity.swift
-│   │   │   ├── <Domain>Controlling.swift
-│   │   │   ├── <Domain>Controller.swift  # Production controller (wraps HAServiceCalling)
-│   │   │   └── UI/                  # Card view, card VM, optional control panel
-│   │   ├── EntityCardViewModel.swift
-│   │   └── ViewModelFactory.swift
-│   ├── HomeAssistant/               # HAConnectionManager, HADataSyncService, HAServiceCaller, HARESTClient
-│   ├── Navigation/                  # AppRouter, AppCoordinator, DemoCoordinator
-│   ├── Persistency/                 # StoredEntity, EntityRegistry, BackgroundSyncStorage, repositories
-│   ├── Screen/                      # ScreenManager (stay-awake, dim-after-inactivity)
-│   └── UI/                          # SwiftUI views + view models
-├── HemeraTests/                     # Unit tests (Swift Testing framework)
-├── HemeraUITests/                   # Screenshot capture (XCTest)
-├── Packages/
-│   ├── Mortar/                      # Design system: EntityCard, VerticalSlider, PillPicker, tokens
-│   ├── TileGridEngine/              # Tile layout algorithm (pure logic, own test suite)
-│   ├── HemeraLog/                   # Logging utility wrapping os.Logger
-│   └── AppStoreScreenshots/         # Promo screenshot compositing
-├── Config/
-│   ├── Shared.xcconfig
-│   └── Local.xcconfig.template      # Per-developer signing (DEVELOPMENT_TEAM)
-├── .claude/                         # Claude Code configuration
-│   ├── settings.json                # Allowed/denied shell commands
-│   ├── rules/                       # Conventions (architecture, style, testing)
-│   └── commands/                    # Custom slash commands
-├── scripts/
-│   ├── capture-screenshots.sh
-│   └── generate-promo-screenshots.sh
-```
+Everything lives at the repo root:
+
+- `Hemera/` — main app target: `Auth/`, `Demo/`, `Entities/` (one module per HA domain), `HomeAssistant/`, `Navigation/`, `Persistency/`, `Screen/`, `UI/`. The per-domain entity module layout is documented in [architecture.md](.agents/rules/architecture.md).
+- `HemeraTests/` — unit tests (Swift Testing); `HemeraUITests/` — screenshot capture (XCTest).
+- `Packages/` — local Swift packages: Mortar (design system), TileGridEngine, HemeraLog, AppStoreScreenshots.
+- `Config/` — Xcode `xcconfig` files (shared + per-developer signing).
+- `scripts/` — screenshot capture and Home Assistant icon-translation tooling.
+- `.agents/rules/` — coding conventions (also exposed as `.claude/rules`).
+
+This is orientation, not an inventory — explore the repository for the current layout.
 
 ## Setup
 
