@@ -246,7 +246,8 @@ struct AreasViewModelTests {
             name: "Temp",
             state: "21",
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: "°C",
+            stateClass: "measurement"
         )
         sensor.area = area
         context.insert(area)

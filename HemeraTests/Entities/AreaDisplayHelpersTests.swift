@@ -24,10 +24,11 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func climateSummary_withTemperatureAndHumidity_returnsBoth() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
-        let humidity = SensorEntity(entityId: "sensor.hum", name: "H", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let humidity = SensorEntity(entityId: "sensor.hum", name: "H", state: "47", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: "measurement")
+        let area = makeArea([temp, humidity])
 
-        let (t, h) = AreaDisplayHelpers.climateSummary(from: [temp, humidity])
+        let (t, h) = AreaDisplayHelpers.climateSummary(for: area)
 
         // Whole values still render with one decimal, using the current locale's separator.
         #expect(t == 21.0.formatted(.number.precision(.fractionLength(1))) + "°C")
@@ -36,9 +37,10 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func climateSummary_formatsFractionalValuesToOneDecimal() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21.6", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21.6", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([temp])
 
-        let (t, _) = AreaDisplayHelpers.climateSummary(from: [temp])
+        let (t, _) = AreaDisplayHelpers.climateSummary(for: area)
 
         // Fractional value is preserved to one decimal, not rounded to a whole number.
         #expect(t == 21.6.formatted(.number.precision(.fractionLength(1))) + "°C")
@@ -46,9 +48,10 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func climateSummary_roundsToOneDecimal() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21.68", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "21.68", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([temp])
 
-        let (t, _) = AreaDisplayHelpers.climateSummary(from: [temp])
+        let (t, _) = AreaDisplayHelpers.climateSummary(for: area)
 
         // More than one decimal is rounded, not truncated.
         #expect(t == 21.7.formatted(.number.precision(.fractionLength(1))) + "°C")
@@ -56,9 +59,10 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func climateSummary_withNonNumericState_returnsNil() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "unavailable", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "T", state: "unavailable", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([temp])
 
-        let (t, _) = AreaDisplayHelpers.climateSummary(from: [temp])
+        let (t, _) = AreaDisplayHelpers.climateSummary(for: area)
 
         #expect(t == nil)
     }
@@ -66,8 +70,9 @@ struct AreaDisplayHelpersTests {
     @Test
     func climateSummary_withOnlyIrrelevantSensors_returnsNil() {
         let illuminance = SensorEntity(entityId: "sensor.lux", name: "Lux", state: "100", deviceClass: "illuminance", unitOfMeasurement: "lx")
+        let area = makeArea([illuminance])
 
-        let (t, h) = AreaDisplayHelpers.climateSummary(from: [illuminance])
+        let (t, h) = AreaDisplayHelpers.climateSummary(for: area)
 
         #expect(t == nil)
         #expect(h == nil)
@@ -76,12 +81,13 @@ struct AreaDisplayHelpersTests {
     // MARK: - representativeSensors
 
     @Test
-    func representativeSensors_withMixedSensors_returnsFirstVisibleOfEachClass() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
-        let laterTemp = SensorEntity(entityId: "sensor.temp.later", name: "Late", state: "30", deviceClass: "temperature", unitOfMeasurement: "°C")
-        let hum = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+    func representativeSensors_withMixedSensors_returnsLowestEntityIdOfEachClass() {
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let laterTemp = SensorEntity(entityId: "sensor.temp.later", name: "Late", state: "30", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let hum = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: "measurement")
+        let area = makeArea([temp, hum, laterTemp])
 
-        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(from: [temp, hum, laterTemp])
+        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(for: area)
 
         #expect(temperature?.entityId == "sensor.temp")
         #expect(humidity?.entityId == "sensor.humidity")
@@ -89,11 +95,12 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func representativeSensors_withHiddenSensorFirst_skipsItForLaterVisible() {
-        let hidden = SensorEntity(entityId: "sensor.temp.hidden", name: "Hidden", state: "18", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let hidden = SensorEntity(entityId: "sensor.temp.hidden", name: "Hidden", state: "18", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
         hidden.isHiddenInHA = true
-        let visible = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let visible = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([hidden, visible])
 
-        let (temperature, _) = AreaDisplayHelpers.representativeSensors(from: [hidden, visible])
+        let (temperature, _) = AreaDisplayHelpers.representativeSensors(for: area)
 
         #expect(temperature?.entityId == "sensor.temp")
     }
@@ -101,8 +108,103 @@ struct AreaDisplayHelpersTests {
     @Test
     func representativeSensors_withNoMatchingSensor_returnsNilForBoth() {
         let illuminance = SensorEntity(entityId: "sensor.lux", name: "Lux", state: "100", deviceClass: "illuminance", unitOfMeasurement: "lx")
+        let area = makeArea([illuminance])
 
-        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(from: [illuminance])
+        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(for: area)
+
+        #expect(temperature == nil)
+        #expect(humidity == nil)
+    }
+
+    @Test
+    func representativeSensors_withTemperatureAssignment_returnsAssignedEvenOverBetterGuess() {
+        let assigned = SensorEntity(entityId: "sensor.assigned", name: "Assigned", state: "19", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: nil)
+        let guess = SensorEntity(entityId: "sensor.a.temperature", name: "Guess", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([guess, assigned])
+        area.temperatureEntityId = "sensor.assigned"
+
+        let (temperature, _) = AreaDisplayHelpers.representativeSensors(for: area)
+
+        #expect(temperature?.entityId == "sensor.assigned")
+    }
+
+    @Test
+    func representativeSensors_withHumidityAssignment_returnsAssignedEvenOverBetterGuess() {
+        let assigned = SensorEntity(entityId: "sensor.assigned", name: "Assigned", state: "60", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: nil)
+        let guess = SensorEntity(entityId: "sensor.a.humidity", name: "Guess", state: "47", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: "measurement")
+        let area = makeArea([guess, assigned])
+        area.humidityEntityId = "sensor.assigned"
+
+        let (_, humidity) = AreaDisplayHelpers.representativeSensors(for: area)
+
+        #expect(humidity?.entityId == "sensor.assigned")
+    }
+
+    @Test
+    func representativeSensors_withAssignmentToUnknownEntityId_fallsBackToGuess() {
+        let guess = SensorEntity(entityId: "sensor.a.temperature", name: "Guess", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([guess])
+        area.temperatureEntityId = "sensor.not.in.area"
+
+        let (temperature, _) = AreaDisplayHelpers.representativeSensors(for: area)
+
+        #expect(temperature?.entityId == "sensor.a.temperature")
+    }
+
+    @Test
+    func representativeSensors_withAssignedSensorHidden_stillReturnsIt() {
+        let assigned = SensorEntity(entityId: "sensor.assigned", name: "Assigned", state: "19", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: nil)
+        assigned.isHiddenInHA = true
+        let guess = SensorEntity(entityId: "sensor.a.temperature", name: "Guess", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([guess, assigned])
+        area.temperatureEntityId = "sensor.assigned"
+
+        let (temperature, _) = AreaDisplayHelpers.representativeSensors(for: area)
+
+        #expect(temperature?.entityId == "sensor.assigned")
+    }
+
+    @Test
+    func representativeSensors_noAssignment_setpointWithNilStateClass_neverChosen() {
+        // The guest-bathroom bug: a setpoint without `state_class` must never be chosen.
+        let setpoint = SensorEntity(entityId: "sensor.a.setpoint", name: "Setpoint", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let area = makeArea([setpoint])
+
+        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(for: area)
+
+        #expect(temperature == nil)
+        #expect(humidity == nil)
+    }
+
+    @Test
+    func representativeSensors_twoValidSensors_returnsLowestEntityIdRegardlessOfArrayOrder() {
+        func pair() -> (SensorEntity, SensorEntity) {
+            (
+                SensorEntity(entityId: "sensor.a.temperature", name: "A", state: "20", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement"),
+                SensorEntity(entityId: "sensor.b.temperature", name: "B", state: "22", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+            )
+        }
+
+        // Each area needs its own instances: assigning `.area` moves a sensor rather than sharing it.
+        let (lower, higher) = pair()
+        let forward = makeArea([lower, higher])
+        let (lowerAgain, higherAgain) = pair()
+        let reversed = makeArea([higherAgain, lowerAgain])
+
+        let (forwardTemp, _) = AreaDisplayHelpers.representativeSensors(for: forward)
+        let (reversedTemp, _) = AreaDisplayHelpers.representativeSensors(for: reversed)
+
+        #expect(forwardTemp?.entityId == "sensor.a.temperature")
+        #expect(reversedTemp?.entityId == "sensor.a.temperature")
+    }
+
+    @Test
+    func representativeSensors_onlySetpointNoMeasurement_returnsNilNotSetpoint() {
+        let setpoint = SensorEntity(entityId: "sensor.guest_bathroom_target", name: "Target", state: "21.5", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let lux = SensorEntity(entityId: "sensor.lux", name: "Lux", state: "100", deviceClass: "illuminance", unitOfMeasurement: "lx")
+        let area = makeArea([setpoint, lux])
+
+        let (temperature, humidity) = AreaDisplayHelpers.representativeSensors(for: area)
 
         #expect(temperature == nil)
         #expect(humidity == nil)
@@ -112,10 +214,11 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func climateLabel_withTemperatureAndHumidity_joinsWithBulletSeparator() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
-        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: "measurement")
+        let area = makeArea([temp, humidity])
 
-        let label = AreaDisplayHelpers.climateLabel(from: [temp, humidity])
+        let label = AreaDisplayHelpers.climateLabel(for: area)
 
         let expected = 21.0.formatted(.number.precision(.fractionLength(1))) + "°C · "
             + 47.0.formatted(.number.precision(.fractionLength(1))) + "%"
@@ -124,28 +227,31 @@ struct AreaDisplayHelpersTests {
 
     @Test
     func climateLabel_withOnlyTemperature_returnsJustTemperature() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "21", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let area = makeArea([temp])
 
-        let label = AreaDisplayHelpers.climateLabel(from: [temp])
+        let label = AreaDisplayHelpers.climateLabel(for: area)
 
         #expect(label == 21.0.formatted(.number.precision(.fractionLength(1))) + "°C")
     }
 
     @Test
     func climateLabel_withOnlyHumidity_returnsJustHumidity() {
-        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: "measurement")
+        let area = makeArea([humidity])
 
-        let label = AreaDisplayHelpers.climateLabel(from: [humidity])
+        let label = AreaDisplayHelpers.climateLabel(for: area)
 
         #expect(label == 47.0.formatted(.number.precision(.fractionLength(1))) + "%")
     }
 
     @Test
     func climateLabel_withUnreadableTemperature_omitsItWithoutPlaceholder() {
-        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "unavailable", deviceClass: "temperature", unitOfMeasurement: "°C")
-        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%")
+        let temp = SensorEntity(entityId: "sensor.temp", name: "Temp", state: "unavailable", deviceClass: "temperature", unitOfMeasurement: "°C", stateClass: "measurement")
+        let humidity = SensorEntity(entityId: "sensor.humidity", name: "Hum", state: "47", deviceClass: "humidity", unitOfMeasurement: "%", stateClass: "measurement")
+        let area = makeArea([temp, humidity])
 
-        let label = AreaDisplayHelpers.climateLabel(from: [temp, humidity])
+        let label = AreaDisplayHelpers.climateLabel(for: area)
 
         #expect(label == 47.0.formatted(.number.precision(.fractionLength(1))) + "%")
     }
@@ -153,8 +259,9 @@ struct AreaDisplayHelpersTests {
     @Test
     func climateLabel_withNoClimateSensor_returnsNil() {
         let illuminance = SensorEntity(entityId: "sensor.lux", name: "Lux", state: "100", deviceClass: "illuminance", unitOfMeasurement: "lx")
+        let area = makeArea([illuminance])
 
-        let label = AreaDisplayHelpers.climateLabel(from: [illuminance])
+        let label = AreaDisplayHelpers.climateLabel(for: area)
 
         #expect(label == nil)
     }
@@ -237,5 +344,15 @@ struct AreaDisplayHelpersTests {
         let icons = AreaDisplayHelpers.statusIcons(from: area, iconResolver: IconTranslationsFixture.resolver())
 
         #expect(icons.first(where: { $0.category == .light })?.isActive == false)
+    }
+
+    private func makeArea(_ sensors: [SensorEntity]) -> AreaEntity {
+        let area = AreaEntity(areaId: "area-\(UUID().uuidString)", name: "Test Area")
+        for sensor in sensors {
+            sensor.area = area
+            context.insert(sensor)
+        }
+        context.insert(area)
+        return area
     }
 }

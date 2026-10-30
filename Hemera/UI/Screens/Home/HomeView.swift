@@ -202,7 +202,7 @@ private struct AreaCardView: View {
     }
 
     private var climateLabel: String? {
-        AreaDisplayHelpers.climateLabel(from: area.sensors)
+        AreaDisplayHelpers.climateLabel(for: area)
     }
 
     var body: some View {

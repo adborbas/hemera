@@ -146,8 +146,8 @@ private struct AreaContentView: View {
     /// An area's temperature and humidity, each a tappable link to its own history.
     @ViewBuilder
     private var climateSummaryRow: some View {
-        let (temperatureText, humidityText) = AreaDisplayHelpers.climateSummary(from: area.sensors)
-        let representatives = AreaDisplayHelpers.representativeSensors(from: area.sensors)
+        let (temperatureText, humidityText) = AreaDisplayHelpers.climateSummary(for: area)
+        let representatives = AreaDisplayHelpers.representativeSensors(for: area)
 
         if temperatureText != nil || humidityText != nil {
             HStack(spacing: 0) {

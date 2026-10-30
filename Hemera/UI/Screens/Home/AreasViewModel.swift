@@ -101,7 +101,7 @@ final class AreasViewModel {
     }
 
     private func hasClimateData(in area: AreaEntity) -> Bool {
-        AreaDisplayHelpers.climateLabel(from: area.sensors) != nil
+        AreaDisplayHelpers.climateLabel(for: area) != nil
     }
 
     // MARK: - Sectioning

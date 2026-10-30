@@ -11,6 +11,7 @@ final class SensorEntity: StoredEntity {
     var name: String
     var state: String
     var deviceClass: String?
+    var stateClass: String?
     var unitOfMeasurement: String?
     var icon: String?
     var deviceId: String?
@@ -23,13 +24,14 @@ final class SensorEntity: StoredEntity {
         self.init(entityId: entityId, name: "", state: "")
     }
 
-    init(entityId: String, name: String, state: String, deviceClass: String? = nil, unitOfMeasurement: String? = nil, icon: String? = nil) {
+    init(entityId: String, name: String, state: String, deviceClass: String? = nil, unitOfMeasurement: String? = nil, icon: String? = nil, stateClass: String? = nil) {
         self.entityId = entityId
         self.name = name
         self.state = state
         self.deviceClass = deviceClass
         self.unitOfMeasurement = unitOfMeasurement
         self.icon = icon
+        self.stateClass = stateClass
     }
 
     func update(from entity: HAEntity) {
@@ -37,6 +39,7 @@ final class SensorEntity: StoredEntity {
         name = entity.attributes["friendly_name"] as? String ?? entityId
         state = entity.state
         deviceClass = entity.attributes["device_class"] as? String
+        stateClass = entity.attributes["state_class"] as? String
         unitOfMeasurement = entity.attributes["unit_of_measurement"] as? String
         icon = entity.attributes["icon"] as? String
     }
