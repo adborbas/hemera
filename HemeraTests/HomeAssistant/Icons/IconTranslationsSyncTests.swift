@@ -84,6 +84,8 @@ struct IconTranslationsSyncTests {
             hiddenEntityIds: nil,
             areaSortOrder: [:],
             areaIcons: [:],
+            areaTemperatureEntityIds: [:],
+            areaHumidityEntityIds: [:],
             areaMappingsFetchSucceeded: false,
             floors: nil,
             floorSortOrder: [:],
