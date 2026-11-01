@@ -9,12 +9,12 @@ on:
         default: false
 
 env:
-  XCODE_VERSION: '26.2'
+  XCODE_VERSION: '27.1'
 
 jobs:
   build:
     name: Upload to TestFlight
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 60
     environment: release
     if: github.actor == 'adborbas'
@@ -51,7 +51,7 @@ jobs:
 
   promo-screenshots:
     name: Promo Screenshots
-    runs-on: macos-15
+    runs-on: xcode-27
     if: github.actor == 'adborbas' && inputs.promo_screenshots
     steps:
       - uses: actions/checkout@v4

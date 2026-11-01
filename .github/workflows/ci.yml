@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  XCODE_VERSION: '26.2'
+  XCODE_VERSION: '27.1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     name: Unit Tests
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
 
@@ -23,8 +23,9 @@ jobs:
 
       - name: Boot simulator
         run: |
-          RUNTIME=$(xcrun simctl list runtimes iOS -j | python3 -c "import sys,json; runtimes=json.loads(sys.stdin.read())['runtimes']; print(runtimes[-1]['identifier']) if runtimes else sys.exit(1)")
           DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
+          # iPhone Duo ships a device-specific runtime supporting only itself, so filter on the device type.
+          RUNTIME=$(xcrun simctl list runtimes iOS -j | python3 -c "import sys,json; runtimes=[r for r in json.loads(sys.stdin.read())['runtimes'] if sys.argv[1] in [d['identifier'] for d in r.get('supportedDeviceTypes',[])]]; print(runtimes[-1]['identifier']) if runtimes else sys.exit(1)" "$DEVICE_TYPE")
           UDID=$(xcrun simctl create "CI iPhone" "$DEVICE_TYPE" "$RUNTIME")
           xcrun simctl boot "$UDID"
           echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
