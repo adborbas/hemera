@@ -1,3 +1,4 @@
+import HemeraLog
 import SwiftUI
 import WebKit
 
@@ -42,6 +43,7 @@ struct AuthenticatedWebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: config)
         context.coordinator.webView = webView
+        webView.navigationDelegate = context.coordinator
 
         let requestURL: URL
         if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
@@ -59,15 +61,18 @@ struct AuthenticatedWebView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(tokenProvider: tokenProvider)
+        Coordinator(tokenProvider: tokenProvider, originPolicy: WebViewOriginPolicy(serverURL: url))
     }
 
-    class Coordinator: NSObject, WKScriptMessageHandler {
+    class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         weak var webView: WKWebView?
         let tokenProvider: () async throws -> String
 
-        init(tokenProvider: @escaping () async throws -> String) {
+        private let originPolicy: WebViewOriginPolicy
+
+        init(tokenProvider: @escaping () async throws -> String, originPolicy: WebViewOriginPolicy) {
             self.tokenProvider = tokenProvider
+            self.originPolicy = originPolicy
         }
 
         func userContentController(
@@ -76,9 +81,9 @@ struct AuthenticatedWebView: UIViewRepresentable {
         ) {
             switch message.name {
             case "getExternalAuth":
-                handleGetExternalAuth(message.body)
+                handleGetExternalAuth(message)
             case "revokeExternalAuth":
-                handleRevokeExternalAuth(message.body)
+                handleRevokeExternalAuth(message)
             case "externalBus":
                 handleExternalBus(message.body)
             default:
@@ -88,9 +93,10 @@ struct AuthenticatedWebView: UIViewRepresentable {
 
         // MARK: - External Auth
 
-        private func handleGetExternalAuth(_ body: Any) {
-            guard let dict = body as? [String: Any],
+        private func handleGetExternalAuth(_ message: WKScriptMessage) {
+            guard let dict = message.body as? [String: Any],
                   let callback = dict["callback"] as? String else { return }
+            guard isServerOrigin(message, refusing: callback, named: "getExternalAuth") else { return }
 
             Task { @MainActor in
                 do {
@@ -103,12 +109,54 @@ struct AuthenticatedWebView: UIViewRepresentable {
             }
         }
 
-        private func handleRevokeExternalAuth(_ body: Any) {
-            guard let dict = body as? [String: Any],
+        private func handleRevokeExternalAuth(_ message: WKScriptMessage) {
+            guard let dict = message.body as? [String: Any],
                   let callback = dict["callback"] as? String else { return }
+            guard isServerOrigin(message, refusing: callback, named: "revokeExternalAuth") else { return }
             Task { @MainActor in
                 _ = try? await self.webView?.evaluateJavaScript("\(callback)(true);")
             }
+        }
+
+        /**
+         A page that is not the server never receives a token; it is told the request failed.
+         The callback name came from that page, so running it there grants it nothing new.
+        */
+        private func isServerOrigin(
+            _ message: WKScriptMessage,
+            refusing callback: String,
+            named name: String
+        ) -> Bool {
+            let origin = message.frameInfo.securityOrigin
+            guard originPolicy.allows(scheme: origin.protocol, host: origin.host, port: origin.port) else {
+                Log.warning("Refused \(name) from \(origin.protocol)://\(origin.host) — not the server's origin")
+                Task { @MainActor in
+                    _ = try? await self.webView?.evaluateJavaScript("\(callback)(false);")
+                }
+                return false
+            }
+            return true
+        }
+
+        // MARK: - WKNavigationDelegate
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            // A subframe never carries the bridge, so only the top-level document is pinned.
+            if navigationAction.targetFrame?.isMainFrame == false {
+                decisionHandler(.allow)
+                return
+            }
+            let url = navigationAction.request.url
+            guard originPolicy.allows(url) else {
+                decisionHandler(.cancel)
+                if let url { UIApplication.shared.open(url) }
+                return
+            }
+            decisionHandler(.allow)
         }
 
         // MARK: - External Bus
