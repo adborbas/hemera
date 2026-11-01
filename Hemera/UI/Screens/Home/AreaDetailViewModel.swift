@@ -78,14 +78,9 @@ final class AreaDetailViewModel {
 
     // MARK: - Layout
 
-    /// Column count for the area-detail grid. Compact size class always uses
-    /// 4; regular adapts to orientation.
-    func columnCount(isCompactWidth: Bool, isLandscape: Bool) -> Int {
-        if isCompactWidth {
-            return 4
-        } else {
-            return isLandscape ? 12 : 8
-        }
+    /// Column count for the area-detail grid. Compact uses 4; regular uses 12 only when wide enough.
+    func columnCount(isCompactWidth: Bool, size: CGSize) -> Int {
+        TileGridConstants.columns(for: size, isCompactWidth: isCompactWidth)
     }
 
 }

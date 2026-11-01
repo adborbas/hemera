@@ -12,8 +12,20 @@ enum TileGridConstants {
     /// Base height for a "small" tile in points.
     static let smallTileHeight: CGFloat = 80
 
+    /// Below this width 12 columns make a medium tile narrower than its fixed 168pt height.
+    static let wideGridMinWidth: CGFloat = 1080
+
     static let sectionSpacing: CGFloat = Mortar.Spacing.xxl
     static let sectionPadding: CGFloat = Mortar.Spacing.s
+
+    /// Columns for a grid of this size, keyed on real width so narrow regular displays stay readable.
+    static func columns(for size: CGSize, isCompactWidth: Bool) -> Int {
+        if isCompactWidth {
+            return 4
+        }
+        let isWideLandscape = size.width > size.height && size.width >= wideGridMinWidth
+        return isWideLandscape ? 12 : 8
+    }
 }
 
 // MARK: - TiledGrid
@@ -77,13 +89,7 @@ struct TiledGrid<Content: View>: View {
 
     private static func columns(for size: CGSize,
                                 horizontalSizeClass: UserInterfaceSizeClass?) -> Int {
-        let isLandscape = size.width > size.height
-
-        if horizontalSizeClass == .compact {
-            return 4
-        } else {
-            return isLandscape ? 12 : 8
-        }
+        TileGridConstants.columns(for: size, isCompactWidth: horizontalSizeClass == .compact)
     }
 }
 

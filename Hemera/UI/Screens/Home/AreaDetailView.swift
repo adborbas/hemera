@@ -124,7 +124,7 @@ private struct AreaContentView: View {
         GeometryReader { proxy in
             let columns = viewModel.columnCount(
                 isCompactWidth: horizontalSizeClass == .compact,
-                isLandscape: proxy.size.width > proxy.size.height
+                size: proxy.size
             )
             let sections = viewModel.sections(for: area, includingHidden: isHideMode)
 
@@ -189,7 +189,7 @@ private struct UnassignedContentView: View {
             GeometryReader { proxy in
                 let columns = viewModel.columnCount(
                     isCompactWidth: horizontalSizeClass == .compact,
-                    isLandscape: proxy.size.width > proxy.size.height
+                    size: proxy.size
                 )
                 let sections = viewModel.sections(forUnassignedEntityIds: unassigned.entityIds, includingHidden: isHideMode)
 
