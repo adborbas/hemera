@@ -111,4 +111,25 @@ struct SessionManagerTests {
         sessionManager.handleScenePhase(.background)
         sessionManager.handleScenePhase(.active)
     }
+
+    // MARK: - Logout Wipe
+
+    /// Logging out must leave nothing of the old account behind — every model, not a chosen few.
+    @Test
+    func logout_wipesEveryModelInTheSchema() throws {
+        let context = persistentContainer.mainContext
+        context.insert(FloorEntity(floorId: "floor.ground", name: "Ground floor"))
+        context.insert(AreaEntity(areaId: "area.lobby", name: "Lobby"))
+        context.insert(HomeTile(entityId: "light.lobby", sortOrder: 0))
+        context.insert(LightEntity(entityId: "light.lobby", name: "Lobby", state: .on))
+        try context.save()
+
+        // Logout alone drives the wipe; authenticating first would open a real socket.
+        authManager.logout()
+
+        #expect(try context.fetch(FetchDescriptor<FloorEntity>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<AreaEntity>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<HomeTile>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<LightEntity>()).isEmpty)
+    }
 }
