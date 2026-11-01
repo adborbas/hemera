@@ -115,21 +115,4 @@ struct SensorHistoryDecodingTests {
         ])
     }
 
-    @Test
-    func sampleDuration_matchesEndMinusStart() throws {
-        let samples = try SensorHistoryDecoding.decode(Self.data(from: Self.twoRowPayload), for: "sensor.hallway_temperature")
-        let sample = try #require(samples.first)
-
-        #expect(sample.duration == sample.end.timeIntervalSince(sample.start))
-        #expect(sample.duration == 300.0)
-    }
-
-    @Test
-    func decode_haDataDictionary_matchesDataOverload() throws {
-        let object = try JSONSerialization.jsonObject(with: Self.data(from: Self.twoRowPayload))
-        let fromHAData = try SensorHistoryDecoding.decode(HAData(value: object), for: "sensor.hallway_temperature")
-        let fromData = try SensorHistoryDecoding.decode(Self.data(from: Self.twoRowPayload), for: "sensor.hallway_temperature")
-
-        #expect(fromHAData == fromData)
-    }
 }

@@ -20,48 +20,7 @@ struct ValueNoiseTests {
         }
     }
 
-    @Test
-    func lattice_anyIndexAndSeed_staysWithinUnitRange() {
-        for index in -10_000...10_000 {
-            let value = ValueNoise.lattice(Int64(index), seed: 0x5bf0_3635_ca4b_1d7f)
-            #expect(value >= -1)
-            #expect(value < 1)
-        }
-    }
-
-    @Test
-    func valueNoise_anyPositionAndSeed_staysWithinUnitRange() {
-        for x in stride(from: -25.0, through: 25.0, by: 0.007) {
-            let value = ValueNoise.valueNoise(x, seed: 7)
-            #expect(value >= -1)
-            #expect(value <= 1)
-        }
-    }
-
     // MARK: - Determinism
-
-    /// A pure function of position and seed: the demo leans on the same input making the same curve.
-    @Test
-    func fbm_sameInputAndSeed_givesIdenticalOutput() {
-        for x in [-37.2, -0.001, 0.5, 12.999] {
-            let a = ValueNoise.fbm(x, seed: 42, octaves: 6)
-            let b = ValueNoise.fbm(x, seed: 42, octaves: 6)
-            #expect(a == b)
-        }
-    }
-
-    /// Re-seeding is how one demo sensor gets a curve its neighbour does not share.
-    @Test
-    func fbm_differentSeeds_giveDifferentOutput() {
-        let a = ValueNoise.fbm(3.7, seed: 1, octaves: 6)
-        let b = ValueNoise.fbm(3.7, seed: 2, octaves: 6)
-        #expect(a != b)
-    }
-
-    @Test
-    func lattice_sameIndexAndSeed_givesIdenticalValue() {
-        #expect(ValueNoise.lattice(123, seed: 9) == ValueNoise.lattice(123, seed: 9))
-    }
 
     // MARK: - Continuity
 

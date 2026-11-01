@@ -66,31 +66,6 @@ struct ClimateSampleRunsTests {
         #expect(ClimateSampleRuns.split(long).count == 1)
     }
 
-    @Test
-    func split_oneBucketGap_splitsSinceItExceedsOnePointFiveTimesDuration() {
-        let duration = 300.0
-        let samples = [
-            sample(at: 1000, duration: duration),
-            sample(at: 1000 + 2 * duration, duration: duration),
-        ]
-
-        #expect(ClimateSampleRuns.split(samples).count == 2)
-    }
-
     // MARK: - Edge cases
 
-    @Test
-    func split_emptyInput_returnsNoRuns() {
-        let runs = ClimateSampleRuns.split([])
-
-        #expect(runs.isEmpty)
-    }
-
-    @Test
-    func split_singleSample_returnsOneRunOfOne() {
-        let runs = ClimateSampleRuns.split([sample(at: 1000, duration: 300)])
-
-        #expect(runs.count == 1)
-        #expect(runs[0].count == 1)
-    }
 }

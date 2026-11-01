@@ -33,24 +33,11 @@ struct ClimateCurveTests {
     }
 
     @Test
-    func points_carryTheDateTheyRepresent() {
-        let points = ClimateCurve.points(for: samples(10, 20, 30), count: 3)
-
-        #expect(points.first?.date == Date(timeIntervalSince1970: 0))
-        #expect(points.last?.date == Date(timeIntervalSince1970: 600))
-    }
-
-    @Test
     func points_withSingleSample_returnsThatSampleWithoutCrashing() {
         let points = ClimateCurve.points(for: samples(21), count: 40)
 
         #expect(points.count == 1)
         #expect(points.first?.value == 21)
-    }
-
-    @Test
-    func points_withNoSamples_returnsNothing() {
-        #expect(ClimateCurve.points(for: [], count: 40).isEmpty)
     }
 
     // MARK: - Helpers

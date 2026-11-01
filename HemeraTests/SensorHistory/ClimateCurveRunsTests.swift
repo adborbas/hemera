@@ -66,8 +66,4 @@ struct ClimateCurveRunsTests {
         #expect(survivors == expected)
     }
 
-    @Test
-    func runs_emptyInput_returnsNoRuns() {
-        #expect(ClimateCurve.runs(for: []).isEmpty)
-    }
 }

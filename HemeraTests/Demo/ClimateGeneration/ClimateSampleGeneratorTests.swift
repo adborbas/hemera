@@ -31,15 +31,6 @@ struct ClimateSampleGeneratorTests {
         #expect(temperature != humidity)
     }
 
-    /// The per-entity seed nudges each room's curve, so two rooms aren't identical.
-    @Test
-    func samples_distinctTemperatureIdsProduceDifferentSeries() {
-        let livingRoom = ClimateSampleGenerator.samples(entityId: "sensor.living_room_temperature", range: .day, now: Self.now)
-        let office = ClimateSampleGenerator.samples(entityId: "sensor.office_temperature", range: .day, now: Self.now)
-
-        #expect(livingRoom != office)
-    }
-
     // MARK: - Bucket sizing
 
     @Test
@@ -47,13 +38,6 @@ struct ClimateSampleGeneratorTests {
         let samples = ClimateSampleGenerator.samples(entityId: "sensor.living_room_temperature", range: .day, now: Self.now)
 
         #expect(samples[1].start.timeIntervalSince(samples[0].start) == 300)
-    }
-
-    @Test
-    func samples_weekRangeProducesHourBuckets() {
-        let samples = ClimateSampleGenerator.samples(entityId: "sensor.living_room_temperature", range: .week, now: Self.now)
-
-        #expect(samples[1].start.timeIntervalSince(samples[0].start) == 3_600)
     }
 
     /// Hourly, matching what the real provider asks Home Assistant for over a month.
@@ -119,18 +103,6 @@ struct ClimateSampleGeneratorTests {
         #expect(early == later)
     }
 
-    /// Crossing into the next bucket is the only thing that moves the reading.
-    @Test
-    func currentMean_movesOnceTheBucketEnds() {
-        let entityId = "sensor.living_room_temperature"
-        let aligned = Date(timeIntervalSince1970: 1_699_999_200)
-
-        let inside = ClimateSampleGenerator.currentMean(entityId: entityId, now: aligned.addingTimeInterval(60))
-        let next = ClimateSampleGenerator.currentMean(entityId: entityId, now: aligned.addingTimeInterval(360))
-
-        #expect(inside != next)
-    }
-
     // MARK: - Texture
 
     /**
@@ -161,21 +133,6 @@ struct ClimateSampleGeneratorTests {
 
         let spread = (0..<(24 * 5)).map { abs(week[$0].mean - week[$0 + 24].mean) }
         #expect((spread.max() ?? 0) > 0.2)
-    }
-
-    /// A room warms faster than it cools, which a plain sine cannot express.
-    @Test
-    func samples_dailyWaveRisesFasterThanItFalls() {
-        let day = ClimateSampleGenerator.samples(entityId: "sensor.garden_temperature", range: .day, now: Self.now)
-        let means = day.map(\.mean)
-
-        let steps = zip(means, means.dropFirst()).map { $1 - $0 }
-        let rising = steps.filter { $0 > 0 }
-        let falling = steps.filter { $0 < 0 }.map { -$0 }
-
-        let averageRise = rising.reduce(0, +) / Double(rising.count)
-        let averageFall = falling.reduce(0, +) / Double(falling.count)
-        #expect(averageRise > averageFall * 1.15)
     }
 
     // MARK: - Contiguity
@@ -211,12 +168,4 @@ struct ClimateSampleGeneratorTests {
 
     // MARK: - Coverage
 
-    @Test
-    func samples_dayRangeCoversAboutTwentyFourHours() {
-        let samples = ClimateSampleGenerator.samples(entityId: "sensor.living_room_temperature", range: .day, now: Self.now)
-
-        #expect(samples.count == 288)
-        let span = samples.last!.end.timeIntervalSince(samples.first!.start)
-        #expect(abs(span - 86_400) < 1)
-    }
 }

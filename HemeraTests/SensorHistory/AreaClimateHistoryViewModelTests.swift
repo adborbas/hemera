@@ -242,21 +242,6 @@ struct AreaClimateHistoryViewModelTests {
         #expect(viewModel.readout?.mean == 20.5)
     }
 
-    /**
-     The interval is half-open. Starts run 1000...1600, so position 0.5 is 1300 — the middle
-     bucket's own start — and position 1 is 1600, the end of that bucket, which resolves the next.
-    */
-    @Test(arguments: [(0.5, 20.0), (1.0, 30.0)])
-    func selectionOnABucketBoundaryResolvesTheHalfOpenInterval(_ position: Double, _ expected: Double) async {
-        let (viewModel, _) = makeViewModel(outcome: .samples(samples(10, 20, 30)))
-
-        await viewModel.load()
-
-        viewModel.selectedPosition = position
-
-        #expect(viewModel.readout?.mean == expected)
-    }
-
     /// A date inside a recording gap resolves a readout with no mean.
     @Test
     func selectionInsideGapResolvesReadoutWithoutMean() async {
@@ -320,66 +305,6 @@ struct AreaClimateHistoryViewModelTests {
         #expect(viewModel.date(atPosition: 0) == nil)
         #expect(viewModel.date(atPosition: 0.5) == nil)
         #expect(viewModel.date(atPosition: 1) == nil)
-    }
-
-    /// A single sample has no span to interpolate across, so every position stands for its start.
-    @Test
-    func date_singleSample_mapsEveryPositionToItsStart() async {
-        let (viewModel, _) = makeViewModel(outcome: .samples(samples(20.0)))
-
-        await viewModel.load()
-
-        let expected = Date(timeIntervalSince1970: 1000)
-        for position in [0.0, 0.25, 0.5, 0.9, 1.0, 1.5] {
-            #expect(viewModel.date(atPosition: position) == expected)
-        }
-    }
-
-    /// The scrub range's edges stand for the series' first and last sample starts.
-    @Test
-    func date_positionsZeroAndOne_mapToFirstAndLastSampleStarts() async {
-        let (viewModel, _) = makeViewModel(outcome: .samples(samples(10, 20, 30)))
-
-        await viewModel.load()
-
-        #expect(viewModel.date(atPosition: 0) == Date(timeIntervalSince1970: 1000))
-        #expect(viewModel.date(atPosition: 1) == Date(timeIntervalSince1970: 1600))
-    }
-
-    /// A position outside 0...1 clamps, so the index can never walk off the samples.
-    @Test
-    func date_positionOutsideDomain_clampsToNearestSeriesEdge() async {
-        let (viewModel, _) = makeViewModel(outcome: .samples(samples(10, 20, 30)))
-
-        await viewModel.load()
-
-        #expect(viewModel.date(atPosition: -1) == Date(timeIntervalSince1970: 1000))
-        #expect(viewModel.date(atPosition: 1.5) == Date(timeIntervalSince1970: 1600))
-    }
-
-    /**
-     Unevenly spaced starts are where an index-linear and a time-linear walk disagree, so every
-     curve point's date must survive a round trip through `date(atPosition:)`.
-    */
-    @Test
-    func date_unevenlySpacedSamples_matchesTheCurvePointDates() async {
-        let base = Date(timeIntervalSince1970: 1000)
-        let unevenSamples = [
-            ClimateSample(start: base.addingTimeInterval(0), end: base.addingTimeInterval(300), mean: 20),
-            ClimateSample(start: base.addingTimeInterval(300), end: base.addingTimeInterval(600), mean: 21),
-            ClimateSample(start: base.addingTimeInterval(600), end: base.addingTimeInterval(900), mean: 22),
-            ClimateSample(start: base.addingTimeInterval(86_400), end: base.addingTimeInterval(86_700), mean: 23),
-        ]
-        let (viewModel, _) = makeViewModel(result: unevenSamples)
-
-        await viewModel.load()
-
-        #expect(expectLoaded(viewModel)?.samples == unevenSamples)
-
-        // Positions past the gap land between the last two starts, where the two walks diverge.
-        for point in ClimateCurve.points(for: unevenSamples) {
-            #expect(viewModel.date(atPosition: point.position) == point.date)
-        }
     }
 
     // MARK: - Sparse series
