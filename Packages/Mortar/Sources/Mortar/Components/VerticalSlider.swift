@@ -283,7 +283,7 @@ extension VerticalSlider {
         return copy
     }
 
-    static func adjustedGradient(
+    private static func adjustedGradient(
         colors: [Color],
         startPoint: UnitPoint,
         endPoint: UnitPoint,

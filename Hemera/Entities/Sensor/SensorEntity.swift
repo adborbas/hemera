@@ -51,8 +51,4 @@ extension SensorEntity {
     static func entityIdPredicate(_ id: String) -> Predicate<SensorEntity> {
         #Predicate { $0.entityId == id }
     }
-
-    static var unassignedPredicate: Predicate<SensorEntity> {
-        #Predicate { $0.area == nil && $0.isAvailable == true }
-    }
 }

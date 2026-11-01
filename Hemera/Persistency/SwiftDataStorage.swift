@@ -58,16 +58,6 @@ final class SwiftDataStorage: Storage {
         }
     }
 
-    func updateHomeTileSortOrders(_ updates: [(entityId: String, sortOrder: Int)]) {
-        let tiles = homeTiles()
-        for (entityId, sortOrder) in updates {
-            if let tile = tiles.first(where: { $0.entityId == entityId }) {
-                tile.sortOrder = sortOrder
-            }
-        }
-        saveOrLog("update home tile sort orders")
-    }
-
     func updateHomeTileLayout(_ updates: [(entityId: String, sortOrder: Int, size: TileSize)]) {
         let tiles = homeTiles()
         for (entityId, sortOrder, size) in updates {

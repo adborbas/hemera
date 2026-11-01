@@ -306,10 +306,6 @@ public struct TileGridEngine: Sendable {
 // MARK: - Debug
 
 extension TileGridEngine {
-    public func debugPrint() {
-        print(debugString())
-    }
-
     public func debugString() -> String {
         let grid = effectiveCells
         var result = ""

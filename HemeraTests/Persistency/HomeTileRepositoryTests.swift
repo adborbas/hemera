@@ -60,21 +60,6 @@ struct HomeTileRepositoryTests {
     }
 
     @Test
-    func reorderHomeTiles_updatesSortOrders() {
-        repo.addToHome(entityId: "light.a")
-        repo.addToHome(entityId: "light.b")
-
-        repo.reorderHomeTiles([
-            (entityId: "light.b", sortOrder: 0),
-            (entityId: "light.a", sortOrder: 1)
-        ])
-
-        let tiles = storage.homeTiles()
-        #expect(tiles[0].entityId == "light.b")
-        #expect(tiles[1].entityId == "light.a")
-    }
-
-    @Test
     func commitHomeTileLayout_updatesSortOrderAndSize() {
         repo.addToHome(entityId: "light.a")
         repo.commitHomeTileLayout([

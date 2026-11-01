@@ -22,8 +22,7 @@ final class EntityRegistry: Sendable {
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
         let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
         let applyHAHidden: @Sendable (Set<String>, ModelContext) -> Void
-        let fetchUnassignedIds: @Sendable (ModelContext) -> [String]
-    }
+        }
 
     static let shared = EntityRegistry()
 
@@ -58,19 +57,8 @@ final class EntityRegistry: Sendable {
                 },
                 applyHAHidden: { hiddenEntityIds, context in
                     type.applyHAHidden(hiddenEntityIds: hiddenEntityIds, in: context)
-                },
-                fetchUnassignedIds: { context in
-                    // #Predicate must expand at concrete @Model type scope — not in
-                    // generic functions or protocol extensions — to avoid SwiftData
-                    // keypath identity mismatches in release builds.
-                    let descriptor = FetchDescriptor<T>(predicate: T.unassignedPredicate)
-                    do {
-                        return try context.fetch(descriptor).map(\.entityId)
-                    } catch {
-                        Log.warning("Failed to fetch unassigned \(T.domain) entity IDs", cause: error)
-                        return []
-                    }
                 }
+
             )
         }
     }
@@ -137,12 +125,6 @@ final class EntityRegistry: Sendable {
         for registration in regs {
             registration.applyHAHidden(hiddenEntityIds, context)
         }
-    }
-
-    /// Returns entity IDs for all entities not assigned to any area.
-    func fetchUnassignedEntityIds(in context: ModelContext) -> [String] {
-        let regs = registrations.withLock { Array($0.values) }
-        return regs.flatMap { $0.fetchUnassignedIds(context) }
     }
 
     /// All registered entity types, for building the SwiftData Schema.

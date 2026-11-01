@@ -16,8 +16,6 @@ final class LightEntity: StoredEntity {
     var hsColor: [Double]?
     var minMireds: Int?
     var maxMireds: Int?
-    var offBrightness: Int?
-    var offWithTransition: Bool?
     var supportedColorModes: [String]?
     var supportedFeaturesRaw: Int
     var icon: String?
@@ -42,8 +40,6 @@ final class LightEntity: StoredEntity {
         hsColor: [Double]? = nil,
         minMireds: Int? = nil,
         maxMireds: Int? = nil,
-        offBrightness: Int? = nil,
-        offWithTransition: Bool? = nil,
         supportedColorModes: [String]? = nil,
         supportedFeaturesRaw: Int = 0,
         icon: String? = nil
@@ -57,20 +53,9 @@ final class LightEntity: StoredEntity {
         self.hsColor = hsColor
         self.minMireds = minMireds
         self.maxMireds = maxMireds
-        self.offBrightness = offBrightness
-        self.offWithTransition = offWithTransition
         self.supportedColorModes = supportedColorModes
         self.supportedFeaturesRaw = supportedFeaturesRaw
         self.icon = icon
-    }
-
-
-    static func empty() -> LightEntity {
-        return LightEntity(
-            entityId: "",
-            name: "",
-            state: .unknown
-        )
     }
 
     func update(from entity: HAEntity) {
@@ -98,8 +83,6 @@ final class LightEntity: StoredEntity {
             minMireds = rawMinMireds
             maxMireds = rawMaxMireds
         }
-        offBrightness = entity.attributes["off_brightness"] as? Int
-        offWithTransition = entity.attributes["off_with_transition"] as? Bool
         supportedColorModes = entity.attributes["supported_color_modes"] as? [String]
         supportedFeaturesRaw = entity.attributes["supported_features"] as? Int ?? 0
         icon = entity.attributes["icon"] as? String
@@ -125,10 +108,6 @@ private extension LightEntity {
 extension LightEntity {
     static func entityIdPredicate(_ id: String) -> Predicate<LightEntity> {
         #Predicate { $0.entityId == id }
-    }
-
-    static var unassignedPredicate: Predicate<LightEntity> {
-        #Predicate { $0.area == nil && $0.isAvailable == true }
     }
 }
 

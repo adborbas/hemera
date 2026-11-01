@@ -55,11 +55,6 @@ protocol StoredEntity: PersistentModel {
     /// in release builds.
     static func entityIdPredicate(_ id: String) -> Predicate<Self>
 
-    /// Returns a predicate matching entities not assigned to any area.
-    ///
-    /// Same concrete-type requirement as `entityIdPredicate` — see above.
-    static var unassignedPredicate: Predicate<Self> { get }
-
     init(entityId: String)
     func update(from entity: HAEntity)
 }

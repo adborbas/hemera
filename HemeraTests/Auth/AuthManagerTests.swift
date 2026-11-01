@@ -166,7 +166,6 @@ private extension AuthManagerTests {
     func makeCredentials() -> ServerCredentials {
         ServerCredentials(
             serverURL: URL(string: "https://home.example.com:8123")!,
-            externalURL: nil,
             accessToken: "access-token",
             refreshToken: "refresh-token",
             tokenExpiresAt: Date().addingTimeInterval(3600),
