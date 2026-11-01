@@ -73,25 +73,21 @@ final class EntityRegistry: Sendable {
     }
 
     /// Assigns an area to an entity by ID.
-    /// Tries each registered entity type until one matches.
     func assignArea(_ area: AreaEntity, toEntityWithId entityId: String, in context: ModelContext) {
-        let regs = registrations.withLock { Array($0.values) }
-        for registration in regs {
-            if registration.assignArea(area, entityId, context) {
-                return
-            }
-        }
+        guard let registration = registration(forEntityId: entityId) else { return }
+        _ = registration.assignArea(area, entityId, context)
     }
 
     /// Assigns a device ID to an entity by its entity ID.
-    /// Tries each registered entity type until one matches.
     func assignDeviceId(_ deviceId: String, toEntityWithId entityId: String, in context: ModelContext) {
-        let regs = registrations.withLock { Array($0.values) }
-        for registration in regs {
-            if registration.assignDeviceId(deviceId, entityId, context) {
-                return
-            }
-        }
+        guard let registration = registration(forEntityId: entityId) else { return }
+        _ = registration.assignDeviceId(deviceId, entityId, context)
+    }
+
+    /// HA ids are `"<domain>.<object>"`, so one lookup replaces a fetch per registered type.
+    private func registration(forEntityId entityId: String) -> Registration? {
+        let domain = String(entityId.prefix { $0 != "." })
+        return registrations.withLock { $0[domain] }
     }
 
     /// Marks entities as unavailable if they were not present in the last full sync.
