@@ -110,9 +110,10 @@ enum DemoDataProvider {
         let livingTemp = SensorEntity(
             entityId: "sensor.living_room_temperature",
             name: "Living Room Temperature",
-            state: "22",
+            state: DemoTemperature.state(22),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let livingHumidity = SensorEntity(
@@ -120,7 +121,8 @@ enum DemoDataProvider {
             name: "Living Room Humidity",
             state: "45",
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         let livingRoomAC = ClimateEntity(
@@ -200,9 +202,10 @@ enum DemoDataProvider {
         let bedroomTemp = SensorEntity(
             entityId: "sensor.bedroom_temperature",
             name: "Bedroom Temperature",
-            state: "20",
+            state: DemoTemperature.state(20),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let bedroomHumidity = SensorEntity(
@@ -210,7 +213,8 @@ enum DemoDataProvider {
             name: "Bedroom Humidity",
             state: "52",
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Kitchen
@@ -261,9 +265,10 @@ enum DemoDataProvider {
         let kitchenTemp = SensorEntity(
             entityId: "sensor.kitchen_temperature",
             name: "Kitchen Temperature",
-            state: "24",
+            state: DemoTemperature.state(24),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let kitchenHumidity = SensorEntity(
@@ -271,7 +276,8 @@ enum DemoDataProvider {
             name: "Kitchen Humidity",
             state: "58",
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Bathroom
@@ -305,9 +311,10 @@ enum DemoDataProvider {
         let bathroomTemp = SensorEntity(
             entityId: "sensor.bathroom_temperature",
             name: "Bathroom Temperature",
-            state: "25",
+            state: DemoTemperature.state(25),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let bathroomHumidity = SensorEntity(
@@ -315,7 +322,8 @@ enum DemoDataProvider {
             name: "Bathroom Humidity",
             state: "72",
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Office
@@ -377,9 +385,10 @@ enum DemoDataProvider {
         let officeTemp = SensorEntity(
             entityId: "sensor.office_temperature",
             name: "Office Temperature",
-            state: "21",
+            state: DemoTemperature.state(21),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let officeHumidity = SensorEntity(
@@ -387,7 +396,8 @@ enum DemoDataProvider {
             name: "Office Humidity",
             state: "40",
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Garden (sensor-only area)
@@ -395,9 +405,10 @@ enum DemoDataProvider {
         let gardenTemp = SensorEntity(
             entityId: "sensor.garden_temperature",
             name: "Garden Temperature",
-            state: "18",
+            state: DemoTemperature.state(18),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let gardenHumidity = SensorEntity(
@@ -405,7 +416,8 @@ enum DemoDataProvider {
             name: "Garden Humidity",
             state: "65",
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // Insert all entities into context FIRST
