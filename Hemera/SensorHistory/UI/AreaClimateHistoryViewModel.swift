@@ -32,18 +32,37 @@ final class AreaClimateHistoryViewModel {
         case failed
     }
 
-    private(set) var series: SeriesState
+    private(set) var series: SeriesState {
+        didSet { rebuildCurve() }
+    }
+
+    /// The resampled curve, split where recording stopped — the shape the chart draws.
+    private(set) var curveRuns: [[ClimateCurvePoint]] = []
+
+    /// Framed on the data so a small real variation still reads as a curve.
+    private(set) var valueDomain: ClosedRange<Double> = 0...1
 
     /// Whether a range's fetch is in flight, separate from `series` so a chart can stay while it loads.
-    private(set) var isLoading: Bool = false
+    var isLoading: Bool { inFlightRequests > 0 }
 
     /// Range the user has chosen; changing it triggers a load of that window.
-    var selectedRange: TimeRange = .day
+    var selectedRange: TimeRange = .day {
+        // A position means nothing in a window the user is no longer looking at.
+        didSet { selectedPosition = nil }
+    }
 
-    /// The scrub position the chart reads from; `nil` means nothing is selected.
-    var selectedDate: Date?
+    /// Where the user is scrubbing, 0...1 across the range. `nil` means nothing is selected.
+    var selectedPosition: Double?
 
     var readout: Readout? { readout(for: series) }
+
+    /// The curve point under the scrub, or `nil` in a gap, so no dot is drawn over nothing.
+    var selectedPoint: ClimateCurvePoint? {
+        guard let selectedPosition, readout?.mean != nil else { return nil }
+        return curveRuns
+            .flatMap { $0 }
+            .min { abs($0.position - selectedPosition) < abs($1.position - selectedPosition) }
+    }
 
     private let provider: any SensorHistoryProviding
     private let sensor: SensorEntity
@@ -55,11 +74,30 @@ final class AreaClimateHistoryViewModel {
      */
     private var cache: [TimeRange: SeriesState] = [:]
 
+    /// The number of range fetches in flight; `isLoading` is derived from it.
+    private var inFlightRequests = 0
+
     init(sensor: SensorEntity, fallbackUnit: String, provider: any SensorHistoryProviding) {
         self.sensor = sensor
         self.fallbackUnit = fallbackUnit
         self.provider = provider
         series = .loading
+    }
+
+    /// The moment a scrub position stands for, used for the readout and the axis labels.
+    func date(atPosition position: Double) -> Date? {
+        guard case let .loaded(series) = series,
+              let first = series.samples.first
+        else { return nil }
+        let samples = series.samples
+        guard samples.count > 1 else { return first.start }
+        // A chartXSelection value can land marginally outside 0...1; clamping keeps the index valid.
+        let clamped = min(max(position, 0), 1)
+        let exact = clamped * Double(samples.count - 1)
+        let lower = samples[Int(exact.rounded(.down))]
+        let upper = samples[Int(exact.rounded(.up))]
+        let fraction = exact - exact.rounded(.down)
+        return lower.start.addingTimeInterval(upper.start.timeIntervalSince(lower.start) * fraction)
     }
 
     // MARK: - Loading
@@ -92,11 +130,12 @@ final class AreaClimateHistoryViewModel {
      flight and caching only the settled states that `isCacheable` keeps.
      */
     private func request(range: TimeRange) async {
-        isLoading = true
-        defer { isLoading = false }
+        inFlightRequests += 1
+        defer { inFlightRequests -= 1 }
         let outcome = await fetch(range: range)
-        series = outcome
         if Self.isCacheable(outcome) { cache[range] = outcome }
+        // The chart shows the selected range; a moved-on outcome must not replace it.
+        if range == selectedRange { series = outcome }
     }
 
     /**
@@ -104,7 +143,19 @@ final class AreaClimateHistoryViewModel {
      series isn't loaded; a gap yields a readout with no sample fields.
      */
     private func readout(for state: SeriesState) -> Readout? {
-        guard let date = selectedDate, case let .loaded(series) = state else { return nil }
+        guard case let .loaded(series) = state else { return nil }
+
+        guard let position = selectedPosition, let date = date(atPosition: position) else {
+            // Nothing scrubbed: the headline shows the latest reading.
+            guard let latest = series.samples.last else { return nil }
+            return Readout(
+                sensorName: series.sensorName,
+                unit: series.unit,
+                mean: latest.mean,
+                interval: latest.start..<latest.end
+            )
+        }
+
         // A sample is under the position on the half-open interval `start..<end`.
         guard let sample = series.samples.first(where: { $0.start <= date && date < $0.end }) else {
             return Readout(sensorName: series.sensorName, unit: series.unit, mean: nil, interval: nil)
@@ -117,9 +168,21 @@ final class AreaClimateHistoryViewModel {
         )
     }
 
+    private func rebuildCurve() {
+        guard case let .loaded(loaded) = series else {
+            curveRuns = []
+            valueDomain = 0...1
+            return
+        }
+        curveRuns = ClimateCurve.runs(for: loaded.samples)
+        valueDomain = ClimateSampleYDomain.domain(forValues: curveRuns.flatMap { $0 }.map(\.value))
+    }
+
     private func fetch(range: TimeRange) async -> SeriesState {
         do {
             let samples = try await provider.history(forEntityId: sensor.entityId, range: range)
+            // An empty window has nothing to draw, and a blank chart reads as a failure.
+            guard !samples.isEmpty else { return .noRecordedHistory }
             return .loaded(ClimateSeries(
                 sensorName: sensor.name,
                 unit: sensor.unitOfMeasurement ?? fallbackUnit,

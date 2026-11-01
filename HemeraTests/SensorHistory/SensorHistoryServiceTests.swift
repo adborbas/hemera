@@ -30,4 +30,20 @@ struct SensorHistoryServiceTests {
         let end = try #require(formatter.date(from: endString))
         #expect((86_390 ... 86_410).contains(end.timeIntervalSince(start)))
     }
+
+    @Test
+    func request_weekRange_asksForHourPeriod() {
+        let request = SensorHistoryService.request(entityId: "sensor.hallway_temperature", range: .week)
+        let data = request.data
+
+        #expect(data["period"] as? String == "hour")
+    }
+
+    @Test
+    func request_monthRange_asksForHourPeriod() {
+        let request = SensorHistoryService.request(entityId: "sensor.hallway_temperature", range: .month)
+        let data = request.data
+
+        #expect(data["period"] as? String == "hour")
+    }
 }

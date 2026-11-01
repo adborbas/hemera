@@ -20,7 +20,7 @@ enum TimeRange: CaseIterable, Equatable, Hashable {
         switch self {
         case .day: return "5minute"
         case .week: return "hour"
-        case .month: return "day"
+        case .month: return "hour"
         }
     }
 }

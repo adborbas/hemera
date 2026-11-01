@@ -31,7 +31,7 @@ struct AreaClimateHistoryViewModelTests {
         let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: nil)
 
         let provider = MockSensorHistoryProvider()
-        provider.result = []
+        provider.result = samples(20.0)
         let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
 
         await viewModel.load()
@@ -277,6 +277,77 @@ struct AreaClimateHistoryViewModelTests {
         #expect(weekSeries.samples.count == 2)
     }
 
+    // MARK: - Superseded fetches
+
+    /// A fetch outlived by the user's next selection must not replace the current chart.
+    @Test
+    func request_rangeSwitchedBeforeSettling_keepsTheCurrentlySelectedSeries() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        /**
+         The week fetch blocks until released; the day fetch settles at once,
+         standing in for the range the user switches to.
+         */
+        let provider = GatedHistoryProvider(
+            gatedRange: .week,
+            results: [.day: samples(20.0), .week: samples(21.0, 22.0)]
+        )
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        viewModel.selectedRange = .week
+        let weekLoad = Task { await viewModel.load() }
+        while provider.requests.last?.range != .week { await Task.yield() }
+
+        // The user gives up on the week and the day range settles from a fresh fetch.
+        viewModel.selectedRange = .day
+        await viewModel.load()
+
+        provider.release()
+        await weekLoad.value
+
+        guard case let .loaded(daySeries) = viewModel.series else {
+            Issue.record("the day series was replaced by \(viewModel.series)")
+            return
+        }
+        #expect(daySeries.samples.count == 1)
+        #expect(daySeries.samples.last?.mean == 20.0)
+        #expect(viewModel.isLoading == false)
+    }
+
+    /// A superseded outcome is cached, so re-selecting its range issues no request.
+    @Test
+    func request_rangeSwitchedBeforeSettling_cachesTheOutcomeWithoutRefetching() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = GatedHistoryProvider(
+            gatedRange: .week,
+            results: [.day: samples(20.0), .week: samples(21.0, 22.0)]
+        )
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        viewModel.selectedRange = .week
+        let weekLoad = Task { await viewModel.load() }
+        while provider.requests.last?.range != .week { await Task.yield() }
+
+        viewModel.selectedRange = .day
+        await viewModel.load()
+
+        provider.release()
+        await weekLoad.value
+        #expect(provider.requests.filter { $0.range == .week }.count == 1)
+
+        // The week settled into the cache, so re-selecting the range renders without a request.
+        viewModel.selectedRange = .week
+        await viewModel.load()
+
+        #expect(provider.requests.filter { $0.range == .week }.count == 1)
+        guard case let .loaded(weekSeries) = viewModel.series else {
+            Issue.record("expected the cached week series, got \(viewModel.series)")
+            return
+        }
+        #expect(weekSeries.samples.count == 2)
+    }
+
     // MARK: - Selection and readout
 
     /// Scrubbing inside a bucket reads out that bucket's mean.
@@ -290,8 +361,8 @@ struct AreaClimateHistoryViewModelTests {
 
         await viewModel.load()
 
-        // samples(_:) lays one 300s bucket at [1000, 1300); 1100 falls inside it.
-        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+        // One bucket at [1000, 1300): every position maps onto its only start, 1000.
+        viewModel.selectedPosition = 0.5
 
         #expect(viewModel.readout?.mean == 20.5)
     }
@@ -307,8 +378,8 @@ struct AreaClimateHistoryViewModelTests {
 
         await viewModel.load()
 
-        // buckets are [1000, 1300)=10, [1300, 1600)=20, [1600, 1900)=30; 1300 is the middle start.
-        viewModel.selectedDate = Date(timeIntervalSince1970: 1300)
+        // Starts run 1000...1600, so position 0.5 is 1300 — the middle bucket's own start.
+        viewModel.selectedPosition = 0.5
 
         #expect(viewModel.readout?.mean == 20)
     }
@@ -324,8 +395,8 @@ struct AreaClimateHistoryViewModelTests {
 
         await viewModel.load()
 
-        // 1600 is the end of the [1300, 1600)=20 bucket, so it resolves the [1600, 1900)=30 bucket.
-        viewModel.selectedDate = Date(timeIntervalSince1970: 1600)
+        // Position 1 is 1600, the end of the [1300, 1600) bucket, so it resolves the next one.
+        viewModel.selectedPosition = 1.0
 
         #expect(viewModel.readout?.mean == 30)
     }
@@ -346,7 +417,8 @@ struct AreaClimateHistoryViewModelTests {
 
         await viewModel.load()
 
-        viewModel.selectedDate = Date(timeIntervalSince1970: 1450)
+        // Starts run 1000...1600, so position 0.75 is 1450 — inside the gap.
+        viewModel.selectedPosition = 0.75
 
         // A gap yields a readout with no sample, not a nil readout.
         let readout = viewModel.readout
@@ -355,9 +427,9 @@ struct AreaClimateHistoryViewModelTests {
         #expect(readout?.interval == nil)
     }
 
-    /// A date outside every bucket resolves a readout with no mean.
+    /// Clearing the scrub position falls back to the latest reading, which is the idle headline.
     @Test
-    func selectionOutsideLoadedSeriesResolvesNil() async {
+    func clearingSelectionFallsBackToTheLatestReading() async {
         let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
 
         let provider = MockSensorHistoryProvider()
@@ -366,30 +438,11 @@ struct AreaClimateHistoryViewModelTests {
 
         await viewModel.load()
 
-        let outsideAfter = Date(timeIntervalSince1970: 5000)
-        let outsideBefore = Date(timeIntervalSince1970: 500)
-        viewModel.selectedDate = outsideAfter
-        #expect(viewModel.readout?.mean == nil)
-        viewModel.selectedDate = outsideBefore
-        #expect(viewModel.readout?.mean == nil)
-    }
-
-    /// Clearing the scrub position leaves nothing to read.
-    @Test
-    func clearingSelectedDateLeavesNoReadout() async {
-        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
-
-        let provider = MockSensorHistoryProvider()
-        provider.stubs = ["sensor.lobby.temperature": .samples(samples(20.0))]
-        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
-
-        await viewModel.load()
-
-        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+        viewModel.selectedPosition = 0.5
         #expect(viewModel.readout?.mean != nil)
 
-        viewModel.selectedDate = nil
-        #expect(viewModel.readout == nil)
+        viewModel.selectedPosition = nil
+        #expect(viewModel.readout?.mean == 20.0)
     }
 
     /// A failed series resolves no readout without crashing.
@@ -408,8 +461,215 @@ struct AreaClimateHistoryViewModelTests {
             return
         }
 
-        viewModel.selectedDate = Date(timeIntervalSince1970: 1100)
+        viewModel.selectedPosition = 0.5
         #expect(viewModel.readout == nil)
+    }
+
+    // MARK: - date(atPosition:)
+
+    /// A series that hasn't loaded resolves no date, whatever the position.
+    @Test
+    func date_loadingSeries_returnsNil() {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: MockSensorHistoryProvider())
+
+        #expect(viewModel.date(atPosition: 0) == nil)
+        #expect(viewModel.date(atPosition: 0.5) == nil)
+        #expect(viewModel.date(atPosition: 1) == nil)
+    }
+
+    /// A failed series resolves no date, so the axis never labels an instant it can't back.
+    @Test
+    func date_failedSeries_returnsNil() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .failure(GenericHistoryError())]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        guard case .failed = viewModel.series else {
+            Issue.record("series expected failed, got \(viewModel.series)")
+            return
+        }
+        #expect(viewModel.date(atPosition: 0.5) == nil)
+    }
+
+    /// A settled no-history series is not loaded, so it resolves no date either.
+    @Test
+    func date_noRecordedHistorySeries_returnsNil() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .failure(SensorHistoryError.noRecordedHistory)]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        guard case .noRecordedHistory = viewModel.series else {
+            Issue.record("series expected noRecordedHistory, got \(viewModel.series)")
+            return
+        }
+        #expect(viewModel.date(atPosition: 0.5) == nil)
+    }
+
+    /// An empty window settles as `.noRecordedHistory`, so no position stands for a date.
+    @Test
+    func date_emptyWindow_returnsNil() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = []
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        #expect(viewModel.date(atPosition: 0) == nil)
+        #expect(viewModel.date(atPosition: 1) == nil)
+    }
+
+    /// A single sample has no span to interpolate across, so every position stands for its start.
+    @Test
+    func date_singleSample_mapsEveryPositionToItsStart() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(20.0))]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        let expected = Date(timeIntervalSince1970: 1000)
+        for position in [0.0, 0.25, 0.5, 0.9, 1.0, 1.5] {
+            #expect(viewModel.date(atPosition: position) == expected)
+        }
+    }
+
+    /// The scrub range's edges stand for the series' first and last sample starts.
+    @Test
+    func date_positionsZeroAndOne_mapToFirstAndLastSampleStarts() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(10, 20, 30))]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        #expect(viewModel.date(atPosition: 0) == Date(timeIntervalSince1970: 1000))
+        #expect(viewModel.date(atPosition: 1) == Date(timeIntervalSince1970: 1600))
+    }
+
+    /// A position outside 0...1 clamps to the nearest edge, so the index can never walk off the samples.
+    @Test
+    func date_positionOutsideDomain_clampsToNearestSeriesEdge() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.stubs = ["sensor.lobby.temperature": .samples(samples(10, 20, 30))]
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        #expect(viewModel.date(atPosition: -1) == Date(timeIntervalSince1970: 1000))
+        #expect(viewModel.date(atPosition: 1.5) == Date(timeIntervalSince1970: 1600))
+    }
+
+    /**
+     Unevenly spaced starts are where an index-linear and a time-linear walk disagree, so every
+     curve point's date must survive a round trip through `date(atPosition:)`.
+    */
+    @Test
+    func date_unevenlySpacedSamples_matchesTheCurvePointDates() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let base = Date(timeIntervalSince1970: 1000)
+        let unevenSamples = [
+            ClimateSample(start: base.addingTimeInterval(0), end: base.addingTimeInterval(300), mean: 20),
+            ClimateSample(start: base.addingTimeInterval(300), end: base.addingTimeInterval(600), mean: 21),
+            ClimateSample(start: base.addingTimeInterval(600), end: base.addingTimeInterval(900), mean: 22),
+            ClimateSample(start: base.addingTimeInterval(86_400), end: base.addingTimeInterval(86_700), mean: 23),
+        ]
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = unevenSamples
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        guard case let .loaded(loaded) = viewModel.series else {
+            Issue.record("series expected loaded, got \(viewModel.series)")
+            return
+        }
+        #expect(loaded.samples == unevenSamples)
+
+        // Positions past the gap land between the last two starts, where the two walks diverge.
+        for point in ClimateCurve.points(for: unevenSamples) {
+            #expect(viewModel.date(atPosition: point.position) == point.date)
+        }
+    }
+
+    // MARK: - Sparse series
+
+    @Test
+    func load_emptyWindow_reportsNoRecordedHistoryRatherThanABlankChart() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = []
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        guard case .noRecordedHistory = viewModel.series else {
+            Issue.record("series expected noRecordedHistory, got \(viewModel.series)")
+            return
+        }
+        #expect(viewModel.curveRuns.isEmpty)
+    }
+
+    @Test
+    func load_singleSample_keepsOnePlottablePoint() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = samples(21.5)
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        // The chart marks a lone run rather than drawing a line, so the point must survive.
+        #expect(viewModel.curveRuns.flatMap { $0 }.count == 1)
+        #expect(viewModel.readout?.mean == 21.5)
+    }
+
+    // MARK: - Value domain
+
+    @Test
+    func load_spikeBetweenResampledPositions_framesTheDomainOnTheDrawnCurve() async {
+        let temperature = sensor("sensor.lobby.temperature", name: "Temperature", deviceClass: "temperature", unit: "°C")
+
+        // 200 buckets, one spike no resampled position lands on, so the curve never reaches it.
+        var means = Array(repeating: 20.0, count: 200)
+        means[52] = 100
+        let base = Date(timeIntervalSince1970: 1000)
+        let spiked = means.enumerated().map { index, mean in
+            let start = base.addingTimeInterval(TimeInterval(index) * 300)
+            return ClimateSample(start: start, end: start.addingTimeInterval(300), mean: mean)
+        }
+
+        let provider = MockSensorHistoryProvider()
+        provider.result = spiked
+        let viewModel = AreaClimateHistoryViewModel(sensor: temperature, fallbackUnit: "°", provider: provider)
+
+        await viewModel.load()
+
+        let drawn = viewModel.curveRuns.flatMap { $0 }.map(\.value)
+        #expect(drawn.max() ?? 0 < 100)
+        #expect(viewModel.valueDomain == ClimateSampleYDomain.domain(forValues: drawn))
+        #expect(viewModel.valueDomain.upperBound < 100)
     }
 
     // MARK: - Helpers

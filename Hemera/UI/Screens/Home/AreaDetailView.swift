@@ -99,8 +99,7 @@ private struct AreaContentView: View {
     let animatesTileChanges: Bool
     let onEnterHideMode: () -> Void
 
-    @State private var showsClimateHistory = false
-    /// Held in state with its colour so a re-render cannot swap in a fresh, unloaded view model.
+    /// Held in state so a re-render cannot swap in a fresh, unloaded view model.
     @State private var climateHistoryTarget: ClimateHistoryTarget?
 
     var body: some View {
@@ -150,21 +149,14 @@ private struct AreaContentView: View {
         let representatives = AreaDisplayHelpers.representativeSensors(for: area)
 
         if temperatureText != nil || humidityText != nil {
-            HStack(spacing: 0) {
+            HStack(spacing: Mortar.Spacing.s) {
                 if let temperatureText, let temperature = representatives.temperature {
                     climateHistoryButton(
                         text: temperatureText,
                         sensor: temperature,
                         fallbackUnit: "°",
-                        color: .warm
+                        icon: "mdi:thermometer"
                     )
-                }
-
-                // The bullet joins the two readings; a lone reading shows on its own.
-                if temperatureText != nil, humidityText != nil {
-                    Text(" · ")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                 }
 
                 if let humidityText, let humidity = representatives.humidity {
@@ -172,7 +164,7 @@ private struct AreaContentView: View {
                         text: humidityText,
                         sensor: humidity,
                         fallbackUnit: "%",
-                        color: .cool
+                        icon: "mdi:water-percent"
                     )
                 }
             }
@@ -182,25 +174,31 @@ private struct AreaContentView: View {
             .onScrollVisibilityChange(threshold: 0.5) { isVisible in
                 showClimateSubtitle = isVisible
             }
-            .sheet(isPresented: $showsClimateHistory, onDismiss: { climateHistoryTarget = nil }) {
-                if let target = climateHistoryTarget {
-                    AreaClimateHistoryView(
-                        viewModel: target.viewModel,
-                        areaName: area.name,
-                        color: target.color
-                    )
-                    .presentationDetents([.large])
-                }
+            .sheet(item: $climateHistoryTarget) { target in
+                AreaClimateHistoryView(
+                    viewModel: target.viewModel,
+                    areaName: area.name
+                )
+                .presentationDetents([.large])
             }
         }
     }
+
+    /// 17pt matches the subheadline text; the smallest Mortar.IconSize (19pt) sits above cap height.
+    private let readingIconSize: CGFloat = 17
+
+    /// The grid's own shape, so a reading reads as the same material as the cards under it.
+    private let readingShape = RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
+
+    /// The pill is shorter than this; the hit area is padded out to the HIG minimum around it.
+    private let readingTapTarget: CGFloat = 44
 
     /// A tappable reading that opens its own sensor's history sheet.
     private func climateHistoryButton(
         text: String,
         sensor: SensorEntity,
         fallbackUnit: String,
-        color: Color
+        icon: String
     ) -> some View {
         Button {
             guard let session = ServiceLocator.shared.session else { return }
@@ -209,22 +207,30 @@ private struct AreaContentView: View {
                     sensor: sensor,
                     fallbackUnit: fallbackUnit,
                     provider: session.sensorHistoryProvider
-                ),
-                color: color
+                )
             )
-            showsClimateHistory = true
         } label: {
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack(spacing: Mortar.Spacing.xs) {
+                // Tinted so the glyph reads as its own thing rather than competing with the value.
+                MDIIcon(name: icon, size: readingIconSize)
+                    .foregroundStyle(Color.cool)
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, Mortar.Spacing.m)
+            .padding(.vertical, Mortar.Spacing.s)
+            .background(PlatformColor.secondarySystemBackground, in: readingShape)
+            .frame(minHeight: readingTapTarget)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    /// A view model and the colour to draw its single series.
-    private struct ClimateHistoryTarget {
+    /// Identified by its view model, so a tap is one target for `.sheet(item:)`.
+    private struct ClimateHistoryTarget: Identifiable {
         let viewModel: AreaClimateHistoryViewModel
-        let color: Color
+        var id: ObjectIdentifier { ObjectIdentifier(viewModel) }
     }
 }
 

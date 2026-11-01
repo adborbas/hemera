@@ -3,47 +3,33 @@ import Charts
 import Mortar
 import SwiftUI
 
-/// One climate measurement's history for an area's representative sensor.
+/// One climate measurement's history for an area's representative sensor, led by the value.
 struct AreaClimateHistoryView: View {
 
     @Bindable var viewModel: AreaClimateHistoryViewModel
     let areaName: String
-    let color: Color
 
     @Environment(\.dismiss) private var dismiss
 
-    init(viewModel: AreaClimateHistoryViewModel, areaName: String, color: Color) {
+    init(viewModel: AreaClimateHistoryViewModel, areaName: String) {
         self.viewModel = viewModel
         self.areaName = areaName
-        self.color = color
     }
 
     var body: some View {
-        let now = Date()
-        let range = viewModel.selectedRange
-        // The plot's x-domain follows the selected range so it rescales with the picker.
-        let window = now.addingTimeInterval(-range.interval)...now
-
         NavigationStack {
-            VStack(spacing: Mortar.Spacing.l) {
-                Picker(Localization.range, selection: rangeSelection) {
-                    ForEach(TimeRange.allCases, id: \.self) { range in
-                        Text(rangeLabel(range)).tag(range)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, Mortar.Spacing.l)
+            VStack(alignment: .leading, spacing: Mortar.Spacing.l) {
+                header
 
-                // A fixed-height readout above the plot so scrubbing shifts nothing below it.
-                selectionHeader
+                content
 
-                ScrollView {
-                    plot(state: viewModel.series, isLoading: viewModel.isLoading,
-                         window: window, range: range)
-                        .padding(Mortar.Spacing.l)
+                HStack {
+                    Spacer()
+                    rangeChips
                 }
             }
-            .navigationTitle(areaName)
+            .padding(Mortar.Spacing.l)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
@@ -56,58 +42,86 @@ struct AreaClimateHistoryView: View {
         }
     }
 
-    // MARK: - Range picker
+    // MARK: - Header
 
-    private var rangeSelection: Binding<TimeRange> {
-        Binding(
-            get: { viewModel.selectedRange },
-            set: { viewModel.selectedRange = $0 }
-        )
+    /// The caption and the reading, which is this screen's headline rather than a footnote.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
+            Text(caption)
+                .font(.caption2.weight(.semibold))
+                .tracking(0.8)
+                .textCase(.uppercase)
+                .foregroundStyle(.secondary)
+
+            readoutValue
+
+            Text(readoutDetail)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .accessibilityElement(children: .combine)
+        .animation(.smooth(duration: 0.20), value: viewModel.readout?.mean)
     }
 
-    // MARK: - Plot
-
-    /**
-     While a range loads, the last chart stays dimmed under a spinner; a first
-     load has nothing behind its spinner.
-     */
     @ViewBuilder
-    private func plot(
-        state: AreaClimateHistoryViewModel.SeriesState,
-        isLoading: Bool,
-        window: ClosedRange<Date>,
-        range: TimeRange
-    ) -> some View {
-        if isLoading, case .loaded = state {
-            chartFor(state: state, window: window, range: range)
-                .opacity(Self.staleOpacity)
-                .overlay {
-                    ProgressView()
-                        .controlSize(.small)
-                }
+    private var readoutValue: some View {
+        if let mean = viewModel.readout?.mean {
+            HStack(alignment: .firstTextBaseline, spacing: Mortar.Spacing.xxs) {
+                Text(mean.formatted(.number.precision(.fractionLength(1))))
+                    .font(.system(size: Self.valueFontSize, weight: .semibold, design: .rounded))
+                    .contentTransition(.numericText())
+                Text(viewModel.readout?.unit ?? "")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
         } else {
-            chartFor(state: state, window: window, range: range)
+            Text(Localization.noReading)
+                .font(.system(size: Self.valueFontSize, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
         }
     }
 
-    /// The measurement's chart for the selected range; gaps split into separate runs.
+    private var caption: String {
+        guard case let .loaded(series) = viewModel.series else { return areaName }
+        return "\(areaName) · \(series.sensorName)"
+    }
+
+    /// The scrubbed sample's span, or a single space so the header never changes height.
+    private var readoutDetail: String {
+        guard let interval = viewModel.readout?.interval else { return " " }
+        return formatInterval(interval)
+    }
+
+    // MARK: - Content
+
+    /**
+     While a range loads, the last chart stays dimmed under a spinner. Dimming is a modifier
+     rather than a branch: two branches are two identities, and the morph dies with the old one.
+    */
+    private var content: some View {
+        chart
+            .opacity(isStale ? Self.staleOpacity : 1)
+            .overlay { if isStale { ProgressView().controlSize(.small) } }
+    }
+
+    /// A chart already on screen while a newer range is still in flight.
+    private var isStale: Bool {
+        guard case .loaded = viewModel.series else { return false }
+        return viewModel.isLoading
+    }
+
     @ViewBuilder
-    private func chartFor(
-        state: AreaClimateHistoryViewModel.SeriesState,
-        window: ClosedRange<Date>,
-        range: TimeRange
-    ) -> some View {
-        switch state {
+    private var chart: some View {
+        switch viewModel.series {
         case .loading:
             ProgressView()
                 .controlSize(.small)
-                .frame(height: Self.plotHeight)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .noRecordedHistory:
             Text(Localization.noRecordedHistory)
                 .foregroundStyle(.secondary)
-                .frame(height: Self.plotHeight)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case .failed:
             VStack(spacing: Mortar.Spacing.s) {
@@ -119,95 +133,68 @@ struct AreaClimateHistoryView: View {
                 .buttonStyle(.borderedProminent)
                 .accessibilityLabel(Localization.retryAction)
             }
-            .frame(height: Self.plotHeight)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         case let .loaded(series):
-            VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
-                Text("\(series.sensorName) (\(series.unit))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                // One line per run, so a gap reads as a break rather than a straight line.
-                Chart {
-                    ForEach(Array(ClimateSampleRuns.split(series.samples).enumerated()), id: \.offset) { run in
-                        ForEach(run.element, id: \.start) { sample in
-                            LineMark(
-                                x: .value(Localization.timeAxis, sample.start),
-                                y: .value(Localization.meanAxis, sample.mean),
-                                series: .value(Localization.runKey, run.offset)
-                            )
-                            .foregroundStyle(color)
-                        }
-                    }
-                    if let selectedDate = viewModel.selectedDate {
-                        // A thin secondary rule marks the scrub position the user is reading.
-                        RuleMark(x: .value(Localization.timeAxis, selectedDate))
-                            .foregroundStyle(.secondary)
-                            .lineStyle(StrokeStyle(lineWidth: 1))
-                    }
-                }
-                .chartXScale(domain: window)
-                .chartXSelection(value: $viewModel.selectedDate)
-                .chartLegend(.hidden)
-                .frame(height: Self.plotHeight)
-                .accessibilityChartDescriptor(
-                    ClimateChartDescriptor(
-                        title: String(format: Localization.chartTitle, series.sensorName, series.unit),
-                        summary: String(format: Localization.chartRange, rangeLabel(range)),
-                        unit: series.unit,
-                        range: range,
-                        window: window,
-                        samples: series.samples,
-                        xAxisTitle: Localization.timeAxis
-                    )
+            ClimateChartView(
+                runs: viewModel.curveRuns,
+                valueDomain: viewModel.valueDomain,
+                color: .cool,
+                selectedPosition: $viewModel.selectedPosition,
+                selectedPoint: viewModel.selectedPoint,
+                axisLabel: axisLabel
+            )
+            .accessibilityChartDescriptor(
+                ClimateChartDescriptor(
+                    title: String(format: Localization.chartTitle, series.sensorName, series.unit),
+                    summary: String(format: Localization.chartRange, rangeLabel(viewModel.selectedRange)),
+                    unit: series.unit,
+                    range: viewModel.selectedRange,
+                    window: window(for: series),
+                    samples: series.samples,
+                    xAxisTitle: Localization.timeAxis
                 )
+            )
+        }
+    }
+
+    // MARK: - Range
+
+    private var rangeChips: some View {
+        HStack(spacing: Mortar.Spacing.xs) {
+            ForEach(TimeRange.allCases, id: \.self) { range in
+                let isSelected = viewModel.selectedRange == range
+                Text(chipLabel(range))
+                    .font(.footnote.weight(isSelected ? .semibold : .regular))
+                    .padding(.horizontal, Mortar.Spacing.m)
+                    .padding(.vertical, Mortar.Spacing.xs)
+                    .background(isSelected ? AnyShapeStyle(.thickMaterial) : AnyShapeStyle(.clear), in: Capsule())
+                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                    .contentShape(Capsule())
+                    .onTapGesture { viewModel.selectedRange = range }
+                    .accessibilityLabel(rangeLabel(range))
+                    .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             }
         }
+        .animation(.smooth(duration: 0.20), value: viewModel.selectedRange)
     }
 
-    // MARK: - Readout header
+    // MARK: - Formatting
 
-    /// The reading at the scrub position, reserved at a fixed height so nothing below moves.
-    private var selectionHeader: some View {
-        selectionContent
-            .frame(height: Self.selectionHeaderHeight, alignment: .top)
-            .padding(.horizontal, Mortar.Spacing.l)
+    /// A scrub position's time, in the selected range's style.
+    private func axisLabel(_ position: Double) -> String {
+        guard let date = viewModel.date(atPosition: position) else { return "" }
+        return Self.axisTime(viewModel.selectedRange, date)
     }
 
-    @ViewBuilder
-    private var selectionContent: some View {
-        if viewModel.selectedDate != nil, let readout = viewModel.readout {
-            measurementBlock(readout)
-        } else {
-            // Nothing selected: fill the space so the plot doesn't jump on first drag.
-            Text(Localization.dragPrompt)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+    /// Beyond a day an axis label is a date alone; three full timestamps collide at phone width.
+    private static func axisTime(_ range: TimeRange, _ date: Date) -> String {
+        switch range {
+        case .day:
+            return date.formatted(date: .omitted, time: .shortened)
+        case .week, .month:
+            return date.formatted(.dateTime.day().month(.abbreviated))
         }
-    }
-
-    /// A measurement's name, interval, and mean, or a gap notice when the position lands in one.
-    @ViewBuilder
-    private func measurementBlock(_ readout: AreaClimateHistoryViewModel.Readout) -> some View {
-        VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
-            Text(readout.sensorName)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            if let interval = readout.interval, let mean = readout.mean {
-                HStack(spacing: Mortar.Spacing.s) {
-                    Text(formatInterval(interval))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("\(mean.formatted(.number.precision(.fractionLength(1))) + readout.unit)")
-                        .font(.callout)
-                }
-            } else {
-                Text(Localization.noReading)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .accessibilityElement(children: .combine)
     }
 
     /// Formats a bucket's span; the 24-hour range omits the date, the others include it.
@@ -219,6 +206,14 @@ struct AreaClimateHistoryView: View {
             return interval.formatted(date: .abbreviated, time: .shortened)
         }
     }
+
+    private func window(for series: AreaClimateHistoryViewModel.ClimateSeries) -> ClosedRange<Date> {
+        guard let first = series.samples.first?.start, let last = series.samples.last?.end, first < last else {
+            let now = Date()
+            return now.addingTimeInterval(-viewModel.selectedRange.interval)...now
+        }
+        return first...last
+    }
 }
 
 // MARK: - Localization
@@ -226,19 +221,17 @@ struct AreaClimateHistoryView: View {
 private extension AreaClimateHistoryView {
     enum Localization {
         static let close = String(localized: "Close", comment: "Toolbar button that dismisses the area's climate-history sheet")
-        static let noRecordedHistory = String(localized: "Home Assistant isn't recording history for this sensor", comment: "Shown under a climate chart when Home Assistant keeps no long-term statistics for the sensor, which is normal")
-        static let loadFailed = String(localized: "Couldn't load history", comment: "Shown under a climate chart when the history fetch failed, next to a retry button")
+        static let noRecordedHistory = String(localized: "Home Assistant isn't recording history for this sensor", comment: "Shown in place of a climate chart when Home Assistant keeps no long-term statistics for the sensor, which is normal")
+        static let loadFailed = String(localized: "Couldn't load history", comment: "Shown in place of a climate chart when the history fetch failed, next to a retry button")
         static let retry = String(localized: "Retry", comment: "The button that re-fetches a climate range whose history failed to load")
         static let timeAxis = String(localized: "Time", comment: "Horizontal axis key for a climate-history chart, over the selected range")
-        static let meanAxis = String(localized: "Mean", comment: "Vertical axis key for a climate-history chart, holding each bucket's mean")
-        /// Not user-facing: the legend is hidden, this only keeps each run a separate series.
-        static let runKey = "Run"
-        static let range = String(localized: "Time range", comment: "Title of the picker that chooses how far back the area's climate-history chart reaches")
-        static let twentyFourHours = String(localized: "24 Hours", comment: "Picker option showing the last 24 hours of climate history")
-        static let sevenDays = String(localized: "7 Days", comment: "Picker option showing the last 7 days of climate history")
-        static let thirtyDays = String(localized: "30 Days", comment: "Picker option showing the last 30 days of climate history")
-        static let noReading = String(localized: "No reading", comment: "Shown for a measurement that has no sample at the scrubbed position, eg. inside a recording gap")
-        static let dragPrompt = String(localized: "Drag across the chart to read a value", comment: "Idle text in the climate-history readout, shown before any position is scrubbed")
+        static let twentyFourHours = String(localized: "24 Hours", comment: "Range option showing the last 24 hours of climate history")
+        static let sevenDays = String(localized: "7 Days", comment: "Range option showing the last 7 days of climate history")
+        static let thirtyDays = String(localized: "30 Days", comment: "Range option showing the last 30 days of climate history")
+        static let chipDay = String(localized: "24H", comment: "Compact label for the 24-hour climate-history range")
+        static let chipWeek = String(localized: "7D", comment: "Compact label for the 7-day climate-history range")
+        static let chipMonth = String(localized: "30D", comment: "Compact label for the 30-day climate-history range")
+        static let noReading = String(localized: "No reading", comment: "Shown in place of the value when the scrubbed position has no sample, eg. inside a recording gap")
         /// VoiceOver heading for the chart; names the sensor and the measurement it shows.
         static let chartTitle = String(localized: "Climate history of %1$@ (%2$@)", comment: "Audio-graph heading naming the sensor and its measurement, eg. Temperature (°C)")
         /// The window a chart covers, spoken alongside its audio graph.
@@ -247,7 +240,7 @@ private extension AreaClimateHistoryView {
         static let retryAction = String(localized: "Retry loading climate history", comment: "Accessibility label on a retry button after a climate-history fetch fails")
     }
 
-    /// Maps each range to its picker label; the enum carries no display text.
+    /// The spoken name of a range; the enum carries no display text.
     func rangeLabel(_ range: TimeRange) -> String {
         switch range {
         case .day: return Localization.twentyFourHours
@@ -256,14 +249,20 @@ private extension AreaClimateHistoryView {
         }
     }
 
-    /// Fixed height for the plot so it doesn't size to the container.
-    static let plotHeight: CGFloat = 200
+    /// The compact chip label, which trades spelling out the range for giving the chart the room.
+    func chipLabel(_ range: TimeRange) -> String {
+        switch range {
+        case .day: return Localization.chipDay
+        case .week: return Localization.chipWeek
+        case .month: return Localization.chipMonth
+        }
+    }
 
     /// How dim a still-loaded chart reads while a newer range loads over it.
     static let staleOpacity: Double = 0.5
 
-    /// Reserves height for the readout, so scrubbing shifts the plot neither up nor down.
-    static let selectionHeaderHeight: CGFloat = 80
+    /// The headline reading's point size.
+    static let valueFontSize: CGFloat = 44
 }
 
 // MARK: - Accessibility descriptor
@@ -271,7 +270,7 @@ private extension AreaClimateHistoryView {
 /**
  A sendable audio-graph descriptor built from a settled series, so VoiceOver hears
  the recorded values and never a point that the run split dropped.
- */
+*/
 extension AreaClimateHistoryView {
     struct ClimateChartDescriptor: AXChartDescriptorRepresentable, Sendable {
 
@@ -385,7 +384,7 @@ fileprivate struct PreviewClimateHistory: View {
         context.insert(sensor)
 
         let viewModel = AreaClimateHistoryViewModel(sensor: sensor, fallbackUnit: "°", provider: StubHistoryProvider())
-        return AreaClimateHistoryView(viewModel: viewModel, areaName: "Lobby", color: .warm)
+        return AreaClimateHistoryView(viewModel: viewModel, areaName: "Lobby")
     }
 }
 
