@@ -111,57 +111,14 @@ enum ClimateSampleGenerator {
         let warped = theta + Self.diurnalSkew * sin(theta)
         let wave = isHumidity ? cos(warped) : sin(warped)
 
-        let weather = Self.fbm(seconds / Self.weatherScale, seed: seed, octaves: Self.weatherOctaves)
-        let jitter = Self.fbm(seconds / Self.jitterScale, seed: seed ^ Self.jitterSalt, octaves: Self.jitterOctaves)
+        let weather = ValueNoise.fbm(seconds / Self.weatherScale, seed: seed, octaves: Self.weatherOctaves)
+        let jitter = ValueNoise.fbm(seconds / Self.jitterScale, seed: seed ^ Self.jitterSalt, octaves: Self.jitterOctaves)
 
         return profile.base
             + bias
             + profile.amplitude * wave
             + profile.weatherAmplitude * weather
             + profile.jitterAmplitude * jitter
-    }
-
-    // MARK: - Noise
-
-    /**
-     Fractional Brownian motion: octaves of value noise, each half the amplitude and twice the
-     frequency. A pure function of position, so every range samples one underlying curve.
-    */
-    private static func fbm(_ x: Double, seed: UInt64, octaves: Int) -> Double {
-        var total = 0.0
-        var amplitude = 1.0
-        var frequency = 1.0
-        var normal = 0.0
-
-        for _ in 0..<octaves {
-            total += amplitude * Self.valueNoise(x * frequency, seed: seed)
-            normal += amplitude
-            amplitude *= Self.persistence
-            frequency *= 2
-        }
-
-        return normal > 0 ? total / normal : 0
-    }
-
-    /// Smoothstepped between two lattice points, so octaves blend without a crease at each integer.
-    private static func valueNoise(_ x: Double, seed: UInt64) -> Double {
-        let whole = x.rounded(.down)
-        let fraction = x - whole
-        let lower = Self.lattice(Int64(whole), seed: seed)
-        let upper = Self.lattice(Int64(whole) + 1, seed: seed)
-        let blend = fraction * fraction * (3 - 2 * fraction)
-        return lower + (upper - lower) * blend
-    }
-
-    /// A stable value in -1..<1 for one lattice point, mixed so neighbours never correlate.
-    private static func lattice(_ index: Int64, seed: UInt64) -> Double {
-        var hash = seed ^ UInt64(bitPattern: index &* Self.latticeStride)
-        hash ^= hash >> 33
-        hash = hash &* 0xff51_afd7_ed55_8ccd
-        hash ^= hash >> 33
-        hash = hash &* 0xc4ce_b9fe_1a85_ec53
-        hash ^= hash >> 33
-        return Double(hash >> 11) / Double(1 << 53) * 2 - 1
     }
 
     // MARK: - Per-entity seed
@@ -211,9 +168,7 @@ enum ClimateSampleGenerator {
     private static let jitterScale: TimeInterval = 60 * 60
     private static let jitterOctaves = 3
 
-    private static let persistence: Double = 0.5
     private static let jitterSalt: UInt64 = 0x5bf0_3635_ca4b_1d7f
-    private static let latticeStride: Int64 = 0x61c8_8647
     private static let fnvPrime: UInt64 = 0x0000_0100_0000_01b3      // FNV-1a-64 prime
     private static let phaseSpan: Double = 12
 

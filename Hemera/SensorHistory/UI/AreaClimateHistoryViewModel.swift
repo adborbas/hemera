@@ -86,18 +86,8 @@ final class AreaClimateHistoryViewModel {
 
     /// The moment a scrub position stands for, used for the readout and the axis labels.
     func date(atPosition position: Double) -> Date? {
-        guard case let .loaded(series) = series,
-              let first = series.samples.first
-        else { return nil }
-        let samples = series.samples
-        guard samples.count > 1 else { return first.start }
-        // A chartXSelection value can land marginally outside 0...1; clamping keeps the index valid.
-        let clamped = min(max(position, 0), 1)
-        let exact = clamped * Double(samples.count - 1)
-        let lower = samples[Int(exact.rounded(.down))]
-        let upper = samples[Int(exact.rounded(.up))]
-        let fraction = exact - exact.rounded(.down)
-        return lower.start.addingTimeInterval(upper.start.timeIntervalSince(lower.start) * fraction)
+        guard case let .loaded(series) = series else { return nil }
+        return ClimateScrub(samples: series.samples).date(atPosition: position)
     }
 
     // MARK: - Loading
@@ -144,8 +134,9 @@ final class AreaClimateHistoryViewModel {
      */
     private func readout(for state: SeriesState) -> Readout? {
         guard case let .loaded(series) = state else { return nil }
+        let scrub = ClimateScrub(samples: series.samples)
 
-        guard let position = selectedPosition, let date = date(atPosition: position) else {
+        guard let position = selectedPosition, scrub.date(atPosition: position) != nil else {
             // Nothing scrubbed: the headline shows the latest reading.
             guard let latest = series.samples.last else { return nil }
             return Readout(
@@ -157,7 +148,7 @@ final class AreaClimateHistoryViewModel {
         }
 
         // A sample is under the position on the half-open interval `start..<end`.
-        guard let sample = series.samples.first(where: { $0.start <= date && date < $0.end }) else {
+        guard let sample = scrub.sample(atPosition: position) else {
             return Readout(sensorName: series.sensorName, unit: series.unit, mean: nil, interval: nil)
         }
         return Readout(
