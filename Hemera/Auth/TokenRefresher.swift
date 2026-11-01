@@ -37,14 +37,10 @@ actor TokenRefresher {
             updated.refreshToken = response.refresh_token ?? credentials.refreshToken
             updated.tokenExpiresAt = Date().addingTimeInterval(TimeInterval(response.expires_in))
 
-            let credentialsToSave = updated
-            let store = keychainStore
-            await MainActor.run {
-                do {
-                    try store.saveCredentials(credentialsToSave)
-                } catch {
-                    Log.error("Failed to persist refreshed credentials", cause: error)
-                }
+            do {
+                try keychainStore.saveCredentials(updated)
+            } catch {
+                Log.error("Failed to persist refreshed credentials", cause: error)
             }
             return (updated.accessToken, updated)
         }
