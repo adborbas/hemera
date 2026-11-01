@@ -20,14 +20,30 @@ struct AreaStatusIcon: Identifiable, Hashable {
 /// model state with no presentation lifecycle of their own.
 enum AreaDisplayHelpers {
 
-    static func climateSummary(from sensors: [SensorEntity]) -> (String?, String?) {
-        let temp = sensors.first { $0.deviceClass == "temperature" && !$0.isHiddenInHA }
-        let humidity = sensors.first { $0.deviceClass == "humidity" && !$0.isHiddenInHA }
+    static func representativeSensors(
+        for area: AreaEntity
+    ) -> (temperature: SensorEntity?, humidity: SensorEntity?) {
+        (
+            temperature: representative(
+                in: area.sensors,
+                deviceClass: "temperature",
+                assignedEntityId: area.temperatureEntityId
+            ),
+            humidity: representative(
+                in: area.sensors,
+                deviceClass: "humidity",
+                assignedEntityId: area.humidityEntityId
+            )
+        )
+    }
 
-        let tempStr = temp.flatMap { Double($0.state) }
+    static func climateSummary(for area: AreaEntity) -> (String?, String?) {
+        let (temperature, humidity) = representativeSensors(for: area)
+
+        let tempStr = temperature.flatMap { Double($0.state) }
             .map { (value: Double) -> String in
                 let number = value.formatted(.number.precision(.fractionLength(1)))
-                return number + (temp?.unitOfMeasurement ?? "°")
+                return number + (temperature?.unitOfMeasurement ?? "°")
             }
         let humStr = humidity.flatMap { Double($0.state) }
             .map { (value: Double) -> String in
@@ -36,6 +52,12 @@ enum AreaDisplayHelpers {
             }
 
         return (tempStr, humStr)
+    }
+
+    static func climateLabel(for area: AreaEntity) -> String? {
+        let (temperature, humidity) = climateSummary(for: area)
+        let parts = [temperature, humidity].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     static func statusIcons(
@@ -84,5 +106,30 @@ enum AreaDisplayHelpers {
         }
 
         return icons
+    }
+}
+
+private extension AreaDisplayHelpers {
+
+    /**
+     An explicit assignment wins even when hidden; otherwise the lowest `entityId`
+     among visible `state_class == "measurement"` sensors, never a setpoint.
+     */
+    static func representative(
+        in sensors: [SensorEntity],
+        deviceClass: String,
+        assignedEntityId: String?
+    ) -> SensorEntity? {
+        if let assignedEntityId,
+           let assigned = sensors.first(where: { $0.entityId == assignedEntityId }) {
+            return assigned
+        }
+        return sensors
+            .filter {
+                !$0.isHiddenInHA
+                    && $0.deviceClass == deviceClass
+                    && $0.stateClass == "measurement"
+            }
+            .min { $0.entityId < $1.entityId }
     }
 }

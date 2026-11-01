@@ -5,6 +5,10 @@ import TileGridEngine
 /// Seeds the SwiftData store with realistic sample entities for demo mode.
 enum DemoDataProvider {
 
+    /// One instant for the whole seed, so every sensor's state comes from the same moment.
+    private static let seededAt = Date()
+
+
     static func seedDemoData(into context: ModelContext) {
         let livingRoom = AreaEntity(areaId: "living_room", name: "Living Room", icon: "mdi:sofa", sortOrder: 0)
         let bedroom = AreaEntity(areaId: "bedroom", name: "Bedroom", icon: "mdi:bed", sortOrder: 1)
@@ -110,17 +114,19 @@ enum DemoDataProvider {
         let livingTemp = SensorEntity(
             entityId: "sensor.living_room_temperature",
             name: "Living Room Temperature",
-            state: "22",
+            state: DemoTemperature.state(ClimateSampleGenerator.currentMean(entityId: "sensor.living_room_temperature", now: Self.seededAt)),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let livingHumidity = SensorEntity(
             entityId: "sensor.living_room_humidity",
             name: "Living Room Humidity",
-            state: "45",
+            state: DemoTemperature.plainState(ClimateSampleGenerator.currentMean(entityId: "sensor.living_room_humidity", now: Self.seededAt)),
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         let livingRoomAC = ClimateEntity(
@@ -200,17 +206,19 @@ enum DemoDataProvider {
         let bedroomTemp = SensorEntity(
             entityId: "sensor.bedroom_temperature",
             name: "Bedroom Temperature",
-            state: "20",
+            state: DemoTemperature.state(ClimateSampleGenerator.currentMean(entityId: "sensor.bedroom_temperature", now: Self.seededAt)),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let bedroomHumidity = SensorEntity(
             entityId: "sensor.bedroom_humidity",
             name: "Bedroom Humidity",
-            state: "52",
+            state: DemoTemperature.plainState(ClimateSampleGenerator.currentMean(entityId: "sensor.bedroom_humidity", now: Self.seededAt)),
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Kitchen
@@ -261,17 +269,19 @@ enum DemoDataProvider {
         let kitchenTemp = SensorEntity(
             entityId: "sensor.kitchen_temperature",
             name: "Kitchen Temperature",
-            state: "24",
+            state: DemoTemperature.state(ClimateSampleGenerator.currentMean(entityId: "sensor.kitchen_temperature", now: Self.seededAt)),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let kitchenHumidity = SensorEntity(
             entityId: "sensor.kitchen_humidity",
             name: "Kitchen Humidity",
-            state: "58",
+            state: DemoTemperature.plainState(ClimateSampleGenerator.currentMean(entityId: "sensor.kitchen_humidity", now: Self.seededAt)),
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Bathroom
@@ -305,17 +315,19 @@ enum DemoDataProvider {
         let bathroomTemp = SensorEntity(
             entityId: "sensor.bathroom_temperature",
             name: "Bathroom Temperature",
-            state: "25",
+            state: DemoTemperature.state(ClimateSampleGenerator.currentMean(entityId: "sensor.bathroom_temperature", now: Self.seededAt)),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let bathroomHumidity = SensorEntity(
             entityId: "sensor.bathroom_humidity",
             name: "Bathroom Humidity",
-            state: "72",
+            state: DemoTemperature.plainState(ClimateSampleGenerator.currentMean(entityId: "sensor.bathroom_humidity", now: Self.seededAt)),
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Office
@@ -377,17 +389,19 @@ enum DemoDataProvider {
         let officeTemp = SensorEntity(
             entityId: "sensor.office_temperature",
             name: "Office Temperature",
-            state: "21",
+            state: DemoTemperature.state(ClimateSampleGenerator.currentMean(entityId: "sensor.office_temperature", now: Self.seededAt)),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let officeHumidity = SensorEntity(
             entityId: "sensor.office_humidity",
             name: "Office Humidity",
-            state: "40",
+            state: DemoTemperature.plainState(ClimateSampleGenerator.currentMean(entityId: "sensor.office_humidity", now: Self.seededAt)),
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // MARK: - Garden (sensor-only area)
@@ -395,17 +409,19 @@ enum DemoDataProvider {
         let gardenTemp = SensorEntity(
             entityId: "sensor.garden_temperature",
             name: "Garden Temperature",
-            state: "18",
+            state: DemoTemperature.state(ClimateSampleGenerator.currentMean(entityId: "sensor.garden_temperature", now: Self.seededAt)),
             deviceClass: "temperature",
-            unitOfMeasurement: "°C"
+            unitOfMeasurement: DemoTemperature.symbol,
+            stateClass: "measurement"
         )
 
         let gardenHumidity = SensorEntity(
             entityId: "sensor.garden_humidity",
             name: "Garden Humidity",
-            state: "65",
+            state: DemoTemperature.plainState(ClimateSampleGenerator.currentMean(entityId: "sensor.garden_humidity", now: Self.seededAt)),
             deviceClass: "humidity",
-            unitOfMeasurement: "%"
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
         )
 
         // Insert all entities into context FIRST

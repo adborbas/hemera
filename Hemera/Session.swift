@@ -16,4 +16,5 @@ struct Session {
     let restClient: any HARESTClienting
     let errorNotifier: ErrorNotifier
     let resync: () async -> Void
+    let sensorHistoryProvider: any SensorHistoryProviding
 }

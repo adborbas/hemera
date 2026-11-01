@@ -15,7 +15,9 @@ extension AreaRegistryEntry {
             areaId: areaId,
             name: name,
             floorId: dict["floor_id"] as? String,
-            icon: dict["icon"] as? String
+            icon: dict["icon"] as? String,
+            temperatureEntityId: dict["temperature_entity_id"] as? String,
+            humidityEntityId: dict["humidity_entity_id"] as? String
         )
     }
 

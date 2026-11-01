@@ -227,6 +227,11 @@ final class HADataSyncService {
             if payload.floors != nil {
                 area.floor = payload.areaFloorIds[mapping.areaId].flatMap { floorsById[$0] }
             }
+            // Same rule for the sensor assignments: a failed registry fetch must not clear them.
+            if payload.areaMappingsFetchSucceeded {
+                area.temperatureEntityId = payload.areaTemperatureEntityIds[mapping.areaId]
+                area.humidityEntityId = payload.areaHumidityEntityIds[mapping.areaId]
+            }
             for entityId in mapping.entities {
                 entityRegistry.assignArea(area, toEntityWithId: entityId, in: mainContext)
             }
@@ -292,6 +297,8 @@ final class HADataSyncService {
         let hiddenEntityIds: Set<String>?
         let areaSortOrder: [String: Int]
         let areaIcons: [String: String]
+        let areaTemperatureEntityIds: [String: String]
+        let areaHumidityEntityIds: [String: String]
         /**
          Whether every registry the mapping derives from was fetched. `false` suppresses clearing
          entity links and pruning areas, so a transient failure never wipes stored membership.
@@ -348,6 +355,14 @@ final class HADataSyncService {
             (areaRegistry ?? []).compactMap { entry in entry.floorId.map { (entry.areaId, $0) } },
             uniquingKeysWith: { _, new in new }
         )
+        let areaTemperatureEntityIds = Dictionary(
+            (areaRegistry ?? []).compactMap { entry in entry.temperatureEntityId.map { (entry.areaId, $0) } },
+            uniquingKeysWith: { _, new in new }
+        )
+        let areaHumidityEntityIds = Dictionary(
+            (areaRegistry ?? []).compactMap { entry in entry.humidityEntityId.map { (entry.areaId, $0) } },
+            uniquingKeysWith: { _, new in new }
+        )
 
         return SyncPayload(
             entities: entities,
@@ -356,6 +371,8 @@ final class HADataSyncService {
             hiddenEntityIds: hiddenEntityIds,
             areaSortOrder: areaSortOrder,
             areaIcons: areaIcons,
+            areaTemperatureEntityIds: areaTemperatureEntityIds,
+            areaHumidityEntityIds: areaHumidityEntityIds,
             areaMappingsFetchSucceeded: areaMappingsFetchSucceeded,
             floors: floorRegistry,
             floorSortOrder: floorSortOrder,

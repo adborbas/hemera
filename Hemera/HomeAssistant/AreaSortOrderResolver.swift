@@ -6,12 +6,23 @@ struct AreaRegistryEntry: Sendable {
     let name: String
     let floorId: String?
     let icon: String?
+    let temperatureEntityId: String?
+    let humidityEntityId: String?
 
-    init(areaId: String, name: String, floorId: String?, icon: String? = nil) {
+    init(
+        areaId: String,
+        name: String,
+        floorId: String?,
+        icon: String? = nil,
+        temperatureEntityId: String? = nil,
+        humidityEntityId: String? = nil
+    ) {
         self.areaId = areaId
         self.name = name
         self.floorId = floorId
         self.icon = icon
+        self.temperatureEntityId = temperatureEntityId
+        self.humidityEntityId = humidityEntityId
     }
 }
 

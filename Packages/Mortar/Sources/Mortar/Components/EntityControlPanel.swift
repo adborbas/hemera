@@ -36,7 +36,7 @@ public struct EntityControlPanel<Content: View, Footer: View>: View {
                 .overlay { footer() }
                 .padding(.bottom, Mortar.PanelSpacing.footer)
         }
-        .overlay(alignment: .topTrailing) {
+        .overlay(alignment: .topLeading) {
             Button {
                 isPresented = false
             } label: {

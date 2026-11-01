@@ -9,6 +9,11 @@ final class AreaEntity {
     var icon: String?
     var sortOrder: Int
 
+    /// Sensor Home Assistant assigns to represent this area's temperature, when the user set one.
+    var temperatureEntityId: String?
+    /// Sensor Home Assistant assigns to represent this area's humidity, when the user set one.
+    var humidityEntityId: String?
+
     /// The floor this area belongs to, when Home Assistant assigns one.
     /// Optional — additive, lightweight-migration-safe.
     var floor: FloorEntity?
