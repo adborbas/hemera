@@ -11,13 +11,20 @@ final class ServerURLViewModel {
     private(set) var errorMessage: String?
 
     private(set) var mode: ServerAddressMode
+
     private let urlChanger: any ServerURLChanging
+    private let serverProbe: any ServerProbing
 
     // MARK: - Init
 
-    init(mode: ServerAddressMode, urlChanger: any ServerURLChanging) {
+    init(
+        mode: ServerAddressMode,
+        urlChanger: any ServerURLChanging,
+        serverProbe: any ServerProbing = ServerProbe()
+    ) {
         self.mode = mode
         self.urlChanger = urlChanger
+        self.serverProbe = serverProbe
         self.text = mode.initialText
     }
 
@@ -44,6 +51,20 @@ final class ServerURLViewModel {
         errorMessage = nil
         isBusy = true
         defer { isBusy = false }
+
+        /**
+         Probe before committing: the commit proves an address by sending it this session's
+         refresh token, so an unchecked address would be handed a working credential.
+        */
+        do {
+            try await serverProbe.probe(candidate, timeout: ServerProbe.confirmed)
+        } catch AuthError.notHomeAssistant {
+            errorMessage = Localization.notHomeAssistant
+            return false
+        } catch {
+            errorMessage = Localization.unreachable
+            return false
+        }
 
         do {
             try await urlChanger.changeServerURL(to: candidate)
@@ -82,6 +103,10 @@ private extension ServerURLViewModel {
         static let unreachable = String(
             localized: "Couldn't reach this address. Check it's correct and that you're connected to a network that can reach it.",
             comment: "Error shown when the new server address cannot be reached"
+        )
+        static let notHomeAssistant = String(
+            localized: "This address answered, but it isn't a Home Assistant server.",
+            comment: "Error shown when the entered server address responds but is not a Home Assistant instance"
         )
         static let genericFailure = String(
             localized: "Couldn't change the address. Please try again.",
