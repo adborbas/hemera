@@ -5,6 +5,8 @@ import HAKit
 enum SensorHistoryError: Error {
     /// The statistic id is absent from the response — distinct from a present but empty series.
     case noRecordedHistory
+    /// The socket was down when the history was asked for, so the request was never sent.
+    case disconnected
 }
 
 /// Reads one statistic's long-term-statistics row out of a `recorder/statistics_during_period` response.
