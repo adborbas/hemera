@@ -92,6 +92,92 @@ struct ClimateSampleGeneratorTests {
         #expect(outdoorSpread > indoorSpread * 2)
     }
 
+    // MARK: - Current reading
+
+    /**
+     The pill reads a sensor's state and the sheet reads the newest bucket. They must name one
+     number, or the two disagree on screen about the same moment.
+    */
+    @Test
+    func currentMean_matchesTheNewestBucketTheDayRangeDraws() {
+        let entityId = "sensor.living_room_temperature"
+        let samples = ClimateSampleGenerator.samples(entityId: entityId, range: .day, now: Self.now)
+
+        #expect(ClimateSampleGenerator.currentMean(entityId: entityId, now: Self.now) == samples.last?.mean)
+    }
+
+    /// Buckets sit on the clock, so a reading stays put until its bucket ends.
+    @Test
+    func currentMean_isStableAcrossOneBucket() {
+        let entityId = "sensor.living_room_temperature"
+        // Aligned to both the 5-minute and the hourly grid, so the offsets stay in one bucket.
+        let aligned = Date(timeIntervalSince1970: 1_699_999_200)
+
+        let early = ClimateSampleGenerator.currentMean(entityId: entityId, now: aligned.addingTimeInterval(60))
+        let later = ClimateSampleGenerator.currentMean(entityId: entityId, now: aligned.addingTimeInterval(240))
+
+        #expect(early == later)
+    }
+
+    /// Crossing into the next bucket is the only thing that moves the reading.
+    @Test
+    func currentMean_movesOnceTheBucketEnds() {
+        let entityId = "sensor.living_room_temperature"
+        let aligned = Date(timeIntervalSince1970: 1_699_999_200)
+
+        let inside = ClimateSampleGenerator.currentMean(entityId: entityId, now: aligned.addingTimeInterval(60))
+        let next = ClimateSampleGenerator.currentMean(entityId: entityId, now: aligned.addingTimeInterval(360))
+
+        #expect(inside != next)
+    }
+
+    // MARK: - Texture
+
+    /**
+     Every range samples one underlying curve, so an instant two ranges share must agree.
+     A random walk would satisfy the determinism tests and still fail this one.
+    */
+    @Test
+    func samples_instantSharedByTwoRanges_hasTheSameMean() {
+        let day = ClimateSampleGenerator.samples(entityId: "sensor.living_room_temperature", range: .day, now: Self.now)
+        let week = ClimateSampleGenerator.samples(entityId: "sensor.living_room_temperature", range: .week, now: Self.now)
+
+        let dayMeans = Dictionary(uniqueKeysWithValues: day.map { ($0.start, $0.mean) })
+        let shared = week.compactMap { sample in dayMeans[sample.start].map { ($0, sample.mean) } }
+
+        #expect(shared.count > 10)
+        for (fromDay, fromWeek) in shared {
+            #expect(abs(fromDay - fromWeek) < 0.000_001)
+        }
+    }
+
+    /**
+     A day apart is a whole period of the daily wave, so a pure sine would repeat exactly.
+     Anything that differs is the texture that stops the chart reading as computed.
+    */
+    @Test
+    func samples_sameHourOnConsecutiveDays_differ() {
+        let week = ClimateSampleGenerator.samples(entityId: "sensor.garden_temperature", range: .week, now: Self.now)
+
+        let spread = (0..<(24 * 5)).map { abs(week[$0].mean - week[$0 + 24].mean) }
+        #expect((spread.max() ?? 0) > 0.2)
+    }
+
+    /// A room warms faster than it cools, which a plain sine cannot express.
+    @Test
+    func samples_dailyWaveRisesFasterThanItFalls() {
+        let day = ClimateSampleGenerator.samples(entityId: "sensor.garden_temperature", range: .day, now: Self.now)
+        let means = day.map(\.mean)
+
+        let steps = zip(means, means.dropFirst()).map { $1 - $0 }
+        let rising = steps.filter { $0 > 0 }
+        let falling = steps.filter { $0 < 0 }.map { -$0 }
+
+        let averageRise = rising.reduce(0, +) / Double(rising.count)
+        let averageFall = falling.reduce(0, +) / Double(falling.count)
+        #expect(averageRise > averageFall * 1.15)
+    }
+
     // MARK: - Contiguity
 
     /// Each end equals the next start, so the gap splitter keeps the series one run.

@@ -28,5 +28,10 @@ enum DemoTemperature {
             .formatted(.number.precision(.fractionLength(1)).locale(Self.parsableLocale))
     }
 
+    /// A humidity state: no conversion, but the same POSIX formatting so `Double` can read it.
+    static func plainState(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(1)).locale(Self.parsableLocale))
+    }
+
     private static let parsableLocale = Locale(identifier: "en_US_POSIX")
 }
