@@ -34,6 +34,13 @@ final class HADataSyncService {
     private var stateChangedToken: HACancellable?
 
     /**
+     One save per burst of `state_changed` events rather than one per event. The in-place
+     upsert is what refreshes a card; the save only drives `@Query`, so it can wait.
+    */
+    private static let eventSaveDelay: Duration = .milliseconds(250)
+    private var pendingSave: Task<Void, Never>?
+
+    /**
      Guards the real-time path until the initial snapshot has been applied.
      While `false`, incoming `state_changed` events are buffered instead of
      applied, so a change that fires during the snapshot-fetch window is
@@ -61,7 +68,10 @@ final class HADataSyncService {
     /// once per dropped event.
     private var didWarnBufferOverflow = false
 
-    deinit { stateChangedToken?.cancel() }
+    deinit {
+        stateChangedToken?.cancel()
+        pendingSave?.cancel()
+    }
 
     private var conn: HAConnection { connectionManager.connection }
 
@@ -513,15 +523,26 @@ final class HADataSyncService {
         for event in pending {
             applyStateChanged(event)
         }
+        // A replayed backlog must land now, not sit behind the burst timer.
+        pendingSave?.cancel()
+        pendingSave = nil
+        saveBatch("buffered events")
     }
 
     private func applyStateChanged(_ event: HAResponseEventStateChanged) {
         guard let entity = event.newState else { return }
         entityRegistry.upsert(from: entity, in: mainContext)
-        do {
-            try mainContext.save()
-        } catch {
-            Log.error("Failed to save after state_changed event", cause: error)
+        scheduleSave()
+    }
+
+    private func scheduleSave() {
+        guard pendingSave == nil else { return }
+        pendingSave = Task { [weak self] in
+            try? await Task.sleep(for: Self.eventSaveDelay)
+            guard let self else { return }
+            self.pendingSave = nil
+            guard !Task.isCancelled else { return }
+            self.saveBatch("state_changed burst")
         }
     }
 }
