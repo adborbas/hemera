@@ -22,7 +22,7 @@ final class EntityRegistry: Sendable {
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
         let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
         let applyHAHidden: @Sendable (Set<String>, ModelContext) -> Void
-        }
+    }
 
     static let shared = EntityRegistry()
 
