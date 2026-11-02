@@ -3,9 +3,7 @@ import Mortar
 
 extension Bundle {
     var appVersion: String {
-        let version = infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        let build = infoDictionary?["CFBundleVersion"] as? String ?? "?"
-        return "\(version) (\(build))"
+        infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
     }
 }
 
@@ -20,6 +18,7 @@ struct SettingsView: View {
     let presentationContext: PresentationContext
     @Environment(\.dismiss) private var dismiss
     @Environment(ScreenManager.self) private var screenManager
+    @Environment(UpdateNudge.self) private var updateNudge
 
     init(viewModel: SettingsViewModel, presentationContext: PresentationContext = .sheet) {
         self.viewModel = viewModel
@@ -160,10 +159,19 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         Section(Localization.about) {
-            LabeledContent(Localization.version, value: Bundle.main.appVersion)
-                .onTapGesture {
-                    viewModel.versionTapped()
+            LabeledContent {
+                Text(Bundle.main.appVersion)
+            } label: {
+                Text(Localization.version)
+                if let update = updateNudge.availableUpdate {
+                    Text(Localization.updateAvailable(update.version))
+                        .font(.caption)
+                        .foregroundStyle(Color.warning)
                 }
+            }
+            .onTapGesture {
+                viewModel.versionTapped()
+            }
             NavigationLink(Localization.acknowledgements) {
                 AcknowledgementsView()
             }
@@ -206,6 +214,9 @@ private extension SettingsView {
 
         // About
         static let about = String(localized: "About", comment: "Settings section header for app information")
+        static func updateAvailable(_ version: String) -> String {
+            String(localized: "\(version) available", comment: "Subtitle under the app version when a newer App Store version is available")
+        }
         static let acknowledgements = String(localized: "Acknowledgements", comment: "Navigation link to the open-source acknowledgements screen")
         static let debugPanel = String(localized: "Debug Panel", comment: "Button to open the debug panel from settings (debug builds only)")
     }

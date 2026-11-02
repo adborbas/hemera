@@ -22,8 +22,12 @@ struct DebugPanelView: View {
 
 struct DebugPanelContentView: View {
 
+    @Environment(UpdateNudge.self) private var updateNudge
+
     var body: some View {
+        @Bindable var updateNudge = updateNudge
         List {
+            Toggle(Localization.fakeAppStoreUpdate, isOn: $updateNudge.fakesAppStoreUpdate)
             NavigationLink {
                 LogViewerView()
             } label: {
@@ -52,6 +56,10 @@ private extension DebugPanelContentView {
         static let showLogs = String(
             localized: "Show Logs",
             comment: "Debug panel row that navigates to the log viewer"
+        )
+        static let fakeAppStoreUpdate = String(
+            localized: "Fake App Store update",
+            comment: "Debug panel toggle that pretends a newer version is on the App Store"
         )
     }
 }
