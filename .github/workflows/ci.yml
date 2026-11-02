@@ -36,7 +36,8 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
             ~/Library/org.swift.swiftpm
-          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          # Named rather than globbed: `**` walks the whole workspace and times out at 120s.
+          key: spm-${{ runner.os }}-${{ hashFiles('Hemera.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'Packages/AppStoreScreenshots/Package.resolved') }}
           restore-keys: spm-${{ runner.os }}-
 
       - name: Install xcbeautify
