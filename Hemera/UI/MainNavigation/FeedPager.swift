@@ -55,6 +55,8 @@ struct FeedPager: View {
                     proxy.scrollTo(selection, anchor: .leading)
                 }
             }
+            // A pill added or removed before the current page shifts pages under a scroll offset that stays put.
+            .onChange(of: feeds) { proxy.scrollTo(selection, anchor: .leading) }
             .onAppear { proxy.scrollTo(selection, anchor: .leading) }
         }
     }
