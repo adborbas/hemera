@@ -14,6 +14,7 @@ struct UpdateNudgeTests {
     private let screenManager: ScreenManager
 
     init() {
+        UserDefaults.standard.removeObject(forKey: UpdateNudge.fakeUpdateKey)
         screenManager = ScreenManager(store: store)
         screenManager.stayAwake = true
     }
