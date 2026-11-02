@@ -64,6 +64,9 @@ struct HemeraApp: App {
                 .environment(environment.screenManager)
                 .environment(environment.updateNudge)
                 .task { await environment.updateNudge.checkDaily() }
+                .onChange(of: environment.screenManager.stayAwake) {
+                    Task { await environment.updateNudge.check() }
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     Log.info("Scene phase: \(newPhase.label)")
                     environment.screenManager.handleScenePhase(newPhase)
