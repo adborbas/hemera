@@ -10,6 +10,7 @@ struct CuratedHomeView: View {
     @Query(sort: \HomeTile.sortOrder) private var homeTiles: [HomeTile]
 
     @State private var overlayItem: OverlayItem?
+    @Environment(\.isSelectedFeed) private var isSelectedFeed
 
     private var displayedTiles: [Tile] {
         viewModel.displayedTiles(homeTiles: homeTiles)
@@ -80,7 +81,7 @@ struct CuratedHomeView: View {
         }
         .feedIsEditing(viewModel.isEditing)
         .toolbar {
-            if viewModel.isEditing {
+            if viewModel.isEditing, isSelectedFeed {
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {

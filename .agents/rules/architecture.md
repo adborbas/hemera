@@ -159,7 +159,8 @@ A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()
 view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase through the
 environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
 may omit it. Optional channels: `.feedIsEditing(_:)` swaps the navigation bar's items for the feed's
-own toolbar (Home's undo/redo/Done), and `\.openFeed` selects another feed in place.
+own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since neighbour pages stay
+alive and share the bar), and `\.openFeed` selects another feed in place.
 
 ## Concurrency Model
 

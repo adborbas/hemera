@@ -3,6 +3,8 @@ import SwiftUI
 extension EnvironmentValues {
     /// Receives the selected feed's scrolling; set by the navigation screen, `nil` elsewhere.
     @Entry var feedHeaderScroll: FeedHeaderScroll?
+    /// False on neighbour pages kept alive by the pager; their toolbar items would land in the shared bar.
+    @Entry var isSelectedFeed = true
     /// Selects another feed in place, e.g. from an empty state pointing elsewhere.
     @Entry var openFeed: (@MainActor (FeedID) -> Void)?
 }

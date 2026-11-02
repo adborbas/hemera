@@ -9,6 +9,7 @@ struct AreaDetailView: View {
     var isFeed = false
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.isSelectedFeed) private var isSelectedFeed
     @Namespace private var overlayTransition
     @State private var showClimateSubtitle = true
     @State private var overlayItem: OverlayItem?
@@ -45,13 +46,13 @@ struct AreaDetailView: View {
         .navigationBarTitleDisplayMode(isFeed ? .inline : .large)
         .feedIsEditing(hideMode.isActive)
         .toolbar {
-            if hideMode.isActive {
+            if hideMode.isActive, isSelectedFeed {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Localization.done) {
                         setHideMode(false)
                     }
                 }
-            } else if !viewModel.isDemoMode, !viewModel.isVirtualArea {
+            } else if !isFeed, !viewModel.isDemoMode, !viewModel.isVirtualArea {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
@@ -378,7 +379,7 @@ private struct AreaDetailSection: View {
 
 // MARK: - FeedActionHandling
 
-/// The toolbar's "…" menu for an area shown as a page, which has no navigation bar.
+/// The toolbar's "…" menu for an area shown as a page, where the header's actions replace the toolbar.
 extension AreaDetailViewModel: FeedActionHandling {
 
     var feedActions: [FeedAction] {

@@ -63,6 +63,7 @@ struct MainNavigationView: View {
             page: { id in
                 AnyView(viewModel.resolver.view(for: id)
                     .environment(\.feedHeaderScroll, id == viewModel.selectedFeed ? headerScroll : nil)
+                    .environment(\.isSelectedFeed, id == viewModel.selectedFeed)
                     // Neighbour pages stay alive; only the page on screen may switch to its editing bar.
                     .transformPreference(FeedIsEditingKey.self) { if id != viewModel.selectedFeed { $0 = false } })
             }
