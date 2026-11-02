@@ -21,11 +21,11 @@ final class UpdateNudge {
     }
 
     #if DEBUG
-    static let fakeUpdateKey = "debug.fakesAppStoreUpdate"
+    private static let fakeUpdateKey = "debug.fakesAppStoreUpdate"
 
-    var fakesAppStoreUpdate = UserDefaults.standard.bool(forKey: UpdateNudge.fakeUpdateKey) {
+    var fakesAppStoreUpdate = false {
         didSet {
-            UserDefaults.standard.set(fakesAppStoreUpdate, forKey: Self.fakeUpdateKey)
+            defaults.set(fakesAppStoreUpdate, forKey: Self.fakeUpdateKey)
             Task { await check() }
         }
     }
@@ -34,11 +34,11 @@ final class UpdateNudge {
     private var dueUpdate: AvailableUpdate?
     private var behindSince: Date?
     private var skippedVersion: String? {
-        didSet { store.settings.skippedVersion = skippedVersion }
+        didSet { defaults.set(skippedVersion, forKey: Self.skippedVersionKey) }
     }
 
     private let lookup: any AppStoreLookup
-    private let store: any SettingsStoring
+    private let defaults: UserDefaults
     private let screenManager: ScreenManager
     private let now: () -> Date
     private let installedVersion: String
@@ -46,12 +46,13 @@ final class UpdateNudge {
     private let mayCheck: () async -> Bool
 
     private static let gracePeriod: TimeInterval = 7 * 24 * 60 * 60
+    private static let skippedVersionKey = "updateNudge.skippedVersion"
 
     // MARK: - Init
 
     init(
         lookup: any AppStoreLookup,
-        store: any SettingsStoring,
+        defaults: UserDefaults = .standard,
         screenManager: ScreenManager,
         now: @escaping () -> Date = { .now },
         installedVersion: String,
@@ -59,13 +60,16 @@ final class UpdateNudge {
         mayCheck: @escaping () async -> Bool
     ) {
         self.lookup = lookup
-        self.store = store
+        self.defaults = defaults
         self.screenManager = screenManager
         self.now = now
         self.installedVersion = installedVersion
         self.osVersion = osVersion
         self.mayCheck = mayCheck
-        self.skippedVersion = store.settings.skippedVersion
+        self.skippedVersion = defaults.string(forKey: Self.skippedVersionKey)
+        #if DEBUG
+        self.fakesAppStoreUpdate = defaults.bool(forKey: Self.fakeUpdateKey)
+        #endif
     }
 
     // MARK: - Public Methods
