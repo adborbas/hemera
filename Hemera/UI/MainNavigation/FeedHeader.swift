@@ -1,21 +1,29 @@
 import SwiftUI
 import Mortar
 
-/// The title and pill row floating over the feeds.
+/// The selected feed's actions, title and pill row floating over the feeds.
 struct FeedHeader: View {
     let title: String
+    let actions: [FeedAction]
     let pills: [MainNavigationViewModel.Pill]
     let unpinnedFeeds: [MainNavigationViewModel.Pill]
     let selection: FeedID
     let onSelect: (FeedID) -> Void
     let onPin: (FeedID) -> Void
     let onUnpin: (FeedID) -> Void
+    let onAction: (_ actionID: String, _ item: String?) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Top row, shared with the account button floating above it.
-            Color.clear
-                .frame(height: Mortar.TapTarget.minimum)
+            HStack(spacing: Mortar.Spacing.s) {
+                ForEach(actions) { action in
+                    FeedActionButton(action: action) { item in onAction(action.id, item) }
+                }
+            }
+            .frame(height: Mortar.TapTarget.minimum)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            // Leaves the trailing end of the row to the account button floating above it.
+            .padding(.trailing, Mortar.TapTarget.minimum + Mortar.Spacing.s * 2)
             Text(title)
                 .font(.largeTitle.bold())
                 .accessibilityAddTraits(.isHeader)
@@ -105,6 +113,51 @@ private struct PillButton: View {
     }
 }
 
+private struct FeedActionButton: View {
+    let action: FeedAction
+    let perform: (_ item: String?) -> Void
+
+    var body: some View {
+        if let menu = action.menu {
+            Menu {
+                ForEach(menu) { item in
+                    // A toggle draws the checkmark; unselected it looks like a plain menu button.
+                    Toggle(isOn: Binding(get: { item.isSelected }, set: { _ in perform(item.id) })) {
+                        if let icon = item.icon {
+                            Label(item.title, systemImage: icon)
+                        } else {
+                            Text(item.title)
+                        }
+                    }
+                }
+            } label: {
+                HeaderIconLabel(title: action.title, systemImage: action.icon)
+            }
+            .buttonStyle(.plain)
+        } else {
+            Button { perform(nil) } label: {
+                HeaderIconLabel(title: action.title, systemImage: action.icon)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct HeaderIconLabel: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .labelStyle(.iconOnly)
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(Color.primary)
+            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
+            .background(.regularMaterial, in: .circle)
+            .contentShape(.circle)
+    }
+}
+
 /// Long-press menu and VoiceOver action, only on pills the user pinned.
 private struct UnpinActions: ViewModifier {
     let isPinned: Bool
@@ -139,13 +192,7 @@ private struct PinMenu: View {
                 }
             }
         } label: {
-            Label(Localization.pinArea, systemImage: "plus")
-                .labelStyle(.iconOnly)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.primary)
-                .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                .background(.regularMaterial, in: .circle)
-                .contentShape(.circle)
+            HeaderIconLabel(title: Localization.pinArea, systemImage: "plus")
         }
         .buttonStyle(.plain)
     }

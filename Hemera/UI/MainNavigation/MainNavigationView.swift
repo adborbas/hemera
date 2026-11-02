@@ -69,12 +69,14 @@ struct MainNavigationView: View {
             HeaderOffset(scroll: headerScroll) {
                 FeedHeader(
                     title: Localization.title,
+                    actions: isFeedEditing ? [] : viewModel.resolver.actions(for: viewModel.selectedFeed),
                     pills: viewModel.pills,
                     unpinnedFeeds: viewModel.unpinnedFeeds,
                     selection: viewModel.selectedFeed,
                     onSelect: select,
                     onPin: viewModel.pin,
-                    onUnpin: viewModel.unpin
+                    onUnpin: viewModel.unpin,
+                    onAction: { viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform($0, item: $1) }
                 )
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
             }

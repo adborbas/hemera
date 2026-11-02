@@ -376,6 +376,35 @@ private struct AreaDetailSection: View {
     }
 }
 
+// MARK: - FeedActionHandling
+
+/// The toolbar's "…" menu for an area shown as a page, which has no navigation bar.
+extension AreaDetailViewModel: FeedActionHandling {
+
+    var feedActions: [FeedAction] {
+        guard !isDemoMode, !isVirtualArea else { return [] }
+        return [FeedAction(
+            id: Self.moreOptionsActionId,
+            title: AreaDetailView.Localization.moreOptions,
+            icon: "ellipsis",
+            menu: [FeedMenuItem(
+                id: Self.openInHomeAssistantItemId,
+                title: AreaDetailView.Localization.openInHomeAssistant,
+                icon: "globe",
+                isSelected: false
+            )]
+        )]
+    }
+
+    func perform(_ actionID: String, item: String?) {
+        guard actionID == Self.moreOptionsActionId, item == Self.openInHomeAssistantItemId else { return }
+        openAreaInHA()
+    }
+
+    private static let moreOptionsActionId = "moreOptions"
+    private static let openInHomeAssistantItemId = "openInHomeAssistant"
+}
+
 // MARK: - Localization
 
 private extension AreaDetailView {

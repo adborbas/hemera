@@ -8,6 +8,8 @@ struct FeedResolverTests {
 
     let resolver: FeedResolver
     let context: ModelContext
+    let store = InMemorySettingsStore()
+    let areas: AreasViewModel
 
     init() {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -17,14 +19,22 @@ struct FeedResolverTests {
         let tileRepo = MockHomeTileRepository()
         let demoCoordinator = MockDemoCoordinator()
         let authManager = MockAuthManager()
+        authManager.credentials = ServerCredentials(
+            serverURL: URL(string: "http://192.168.1.100:8123")!,
+            accessToken: "test",
+            refreshToken: "test",
+            tokenExpiresAt: .distantFuture,
+            clientId: "test"
+        )
 
-        let areas = AreasViewModel(
+        areas = AreasViewModel(
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
             demoCoordinator: demoCoordinator,
             authManager: authManager,
-            store: InMemorySettingsStore()
+            store: store
         )
+        let areaList = AreaList(context: context)
 
         resolver = FeedResolver()
         resolver.registerBuiltInFeeds(
@@ -34,9 +44,10 @@ struct FeedResolverTests {
                 authManager: authManager,
                 demoCoordinator: demoCoordinator
             ),
-            areas: areas
+            areas: areas,
+            areaList: areaList
         )
-        resolver.registerAreaFeeds(context: context, areas: areas)
+        resolver.registerAreaFeeds(areaList: areaList, areas: areas)
         resolver.registerEntityFeeds(
             context: context,
             viewModelFactory: factory,
@@ -138,6 +149,60 @@ struct FeedResolverTests {
         try context.save()
 
         #expect(resolver.pinnableFeeds == [.area("kitchen"), .area("hall"), .area("bedroom")])
+    }
+
+    // MARK: - Header actions
+
+    @Test func actions_areasWithFloors_offerGroupingMenuCheckingTheCurrentSetting() throws {
+        context.insert(FloorEntity(floorId: "ground", name: "Ground", level: 0, sortOrder: 0))
+        try context.save()
+
+        let menu = try #require(resolver.actions(for: .areas).first?.menu)
+
+        // Grouping by floor is the default, so its item must carry the checkmark, not No Grouping.
+        #expect(menu.map(\.title) == ["Group by Floor", "No Grouping"])
+        #expect(menu.map(\.isSelected) == [true, false])
+    }
+
+    @Test func actions_areasWithoutFloors_isEmpty() {
+        // Grouping has no effect without floors, and a control that does nothing is worse than none.
+        #expect(resolver.actions(for: .areas).isEmpty)
+    }
+
+    @Test func perform_areasNoGrouping_flipsAndPersistsSettingAndMovesCheckmark() throws {
+        context.insert(FloorEntity(floorId: "ground", name: "Ground", level: 0, sortOrder: 0))
+        try context.save()
+        let action = try #require(resolver.actions(for: .areas).first)
+        let noGrouping = try #require(action.menu?.last)
+
+        resolver.actionHandler(for: .areas)?.perform(action.id, item: noGrouping.id)
+
+        // The Areas grid reads the owner, the next launch reads the store, the menu must show the change.
+        #expect(areas.areasGroupedByFloor == false)
+        #expect(store.settings.areasGroupedByFloor == false)
+        #expect(resolver.actions(for: .areas).first?.menu?.map(\.isSelected) == [false, true])
+    }
+
+    @Test func actions_homeAndEntityFeeds_areEmpty() throws {
+        context.insert(LightEntity(entityId: "light.desk", name: "Desk", state: .on))
+        try context.save()
+
+        // Only feeds with something to offer get buttons, so the header stays uncluttered.
+        #expect(resolver.actions(for: .home).isEmpty)
+        #expect(resolver.actions(for: .domain("light")).isEmpty)
+        #expect(resolver.actions(for: FeedID(rawValue: "custom:1234")).isEmpty)
+    }
+
+    @Test func perform_pinnedAreaOpenInHomeAssistant_opensTheAreaPage() throws {
+        // A pinned area page has no navigation bar, so its "…" menu must live in the header instead.
+        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen"))
+        try context.save()
+        let action = try #require(resolver.actions(for: .area("kitchen")).first)
+        let item = try #require(action.menu?.first)
+
+        resolver.actionHandler(for: .area("kitchen"))?.perform(action.id, item: item.id)
+
+        #expect(areas.haWebViewPresenter.url?.absoluteString == "http://192.168.1.100:8123/config/areas/area/kitchen")
     }
 
     // MARK: - Unknown feeds

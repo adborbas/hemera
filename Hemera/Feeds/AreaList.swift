@@ -1,12 +1,13 @@
 import Foundation
 import SwiftData
 
-/// Every area in Home Assistant order, for the pinned-area feeds.
+/// Every area in Home Assistant order, for the pinned-area feeds, and whether any floors exist.
 @Observable
 @MainActor
 final class AreaList {
 
     private(set) var areas: [AreaEntity] = []
+    private(set) var hasFloors = false
 
     private var areasById: [String: AreaEntity] = [:]
     private let context: ModelContext
@@ -45,5 +46,6 @@ final class AreaList {
         let descriptor = FetchDescriptor<AreaEntity>(sortBy: [SortDescriptor(\.sortOrder)])
         areas = (try? context.fetch(descriptor)) ?? []
         areasById = Dictionary(areas.map { ($0.areaId, $0) }) { first, _ in first }
+        hasFloors = ((try? context.fetchCount(FetchDescriptor<FloorEntity>())) ?? 0) > 0
     }
 }

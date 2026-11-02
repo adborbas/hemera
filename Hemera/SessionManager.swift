@@ -283,6 +283,7 @@ private extension SessionManager {
     ) -> FeedResolver {
         let sl = ServiceLocator.shared
         let resolver = FeedResolver()
+        let areaList = AreaList(context: context)
         let areas = AreasViewModel(
             homeTileRepository: homeTileRepository,
             viewModelFactory: viewModelFactory,
@@ -303,9 +304,10 @@ private extension SessionManager {
                 connectionRetrier: self,
                 resync: resync
             ),
-            areas: areas
+            areas: areas,
+            areaList: areaList
         )
-        resolver.registerAreaFeeds(context: context, areas: areas)
+        resolver.registerAreaFeeds(areaList: areaList, areas: areas)
         resolver.registerEntityFeeds(
             context: context,
             viewModelFactory: viewModelFactory,

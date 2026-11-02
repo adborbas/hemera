@@ -274,5 +274,9 @@ private final class StubFeedResolver: FeedResolving {
 
     func view(for id: FeedID) -> AnyView { AnyView(EmptyView()) }
 
+    func actions(for id: FeedID) -> [FeedAction] { [] }
+
+    func actionHandler(for id: FeedID) -> (any FeedActionHandling)? { nil }
+
     func registerNavigationDestinations(on root: AnyView) -> AnyView { root }
 }
