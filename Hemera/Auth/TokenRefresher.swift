@@ -4,10 +4,17 @@ import HemeraLog
 actor TokenRefresher {
 
     private let keychainStore: any KeychainStoring
+    private let refreshToken: @Sendable (_ refreshToken: String, _ clientId: String, _ serverURL: URL) async throws -> TokenResponse
     private var refreshTask: Task<(String, ServerCredentials), Error>?
 
-    init(keychainStore: any KeychainStoring) {
+    init(
+        keychainStore: any KeychainStoring,
+        refreshToken: @escaping @Sendable (String, String, URL) async throws -> TokenResponse = {
+            try await TokenClient.refresh(refreshToken: $0, clientId: $1, serverURL: $2)
+        }
+    ) {
         self.keychainStore = keychainStore
+        self.refreshToken = refreshToken
     }
 
     func validToken(for credentials: ServerCredentials) async throws -> (String, ServerCredentials) {
@@ -26,10 +33,10 @@ actor TokenRefresher {
         let task = Task<(String, ServerCredentials), Error> {
             defer { refreshTask = nil }
 
-            let response = try await TokenClient.refresh(
-                refreshToken: credentials.refreshToken,
-                clientId: credentials.clientId,
-                serverURL: credentials.serverURL
+            let response = try await refreshToken(
+                credentials.refreshToken,
+                credentials.clientId,
+                credentials.serverURL
             )
 
             var updated = credentials
