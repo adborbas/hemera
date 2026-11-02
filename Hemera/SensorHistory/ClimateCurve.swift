@@ -26,18 +26,41 @@ enum ClimateCurve {
 
         return (0..<count).map { index in
             let position = Double(index) / Double(count - 1)
-            let exact = position * Double(samples.count - 1)
-            let lower = samples[Int(exact.rounded(.down))]
-            let upper = samples[Int(exact.rounded(.up))]
-            let fraction = exact - exact.rounded(.down)
-
+            let date = Self.date(atPosition: position, in: samples) ?? samples[0].start
             return ClimateCurvePoint(
                 id: index,
                 position: position,
-                date: lower.start.addingTimeInterval(upper.start.timeIntervalSince(lower.start) * fraction),
-                value: lower.mean + (upper.mean - lower.mean) * fraction
+                date: date,
+                value: Self.value(at: date, in: samples) ?? samples[0].mean
             )
         }
+    }
+
+    /**
+     The moment a position stands for. Positions are spaced by elapsed time, so a recording gap
+     takes the width it actually lasted rather than collapsing to the distance between two samples.
+    */
+    static func date(atPosition position: Double, in samples: [ClimateSample]) -> Date? {
+        guard let first = samples.first, let last = samples.last else { return nil }
+        guard samples.count > 1 else { return first.start }
+        // A chartXSelection value can land marginally outside 0...1.
+        let clamped = min(max(position, 0), 1)
+        return first.start.addingTimeInterval(clamped * last.start.timeIntervalSince(first.start))
+    }
+
+    /// The reading at a moment, interpolated between the two samples bracketing it.
+    static func value(at date: Date, in samples: [ClimateSample]) -> Double? {
+        guard let first = samples.first else { return nil }
+        guard let upperIndex = samples.firstIndex(where: { $0.start > date }) else {
+            return samples.last?.mean
+        }
+        guard upperIndex > 0 else { return first.mean }
+        let lower = samples[upperIndex - 1]
+        let upper = samples[upperIndex]
+        let span = upper.start.timeIntervalSince(lower.start)
+        guard span > 0 else { return lower.mean }
+        let fraction = date.timeIntervalSince(lower.start) / span
+        return lower.mean + (upper.mean - lower.mean) * fraction
     }
 
     /**

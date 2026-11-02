@@ -55,11 +55,6 @@ protocol StoredEntity: PersistentModel {
     /// in release builds.
     static func entityIdPredicate(_ id: String) -> Predicate<Self>
 
-    /// Returns a predicate matching entities not assigned to any area.
-    ///
-    /// Same concrete-type requirement as `entityIdPredicate` — see above.
-    static var unassignedPredicate: Predicate<Self> { get }
-
     init(entityId: String)
     func update(from entity: HAEntity)
 }
@@ -110,38 +105,28 @@ extension StoredEntity {
         }
     }
 
-    /// Attempts to assign an area to an entity with the given ID.
-    /// Returns true if the entity was found and assigned.
-    static func assignAreaIfMatch(_ area: AreaEntity, entityId: String, in context: ModelContext) -> Bool {
+    /// Assigns an area to the entity with the given ID, if this type owns it.
+    static func assignAreaIfMatch(_ area: AreaEntity, entityId: String, in context: ModelContext) {
         let descriptor = FetchDescriptor<Self>(
             predicate: entityIdPredicate(entityId)
         )
         do {
-            if let entity = try context.fetch(descriptor).first {
-                entity.area = area
-                return true
-            }
+            try context.fetch(descriptor).first?.area = area
         } catch {
             Log.warning("Failed to fetch \(Self.domain) entity \(entityId) for area assignment", cause: error)
         }
-        return false
     }
 
-    /// Attempts to assign a device ID to an entity with the given entity ID.
-    /// Returns true if the entity was found and assigned.
-    static func assignDeviceIdIfMatch(_ deviceId: String, entityId: String, in context: ModelContext) -> Bool {
+    /// Assigns a device ID to the entity with the given entity ID, if this type owns it.
+    static func assignDeviceIdIfMatch(_ deviceId: String, entityId: String, in context: ModelContext) {
         let descriptor = FetchDescriptor<Self>(
             predicate: entityIdPredicate(entityId)
         )
         do {
-            if let entity = try context.fetch(descriptor).first {
-                entity.deviceId = deviceId
-                return true
-            }
+            try context.fetch(descriptor).first?.deviceId = deviceId
         } catch {
             Log.warning("Failed to fetch \(Self.domain) entity \(entityId) for device ID assignment", cause: error)
         }
-        return false
     }
 
     /// Marks all entities of this type as unavailable if their entityId is not in the given set.

@@ -56,7 +56,7 @@ struct AreasView: View {
                 // Grouping only has an effect when floors exist, so hide the
                 // menu entirely otherwise — a control that does nothing is
                 // worse than no control.
-                if !floors.isEmpty {
+                if !floors.isEmpty, !viewModel.settingsAreReadOnly {
                     ToolbarItem(placement: .primaryAction) {
                         Menu {
                             Picker(Localization.grouping, selection: groupingSelection) {

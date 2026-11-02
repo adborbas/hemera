@@ -13,7 +13,7 @@ import UIKit
 /// a misleading "empty" screen.
 @Observable
 @MainActor
-final class ErrorNotifier: @unchecked Sendable {
+final class ErrorNotifier {
 
     private(set) var currentToast: Toast?
     private(set) var syncFailed = false

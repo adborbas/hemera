@@ -55,10 +55,6 @@ extension SwitchEntity {
     static func entityIdPredicate(_ id: String) -> Predicate<SwitchEntity> {
         #Predicate { $0.entityId == id }
     }
-
-    static var unassignedPredicate: Predicate<SwitchEntity> {
-        #Predicate { $0.area == nil && $0.isAvailable == true }
-    }
 }
 
 // MARK: - Types

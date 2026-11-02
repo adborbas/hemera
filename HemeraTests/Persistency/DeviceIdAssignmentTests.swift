@@ -50,18 +50,12 @@ struct DeviceIdAssignmentTests {
     }
 
     @Test
-    func assignDeviceIdIfMatch_returnsTrueWhenFound() {
+    func assignDeviceIdIfMatch_whenTheTypeOwnsTheId_assigns() {
         let sw = SwitchEntity(entityId: "switch.plug", name: "Plug", state: .on)
         context.insert(sw)
 
-        let result = SwitchEntity.assignDeviceIdIfMatch("device_1", entityId: "switch.plug", in: context)
-        #expect(result == true)
-        #expect(sw.deviceId == "device_1")
-    }
+        SwitchEntity.assignDeviceIdIfMatch("device_1", entityId: "switch.plug", in: context)
 
-    @Test
-    func assignDeviceIdIfMatch_returnsFalseWhenNotFound() {
-        let result = SwitchEntity.assignDeviceIdIfMatch("device_1", entityId: "switch.missing", in: context)
-        #expect(result == false)
+        #expect(sw.deviceId == "device_1")
     }
 }

@@ -27,4 +27,15 @@ struct ServerAddressCandidateTests {
         #expect(ServerAddress.candidates("   ").isEmpty)
         #expect(ServerAddress.candidates("ftp://ha.example.com").isEmpty)
     }
+
+    /**
+     The whole point: the host is `evil.example`, but the address reads as the user's own box.
+     Accepting it would point the session — and the refresh token that validates it — elsewhere.
+    */
+    @Test
+    func candidates_withEmbeddedAuthority_offersNothing() {
+        #expect(ServerAddress.candidates("http://192.168.1.5@evil.example:8123").isEmpty)
+        #expect(ServerAddress.candidates("https://user:pass@evil.example").isEmpty)
+        #expect(ServerAddress.normalised("http://192.168.1.5@evil.example:8123") == nil)
+    }
 }

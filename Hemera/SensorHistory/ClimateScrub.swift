@@ -9,15 +9,7 @@ struct ClimateScrub: Sendable {
 
     /// The moment a scrub position stands for, or `nil` when there is nothing to interpolate.
     func date(atPosition position: Double) -> Date? {
-        guard let first = samples.first else { return nil }
-        guard samples.count > 1 else { return first.start }
-        // A chartXSelection value can land marginally outside 0...1; clamping keeps the index valid.
-        let clamped = min(max(position, 0), 1)
-        let exact = clamped * Double(samples.count - 1)
-        let lower = samples[Int(exact.rounded(.down))]
-        let upper = samples[Int(exact.rounded(.up))]
-        let fraction = exact - exact.rounded(.down)
-        return lower.start.addingTimeInterval(upper.start.timeIntervalSince(lower.start) * fraction)
+        ClimateCurve.date(atPosition: position, in: samples)
     }
 
     /// The sample under a position on its half-open `start..<end`, or `nil` in a recording gap.

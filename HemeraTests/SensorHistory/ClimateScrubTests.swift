@@ -121,4 +121,16 @@ struct ClimateScrubTests {
             return ClimateSample(start: start, end: start.addingTimeInterval(300), mean: value)
         }
     }
+    /// A position whose moment falls in an outage has no reading, so the readout shows none.
+    @Test
+    func sample_positionInsideARecordingGap_returnsNil() {
+        let base = Date(timeIntervalSince1970: 0)
+        let gapped = [0.0, 300, 86_400, 86_700].map {
+            ClimateSample(start: base.addingTimeInterval($0), end: base.addingTimeInterval($0 + 300), mean: 20)
+        }
+        let scrub = ClimateScrub(samples: gapped)
+
+        #expect(scrub.sample(atPosition: 0.5) == nil)
+    }
+
 }

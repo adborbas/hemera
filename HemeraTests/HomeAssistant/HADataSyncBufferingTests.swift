@@ -31,6 +31,7 @@ struct HADataSyncBufferingTests {
             mainContext: context,
             entityRegistry: EntityRegistry.shared,
             iconResolver: IconTranslationsFixture.resolver(),
+            eventSaveDelay: .milliseconds(1),
             onSyncComplete: {}
         )
     }
@@ -125,5 +126,36 @@ struct HADataSyncBufferingTests {
 
         service.handleStateChanged(try lightEvent(entityId: "light.lamp", state: "on"))
         #expect(try storedLight("light.lamp")?.state == .on)
+    }
+
+    // MARK: - Coalesced saving
+
+    /**
+     A chatty sensor can fire tens of events a second, and a save per event stutters the UI.
+     The upsert still lands immediately — only the save waits for the burst to settle.
+    */
+    @Test
+    func handleStateChanged_duringABurst_doesNotSavePerEvent() throws {
+        context.insert(LightEntity(entityId: "light.a", name: "A", state: .off))
+        context.insert(LightEntity(entityId: "light.b", name: "B", state: .off))
+        service.flushBufferedEvents()
+        #expect(!context.hasChanges)
+
+        service.handleStateChanged(try lightEvent(entityId: "light.a", state: "on"))
+        service.handleStateChanged(try lightEvent(entityId: "light.b", state: "on"))
+
+        #expect(try storedLight("light.a")?.state == .on)
+        #expect(context.hasChanges)
+    }
+
+    @Test
+    func handleStateChanged_onceTheBurstSettles_saves() async throws {
+        context.insert(LightEntity(entityId: "light.a", name: "A", state: .off))
+        service.flushBufferedEvents()
+
+        service.handleStateChanged(try lightEvent(entityId: "light.a", state: "on"))
+        await service.pendingSave?.value
+
+        #expect(!context.hasChanges)
     }
 }

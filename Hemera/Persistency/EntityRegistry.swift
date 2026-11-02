@@ -17,12 +17,11 @@ final class EntityRegistry: Sendable {
         let domain: String
         let entityType: any StoredEntity.Type
         let upsert: @Sendable (ModelContext, HAEntity) -> Void
-        let assignArea: @Sendable (AreaEntity, String, ModelContext) -> Bool
-        let assignDeviceId: @Sendable (String, String, ModelContext) -> Bool
+        let assignArea: @Sendable (AreaEntity, String, ModelContext) -> Void
+        let assignDeviceId: @Sendable (String, String, ModelContext) -> Void
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
         let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
         let applyHAHidden: @Sendable (Set<String>, ModelContext) -> Void
-        let fetchUnassignedIds: @Sendable (ModelContext) -> [String]
     }
 
     static let shared = EntityRegistry()
@@ -58,18 +57,6 @@ final class EntityRegistry: Sendable {
                 },
                 applyHAHidden: { hiddenEntityIds, context in
                     type.applyHAHidden(hiddenEntityIds: hiddenEntityIds, in: context)
-                },
-                fetchUnassignedIds: { context in
-                    // #Predicate must expand at concrete @Model type scope — not in
-                    // generic functions or protocol extensions — to avoid SwiftData
-                    // keypath identity mismatches in release builds.
-                    let descriptor = FetchDescriptor<T>(predicate: T.unassignedPredicate)
-                    do {
-                        return try context.fetch(descriptor).map(\.entityId)
-                    } catch {
-                        Log.warning("Failed to fetch unassigned \(T.domain) entity IDs", cause: error)
-                        return []
-                    }
                 }
             )
         }
@@ -85,25 +72,21 @@ final class EntityRegistry: Sendable {
     }
 
     /// Assigns an area to an entity by ID.
-    /// Tries each registered entity type until one matches.
     func assignArea(_ area: AreaEntity, toEntityWithId entityId: String, in context: ModelContext) {
-        let regs = registrations.withLock { Array($0.values) }
-        for registration in regs {
-            if registration.assignArea(area, entityId, context) {
-                return
-            }
-        }
+        guard let registration = registration(forEntityId: entityId) else { return }
+        registration.assignArea(area, entityId, context)
     }
 
     /// Assigns a device ID to an entity by its entity ID.
-    /// Tries each registered entity type until one matches.
     func assignDeviceId(_ deviceId: String, toEntityWithId entityId: String, in context: ModelContext) {
-        let regs = registrations.withLock { Array($0.values) }
-        for registration in regs {
-            if registration.assignDeviceId(deviceId, entityId, context) {
-                return
-            }
-        }
+        guard let registration = registration(forEntityId: entityId) else { return }
+        registration.assignDeviceId(deviceId, entityId, context)
+    }
+
+    /// HA ids are `"<domain>.<object>"`, so one lookup replaces a fetch per registered type.
+    private func registration(forEntityId entityId: String) -> Registration? {
+        let domain = String(entityId.prefix { $0 != "." })
+        return registrations.withLock { $0[domain] }
     }
 
     /// Marks entities as unavailable if they were not present in the last full sync.
@@ -137,12 +120,6 @@ final class EntityRegistry: Sendable {
         for registration in regs {
             registration.applyHAHidden(hiddenEntityIds, context)
         }
-    }
-
-    /// Returns entity IDs for all entities not assigned to any area.
-    func fetchUnassignedEntityIds(in context: ModelContext) -> [String] {
-        let regs = registrations.withLock { Array($0.values) }
-        return regs.flatMap { $0.fetchUnassignedIds(context) }
     }
 
     /// All registered entity types, for building the SwiftData Schema.

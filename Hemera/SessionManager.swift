@@ -261,22 +261,12 @@ private extension SessionManager {
 
     func wipeLocalData() {
         let context = container.mainContext
-        for entityType in EntityRegistry.shared.allEntityTypes {
+        for entityType in AppEnvironment.allModelTypes {
             do {
                 try context.delete(model: entityType)
             } catch {
                 Log.error("Failed to delete \(entityType) during wipe", cause: error)
             }
-        }
-        do {
-            try context.delete(model: AreaEntity.self)
-        } catch {
-            Log.error("Failed to delete areas during wipe", cause: error)
-        }
-        do {
-            try context.delete(model: HomeTile.self)
-        } catch {
-            Log.error("Failed to delete home tiles during wipe", cause: error)
         }
         do {
             try context.save()

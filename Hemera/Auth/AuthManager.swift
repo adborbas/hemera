@@ -43,7 +43,7 @@ final class AuthManager: AuthManaging {
     ) {
         self.keychainStore = keychainStore
         self.refreshToken = refreshToken
-        self.tokenRefresher = TokenRefresher(keychainStore: keychainStore)
+        self.tokenRefresher = TokenRefresher(keychainStore: keychainStore, refreshToken: refreshToken)
 
         Self.clearKeychainIfReinstalled(keychainStore: keychainStore, userDefaults: userDefaults)
 

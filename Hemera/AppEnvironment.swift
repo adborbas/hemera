@@ -48,8 +48,13 @@ final class AppEnvironment {
 // MARK: - Schema
 
 extension AppEnvironment {
+    /// Single source for the store's models, so the schema and the logout wipe cannot drift apart.
+    static var allModelTypes: [any PersistentModel.Type] {
+        EntityRegistry.shared.allEntityTypes + [AreaEntity.self, FloorEntity.self, HomeTile.self]
+    }
+
     static func createSchema() -> Schema {
-        Schema(EntityRegistry.shared.allEntityTypes + [AreaEntity.self, FloorEntity.self, HomeTile.self])
+        Schema(allModelTypes)
     }
 }
 

@@ -36,6 +36,11 @@ enum ServerAddress {
               let url = components.url else {
             return nil
         }
+        /**
+         Reject an embedded authority: `http://192.168.1.5@evil.example/` reads as the local box
+         but resolves to `evil.example`, which would then be handed the session's refresh token.
+        */
+        guard components.user == nil, components.password == nil else { return nil }
         return url
     }
 }
