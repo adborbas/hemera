@@ -33,6 +33,8 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      # Xcode 26+ is fragile under parallel workers on a hosted VM: trivial tests reported 15s
+      # each and the session hung. See actions/runner-images#12777.
       - name: Run tests
         run: |
           set -o pipefail
@@ -42,6 +44,7 @@ jobs:
             -destination "id=$SIM_UDID" \
             -only-testing:HemeraTests \
             -skip-testing:HemeraUITests \
+            -parallel-testing-enabled NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             COMPILER_INDEX_STORE_ENABLE=NO \
