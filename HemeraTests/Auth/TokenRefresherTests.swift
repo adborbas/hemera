@@ -74,7 +74,8 @@ struct TokenRefresherTests {
     func validToken_whenTheServerRejectsTheToken_propagatesSessionExpired() async {
         let refresher = TokenRefresher(
             keychainStore: MockKeychainStore(),
-            refreshToken: { _, _, _ in throw AuthError.sessionExpired }
+            refreshToken: { _, _, _ in throw AuthError.sessionExpired },
+            now: { [now] in now }
         )
 
         await #expect(throws: AuthError.sessionExpired) {
@@ -100,11 +101,15 @@ struct TokenRefresherTests {
 
     // MARK: - Helpers
 
+    /// Frozen, so "61 seconds left" still means 61 when a loaded machine delays the call.
+    private let now = Date()
+
     private func makeRefresher(
         _ spy: RefreshSpy = RefreshSpy(),
         store: MockKeychainStore = MockKeychainStore()
     ) -> TokenRefresher {
-        TokenRefresher(keychainStore: store, refreshToken: spy.refresh)
+        let now = now
+        return TokenRefresher(keychainStore: store, refreshToken: spy.refresh, now: { now })
     }
 
     private func credentials(expiringIn seconds: TimeInterval) -> ServerCredentials {
@@ -112,7 +117,7 @@ struct TokenRefresherTests {
             serverURL: URL(string: "https://ha.example.com:8123")!,
             accessToken: "old-access",
             refreshToken: "refresh-token",
-            tokenExpiresAt: Date().addingTimeInterval(seconds),
+            tokenExpiresAt: now.addingTimeInterval(seconds),
             clientId: "https://ha.example.com:8123"
         )
     }

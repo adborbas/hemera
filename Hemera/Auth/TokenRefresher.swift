@@ -5,21 +5,25 @@ actor TokenRefresher {
 
     private let keychainStore: any KeychainStoring
     private let refreshToken: @Sendable (_ refreshToken: String, _ clientId: String, _ serverURL: URL) async throws -> TokenResponse
+    /// Injected so a test can pin the expiry buffer without racing the wall clock.
+    private let now: @Sendable () -> Date
     private var refreshTask: Task<(String, ServerCredentials), Error>?
 
     init(
         keychainStore: any KeychainStoring,
         refreshToken: @escaping @Sendable (String, String, URL) async throws -> TokenResponse = {
             try await TokenClient.refresh(refreshToken: $0, clientId: $1, serverURL: $2)
-        }
+        },
+        now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.keychainStore = keychainStore
         self.refreshToken = refreshToken
+        self.now = now
     }
 
     func validToken(for credentials: ServerCredentials) async throws -> (String, ServerCredentials) {
         // If token still valid (60s buffer), return it
-        if credentials.tokenExpiresAt.timeIntervalSinceNow > 60 {
+        if credentials.tokenExpiresAt.timeIntervalSince(now()) > 60 {
             return (credentials.accessToken, credentials)
         }
 
@@ -42,7 +46,7 @@ actor TokenRefresher {
             var updated = credentials
             updated.accessToken = response.access_token
             updated.refreshToken = response.refresh_token ?? credentials.refreshToken
-            updated.tokenExpiresAt = Date().addingTimeInterval(TimeInterval(response.expires_in))
+            updated.tokenExpiresAt = now().addingTimeInterval(TimeInterval(response.expires_in))
 
             do {
                 try keychainStore.saveCredentials(updated)
