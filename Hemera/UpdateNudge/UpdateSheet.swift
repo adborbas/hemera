@@ -1,5 +1,4 @@
 import Mortar
-import StoreKit
 import SwiftUI
 
 struct UpdateSheet: View {
@@ -9,6 +8,7 @@ struct UpdateSheet: View {
     let onSkip: () -> Void
 
     @State private var height: CGFloat = 0
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: Mortar.Spacing.xl) {
@@ -35,7 +35,7 @@ struct UpdateSheet: View {
 
             VStack(spacing: Mortar.Spacing.m) {
                 Button(Localization.update) {
-                    Self.openAppStore(id: update.appStoreId)
+                    openURL(URL(string: "itms-apps://apps.apple.com/app/id\(update.appStoreId)")!)
                 }
                 .buttonStyle(.mortarPrimary(width: .fullWidth))
 
@@ -51,17 +51,6 @@ struct UpdateSheet: View {
 }
 
 private extension UpdateSheet {
-    /// Presented over the sheet itself, since SwiftUI has no full App Store product page.
-    static func openAppStore(id: Int) {
-        let scene = UIApplication.shared.connectedScenes.first { $0.activationState == .foregroundActive }
-        var top = (scene as? UIWindowScene)?.keyWindow?.rootViewController
-        while let presented = top?.presentedViewController { top = presented }
-
-        let store = SKStoreProductViewController()
-        store.loadProduct(withParameters: [SKStoreProductParameterITunesItemIdentifier: id], completionBlock: nil)
-        top?.present(store, animated: true)
-    }
-
     enum Localization {
         static let title = String(localized: "Update Hemera", comment: "Title of the sheet offering an App Store update")
         static let installed = String(localized: "Installed", comment: "Label for the installed app version in the update sheet")
