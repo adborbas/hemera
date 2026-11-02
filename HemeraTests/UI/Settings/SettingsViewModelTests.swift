@@ -28,7 +28,8 @@ struct SettingsViewModelTests {
             authManager: authManager,
             demoCoordinator: demoCoordinator,
             screenManager: ScreenManager(store: InMemorySettingsStore()),
-            restClient: nil
+            restClient: nil,
+            homeProfile: nil
         )
     }
 
@@ -46,9 +47,62 @@ struct SettingsViewModelTests {
             authManager: authManager,
             demoCoordinator: demoCoordinator,
             screenManager: ScreenManager(store: InMemorySettingsStore()),
-            restClient: nil
+            restClient: nil,
+            homeProfile: nil
         )
         #expect(vm.isDemoMode == true)
+    }
+
+    // MARK: - Account Row
+
+    @Test
+    func accountSubtitle_live_showsLocalizedRoleAndHomeName() {
+        // The row answers "who is signed in where", so it needs both the role and the home.
+        let vm = makeViewModel(homeProfile: HomeProfile(
+            homeName: "Lake House",
+            account: Account(name: "Alex Morgan", role: .admin, pictureURL: nil)
+        ))
+
+        #expect(vm.accountName == "Alex Morgan")
+        #expect(vm.accountSubtitle == "Administrator · Lake House")
+    }
+
+    @Test
+    func accountSubtitle_withoutHomeName_fallsBackToHomeLikeTheHeader() {
+        // The header shows "Home" for an unnamed home; Settings must name it the same way.
+        let profile = HomeProfile(homeName: nil, account: Account(name: "Alex", role: .owner, pictureURL: nil))
+
+        #expect(makeViewModel(homeProfile: profile).accountSubtitle == "Owner · Home")
+    }
+
+    @Test
+    func accountName_beforeAccountLoads_showsServerHost() {
+        // The user request can still be in flight or fail; the row must never read blank.
+        authManager.didAuthenticate(with: Self.testCredentials)
+        let vm = makeViewModel(homeProfile: HomeProfile())
+
+        #expect(vm.accountName == "ha.example.com")
+        #expect(vm.accountSubtitle == "Home")
+    }
+
+    @Test
+    func accountRow_live_opensAccountPage() {
+        // Server details and Log Out live only on the Account page.
+        #expect(makeViewModel(homeProfile: HomeProfile()).isAccountPageAvailable == true)
+    }
+
+    @Test
+    func accountRow_inDemo_readsDemoWithoutRoleOrAccountPage() {
+        // Demo data has a fake owner; the row must not pretend a real account is signed in.
+        demoCoordinator.enter()
+        let vm = makeViewModel(homeProfile: HomeProfile(
+            homeName: "Maple House",
+            account: Account(name: "Alex Morgan", role: .owner, pictureURL: nil)
+        ))
+
+        #expect(vm.accountName == "Demo")
+        #expect(vm.accountSubtitle == "Maple House")
+        #expect(vm.isAccountPageAvailable == false)
     }
 
     // MARK: - Credentials
@@ -118,7 +172,8 @@ struct SettingsViewModelTests {
             authManager: authManager,
             demoCoordinator: demoCoordinator,
             screenManager: ScreenManager(store: InMemorySettingsStore()),
-            restClient: restClient
+            restClient: restClient,
+            homeProfile: nil
         )
 
         await vm.fetchHAVersion()
@@ -132,5 +187,15 @@ struct SettingsViewModelTests {
         await viewModel.fetchHAVersion()
 
         #expect(viewModel.haVersion == nil)
+    }
+
+    private func makeViewModel(homeProfile: HomeProfile?) -> SettingsViewModel {
+        SettingsViewModel(
+            authManager: authManager,
+            demoCoordinator: demoCoordinator,
+            screenManager: ScreenManager(store: InMemorySettingsStore()),
+            restClient: nil,
+            homeProfile: homeProfile
+        )
     }
 }

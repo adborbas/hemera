@@ -18,14 +18,11 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack(path: $viewModel.path) {
             List {
+                accountSection
                 demoModeHeader
                     .renderIf(viewModel.isShowingDemoModeHeader)
-                serverInfoSection
-                    .renderIf(viewModel.isShowingServerInfoSection)
                 kioskModeSection
                 aboutSection
-                logoutSection
-                    .renderIf(viewModel.isShowingLogoutSection)
             }
             .task {
                 viewModel.navigateToPendingRoute()
@@ -43,6 +40,8 @@ struct SettingsView: View {
                             viewModel.path.removeLast()
                         }
                     }
+                case .account:
+                    accountPage
                 }
             }
             .navigationTitle(Localization.settings)
@@ -54,22 +53,6 @@ struct SettingsView: View {
                     }
                 }
             }
-            .fullScreenCover(isPresented: $viewModel.showServerWebView) {
-                if let url = viewModel.serverURL {
-                    NavigationStack {
-                        AuthenticatedWebView(url: url) {
-                            try await viewModel.validAccessToken()
-                        }
-                        .ignoresSafeArea()
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button(Localization.done) { viewModel.closeServer() }
-                            }
-                        }
-                    }
-                }
-            }
             .overlay {
                 if viewModel.showConfetti {
                     ConfettiView {
@@ -78,25 +61,103 @@ struct SettingsView: View {
                     .allowsHitTesting(false)
                 }
             }
-            .alert(Localization.logOutQuestion, isPresented: $viewModel.showLogoutConfirmation) {
-                Button(Localization.logOut, role: .destructive) {
-                    viewModel.confirmLogout()
-                    dismiss()
-                }
-                Button(Localization.cancel, role: .cancel) {}
-            } message: {
-                if let host = viewModel.logoutHost {
-                    Text(Localization.logOutMessageWithHost(host))
-                } else {
-                    Text(Localization.logOutMessage)
+        }
+        .fullScreenCover(isPresented: $viewModel.showServerWebView) {
+            if let url = viewModel.serverURL {
+                NavigationStack {
+                    AuthenticatedWebView(url: url) {
+                        try await viewModel.validAccessToken()
+                    }
+                    .ignoresSafeArea()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(Localization.done) { viewModel.closeServer() }
+                        }
+                    }
                 }
             }
+        }
+        .alert(Localization.logOutQuestion, isPresented: $viewModel.showLogoutConfirmation) {
+            Button(Localization.logOut, role: .destructive) {
+                viewModel.confirmLogout()
+                dismiss()
+            }
+            Button(Localization.cancel, role: .cancel) {}
+        } message: {
+            if let host = viewModel.logoutHost {
+                Text(Localization.logOutMessageWithHost(host))
+            } else {
+                Text(Localization.logOutMessage)
+            }
+        }
+        .alert(Localization.exitDemoQuestion, isPresented: Bindable(viewModel.bannerViewModel).showExitDemoConfirmation) {
+            Button(Localization.exitDemo, role: .destructive) {
+                dismiss()
+                viewModel.bannerViewModel.confirmExitDemo()
+            }
+            Button(Localization.cancel, role: .cancel) {}
+        } message: {
+            Text(Localization.exitDemoMessage)
         }
         .interactiveDismissDisabled()
     }
 
     private var demoModeHeader: some View {
         DemoModeBanner(viewModel: viewModel.bannerViewModel)
+    }
+
+    private var accountSection: some View {
+        Section {
+            if viewModel.isAccountPageAvailable {
+                NavigationLink(value: SettingsViewModel.Route.account) {
+                    accountRow
+                }
+            } else {
+                HStack {
+                    accountRow
+                    Spacer()
+                    Button(Localization.exitDemo) {
+                        viewModel.bannerViewModel.exitDemoTapped()
+                    }
+                    .buttonStyle(.mortarDestructive())
+                }
+            }
+        }
+    }
+
+    private var accountRow: some View {
+        HStack(spacing: Mortar.Spacing.l) {
+            AccountAvatar(account: viewModel.account, size: 60)
+            VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
+                Text(viewModel.accountName)
+                    .font(.title3.weight(.semibold))
+                Text(viewModel.accountSubtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .renderIf(!viewModel.accountSubtitle.isEmpty)
+            }
+        }
+        .padding(.vertical, Mortar.Spacing.xs)
+    }
+
+    private var accountPage: some View {
+        List {
+            Section {
+                AccountAvatar(account: viewModel.account, size: 84)
+                    .frame(maxWidth: .infinity)
+            }
+            .listRowBackground(Color.clear)
+            if let account = viewModel.account {
+                Section(Localization.account) {
+                    LabeledContent(Localization.name, value: account.name)
+                    LabeledContent(Localization.role, value: account.role.displayName)
+                }
+            }
+            serverInfoSection
+            logoutSection
+        }
+        .navigationTitle(Localization.account)
     }
 
     private var serverInfoSection: some View {
@@ -172,11 +233,21 @@ private extension SettingsView {
         static let done = String(localized: "Done", comment: "Button to dismiss the current screen")
         static let cancel = String(localized: "Cancel", comment: "Button to cancel the current action")
 
+        // Account
+        static let account = String(localized: "Account", comment: "Title of the account page and its section header in settings")
+        static let name = String(localized: "Name", comment: "Label for the signed-in user's name on the account page")
+        static let role = String(localized: "Role", comment: "Label for the signed-in user's Home Assistant role on the account page")
+
+        // Demo
+        static let exitDemo = String(localized: "Exit Demo", comment: "Destructive button to leave demo mode")
+        static let exitDemoQuestion = String(localized: "Exit Demo?", comment: "Alert title confirming exit from demo mode")
+        static let exitDemoMessage = String(localized: "Return to the welcome screen to connect to your Home Assistant server.", comment: "Alert message explaining what happens when exiting demo mode")
+
         // Server section
         static let server = String(localized: "Server", comment: "Settings section header for server connection details")
         static let url = String(localized: "URL", comment: "Label for the server URL in settings")
         static let version = String(localized: "Version", comment: "Label for the version in settings")
-        static let openServer = String(localized: "Open Server", comment: "Button to open the Home Assistant web interface")
+        static let openServer = String(localized: "Open Home Assistant", comment: "Button to open the Home Assistant web interface")
 
         // Logout
         static let logOut = String(localized: "Log Out", comment: "Destructive button to log out of the server")
@@ -202,5 +273,21 @@ private extension SettingsView {
 #Preview {
     ServiceLocator.configureForPreview()
     return SettingsView(viewModel: SettingsViewModel())
+}
+
+#Preview("Account") {
+    ServiceLocator.configureForPreview()
+    let sl = ServiceLocator.shared
+    return SettingsView(viewModel: SettingsViewModel(
+        authManager: sl.authManager,
+        demoCoordinator: sl.demoCoordinator,
+        screenManager: sl.screenManager,
+        restClient: nil,
+        homeProfile: HomeProfile(
+            homeName: "Maple House",
+            account: Account(name: "Alex Morgan", role: .admin, pictureURL: nil)
+        ),
+        initialRoute: .account
+    ))
 }
 #endif

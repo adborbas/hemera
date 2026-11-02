@@ -8,6 +8,14 @@ struct Account: Equatable {
         case owner
         case admin
         case user
+
+        var displayName: String {
+            switch self {
+            case .owner: Localization.owner
+            case .admin: Localization.admin
+            case .user: Localization.user
+            }
+        }
     }
 
     let name: String
@@ -49,6 +57,14 @@ final class HomeProfile {
         self.account = account
     }
 
+    /// Home Assistant's location name, or "Home" until it loads or when the server has none.
+    var displayName: String {
+        guard let homeName, !homeName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return Localization.defaultHomeName
+        }
+        return homeName
+    }
+
     func load(over connection: HAConnection, baseURL: URL) async {
         do {
             let config = try await connection.send(HARequest(type: .getConfig, data: [:]))
@@ -68,4 +84,14 @@ final class HomeProfile {
             Log.warning("Failed to fetch the current Home Assistant user", cause: error)
         }
     }
+}
+
+private enum Localization {
+    static let defaultHomeName = String(
+        localized: "Home",
+        comment: "Name shown for the home until Home Assistant reports one, or when it has none"
+    )
+    static let owner = String(localized: "Owner", comment: "Role of the Home Assistant user who owns the server")
+    static let admin = String(localized: "Administrator", comment: "Role of a Home Assistant administrator user")
+    static let user = String(localized: "User", comment: "Role of a regular, non-admin Home Assistant user")
 }
