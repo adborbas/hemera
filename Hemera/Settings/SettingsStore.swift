@@ -6,6 +6,8 @@ import HemeraLog
 @MainActor
 protocol SettingsStoring: AnyObject {
     var settings: Settings { get set }
+    /// Whether the stored settings came from a newer build, so writes are being dropped.
+    var isReadOnly: Bool { get }
 }
 
 /// `SettingsStoring` backed by `UserDefaults`, under a single key.
@@ -27,7 +29,7 @@ final class UserDefaultsSettingsStore: SettingsStoring {
     private let defaults: UserDefaults
 
     /// Settings came from a newer build; re-encoding would drop fields we don't know about.
-    private let isReadOnly: Bool
+    let isReadOnly: Bool
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults

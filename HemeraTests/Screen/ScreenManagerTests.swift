@@ -94,4 +94,24 @@ struct ScreenManagerTests {
         #expect(screenManager.isDimmed == false)
     }
 
+    // MARK: - Read-only settings
+
+    /**
+     Settings written by a newer build are never written back, so the screen must disable its
+     controls rather than appear to accept changes it silently drops.
+    */
+    @Test
+    func settingsAreReadOnly_withAReadOnlyStore_isTrue() {
+        let manager = ScreenManager(store: InMemorySettingsStore(isReadOnly: true))
+
+        #expect(manager.settingsAreReadOnly)
+    }
+
+    @Test
+    func settingsAreReadOnly_withAWritableStore_isFalse() {
+        let manager = ScreenManager(store: InMemorySettingsStore())
+
+        #expect(!manager.settingsAreReadOnly)
+    }
+
 }

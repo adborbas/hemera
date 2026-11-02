@@ -24,11 +24,17 @@ struct KioskModeView: View {
                     }
                 }
             } footer: {
-                Text(screenManager.stayAwake ? Localization.footerOn : Localization.footerOff)
+                Text(footerText)
             }
+            .disabled(screenManager.settingsAreReadOnly)
         }
         .navigationTitle(Localization.kioskMode)
         .animation(.default, value: screenManager.stayAwake)
+    }
+
+    private var footerText: String {
+        if screenManager.settingsAreReadOnly { return Localization.footerReadOnly }
+        return screenManager.stayAwake ? Localization.footerOn : Localization.footerOff
     }
 }
 
@@ -40,6 +46,10 @@ private extension KioskModeView {
         static let previewDimScreen = String(localized: "Preview Dim Screen", comment: "Button that immediately dims the screen so the user can preview the dimmed clock display")
         static let footerOn = String(localized: "The screen will dim after inactivity but the device won't auto-lock while Hemera is active.", comment: "Footer text when Kiosk Mode is enabled")
         static let footerOff = String(localized: "The device will auto-lock based on your system settings.", comment: "Footer text when Kiosk Mode is disabled")
+        static let footerReadOnly = String(
+            localized: "These settings were saved by a newer version of Hemera, so they can't be changed here. Update Hemera to change them.",
+            comment: "Footer on the Kiosk Mode screen when stored settings came from a newer build, so changes cannot be saved"
+        )
     }
 }
 

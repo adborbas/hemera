@@ -5,8 +5,10 @@ import Foundation
 final class InMemorySettingsStore: SettingsStoring {
 
     var settings: Settings
+    let isReadOnly: Bool
 
-    init(settings: Settings = Settings()) {
+    init(settings: Settings = Settings(), isReadOnly: Bool = false) {
         self.settings = settings
+        self.isReadOnly = isReadOnly
     }
 }

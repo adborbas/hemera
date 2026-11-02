@@ -37,7 +37,8 @@ final class HADataSyncService {
      One save per burst of `state_changed` events rather than one per event. The in-place
      upsert is what refreshes a card; the save only drives `@Query`, so it can wait.
     */
-    private static let eventSaveDelay: Duration = .milliseconds(250)
+    static let defaultEventSaveDelay: Duration = .milliseconds(250)
+    private let eventSaveDelay: Duration
     private var pendingSave: Task<Void, Never>?
 
     /**
@@ -81,6 +82,7 @@ final class HADataSyncService {
         entityRegistry: EntityRegistry,
         errorNotifier: ErrorNotifier? = nil,
         iconResolver: IconResolver,
+        eventSaveDelay: Duration = HADataSyncService.defaultEventSaveDelay,
         onSyncComplete: @MainActor @escaping () -> Void
     ) {
         self.connectionManager = connectionManager
@@ -88,6 +90,7 @@ final class HADataSyncService {
         self.entityRegistry = entityRegistry
         self.errorNotifier = errorNotifier
         self.iconResolver = iconResolver
+        self.eventSaveDelay = eventSaveDelay
         self.onSyncComplete = onSyncComplete
     }
 
@@ -537,8 +540,9 @@ final class HADataSyncService {
 
     private func scheduleSave() {
         guard pendingSave == nil else { return }
+        let delay = eventSaveDelay
         pendingSave = Task { [weak self] in
-            try? await Task.sleep(for: Self.eventSaveDelay)
+            try? await Task.sleep(for: delay)
             guard let self else { return }
             self.pendingSave = nil
             guard !Task.isCancelled else { return }
