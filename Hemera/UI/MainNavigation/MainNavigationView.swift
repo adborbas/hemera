@@ -19,6 +19,7 @@ struct MainNavigationView: View {
     init(session: Session) {
         _viewModel = State(initialValue: MainNavigationViewModel(
             resolver: session.feedResolver,
+            store: ServiceLocator.shared.settingsStore,
             connectionStatusProvider: session.connectionStatusProvider
         ))
     }
@@ -69,8 +70,11 @@ struct MainNavigationView: View {
                 FeedHeader(
                     title: Localization.title,
                     pills: viewModel.pills,
+                    unpinnedFeeds: viewModel.unpinnedFeeds,
                     selection: viewModel.selectedFeed,
-                    onSelect: select
+                    onSelect: select,
+                    onPin: viewModel.pin,
+                    onUnpin: viewModel.unpin
                 )
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
             }
@@ -95,6 +99,7 @@ struct MainNavigationView: View {
         .onChange(of: safeAreaInsets.top + headerHeight, initial: true) { headerScroll.hideRange = $1 }
         .onChange(of: headerCanHide, initial: true) { headerScroll.canHide = headerCanHide }
         .onChange(of: viewModel.selectedFeed) { headerScroll.reset() }
+        .onChange(of: viewModel.pills.map(\.id)) { viewModel.reselectHomeIfSelectionIsHidden() }
         .toolbar(isFeedEditing ? .visible : .hidden, for: .navigationBar)
         .environment(\.openFeed, select)
     }

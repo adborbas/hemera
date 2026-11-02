@@ -283,6 +283,16 @@ private extension SessionManager {
     ) -> FeedResolver {
         let sl = ServiceLocator.shared
         let resolver = FeedResolver()
+        let areas = AreasViewModel(
+            homeTileRepository: homeTileRepository,
+            viewModelFactory: viewModelFactory,
+            demoCoordinator: sl.demoCoordinator,
+            authManager: authManager,
+            store: sl.settingsStore,
+            errorNotifier: errorNotifier,
+            connectionRetrier: self,
+            resync: resync
+        )
         resolver.registerBuiltInFeeds(
             home: CuratedHomeViewModel(
                 homeTileRepository: homeTileRepository,
@@ -293,17 +303,9 @@ private extension SessionManager {
                 connectionRetrier: self,
                 resync: resync
             ),
-            areas: AreasViewModel(
-                homeTileRepository: homeTileRepository,
-                viewModelFactory: viewModelFactory,
-                demoCoordinator: sl.demoCoordinator,
-                authManager: authManager,
-                store: sl.settingsStore,
-                errorNotifier: errorNotifier,
-                connectionRetrier: self,
-                resync: resync
-            )
+            areas: areas
         )
+        resolver.registerAreaFeeds(context: context, areas: areas)
         resolver.registerEntityFeeds(
             context: context,
             viewModelFactory: viewModelFactory,

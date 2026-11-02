@@ -1,7 +1,7 @@
 import Foundation
 
 /// Stable, namespaced identifier of a feed, such as `home`, `areas` or `area:kitchen`.
-nonisolated struct FeedID: Hashable, Sendable {
+nonisolated struct FeedID: RawRepresentable, Hashable, Sendable, Codable {
     let rawValue: String
 
     /// The part before the first `:`, which selects the provider that resolves this ID.
@@ -20,4 +20,13 @@ nonisolated struct FeedID: Hashable, Sendable {
     static func domain(_ domain: String) -> FeedID {
         FeedID(rawValue: "domain:\(domain)")
     }
+
+    static func area(_ areaId: String) -> FeedID {
+        FeedID(rawValue: "area:\(areaId)")
+    }
+
+    /// Every built-in feed, in default pill row order.
+    static let builtIns: [FeedID] = [
+        .home, .areas, .domain("light"), .domain("cover"), .domain("climate"), .domain("scene")
+    ]
 }

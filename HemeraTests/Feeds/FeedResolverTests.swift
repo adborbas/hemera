@@ -18,6 +18,14 @@ struct FeedResolverTests {
         let demoCoordinator = MockDemoCoordinator()
         let authManager = MockAuthManager()
 
+        let areas = AreasViewModel(
+            homeTileRepository: tileRepo,
+            viewModelFactory: factory,
+            demoCoordinator: demoCoordinator,
+            authManager: authManager,
+            store: InMemorySettingsStore()
+        )
+
         resolver = FeedResolver()
         resolver.registerBuiltInFeeds(
             home: CuratedHomeViewModel(
@@ -26,14 +34,9 @@ struct FeedResolverTests {
                 authManager: authManager,
                 demoCoordinator: demoCoordinator
             ),
-            areas: AreasViewModel(
-                homeTileRepository: tileRepo,
-                viewModelFactory: factory,
-                demoCoordinator: demoCoordinator,
-                authManager: authManager,
-                store: InMemorySettingsStore()
-            )
+            areas: areas
         )
+        resolver.registerAreaFeeds(context: context, areas: areas)
         resolver.registerEntityFeeds(
             context: context,
             viewModelFactory: factory,
@@ -86,6 +89,55 @@ struct FeedResolverTests {
 
         #expect(resolver.summary(for: .domain("light")) == nil)
         #expect(resolver.summary(for: .domain("switch")) == nil)
+    }
+
+    // MARK: - Area feeds
+
+    @Test func summary_area_showsAreaNameAndIcon() throws {
+        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen", icon: "mdi:stove"))
+        try context.save()
+
+        #expect(resolver.summary(for: .area("kitchen")) == FeedSummary(title: "Kitchen", icon: "mdi:stove"))
+    }
+
+    @Test func summary_area_followsRename() throws {
+        // Renaming a room in Home Assistant must rename its pill too.
+        let area = AreaEntity(areaId: "kitchen", name: "Kitchen")
+        context.insert(area)
+        try context.save()
+
+        area.name = "Cooking"
+
+        #expect(resolver.summary(for: .area("kitchen"))?.title == "Cooking")
+    }
+
+    @Test func summary_missingArea_isNil() {
+        // A deleted or not-yet-synced area hides its pill; the pin itself is kept elsewhere.
+        #expect(resolver.summary(for: .area("gone")) == nil)
+    }
+
+    @Test func summary_area_hidesWhenDeletedAndReturnsWhenSynced() throws {
+        let area = AreaEntity(areaId: "kitchen", name: "Kitchen")
+        context.insert(area)
+        try context.save()
+
+        context.delete(area)
+        try context.save()
+        #expect(resolver.summary(for: .area("kitchen")) == nil)
+
+        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen"))
+        try context.save()
+        #expect(resolver.summary(for: .area("kitchen"))?.title == "Kitchen")
+    }
+
+    @Test func pinnableFeeds_areAreasInHomeAssistantOrder() throws {
+        // The + menu lists areas in the same order as the Areas feed.
+        context.insert(AreaEntity(areaId: "bedroom", name: "Bedroom", sortOrder: 2))
+        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen", sortOrder: 0))
+        context.insert(AreaEntity(areaId: "hall", name: "Hall", sortOrder: 1))
+        try context.save()
+
+        #expect(resolver.pinnableFeeds == [.area("kitchen"), .area("hall"), .area("bedroom")])
     }
 
     // MARK: - Unknown feeds

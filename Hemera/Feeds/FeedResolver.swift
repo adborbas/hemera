@@ -5,7 +5,7 @@ import TileGridEngine
 /// What a pill shows for a feed.
 struct FeedSummary: Equatable {
     let title: String
-    /// SF Symbol name.
+    /// SF Symbol name, or an `mdi:` name.
     let icon: String
 }
 
@@ -15,6 +15,8 @@ protocol FeedResolving {
     /// `nil` when the feed can't be shown right now; its pill is hidden.
     func summary(for id: FeedID) -> FeedSummary?
     func view(for id: FeedID) -> AnyView
+    /// Feeds the user can add to the pill row, in the order to offer them.
+    var pinnableFeeds: [FeedID] { get }
     /// Pages come and go as the pager moves, so feeds register destinations on the stack root here.
     func registerNavigationDestinations(on root: AnyView) -> AnyView
 }
@@ -28,6 +30,7 @@ final class FeedResolver: FeedResolving {
         let summary: @MainActor (FeedID) -> FeedSummary?
         let view: @MainActor (FeedID) -> AnyView
         var navigationDestinations: @MainActor (AnyView) -> AnyView = { $0 }
+        var pinnableFeeds: @MainActor () -> [FeedID] = { [] }
     }
 
     private var providers: [String: Provider] = [:]
@@ -51,6 +54,21 @@ final class FeedResolver: FeedResolving {
                     AreaDetailView(viewModel: areas.makeDetailViewModel(destination: destination))
                 })
             }
+        ))
+    }
+
+    func registerAreaFeeds(context: ModelContext, areas: AreasViewModel) {
+        let areaList = AreaList(context: context)
+        register(Provider(
+            namespace: FeedID.area("").namespace,
+            summary: { id in
+                areaList.area(withId: id.value).map { FeedSummary(title: $0.name, icon: $0.icon ?? "mdi:texture-box") }
+            },
+            view: { id in
+                guard let area = areaList.area(withId: id.value) else { return AnyView(EmptyView()) }
+                return AnyView(AreaDetailView(viewModel: areas.makeDetailViewModel(destination: .area(area)), isFeed: true))
+            },
+            pinnableFeeds: { areaList.areas.map { FeedID.area($0.areaId) } }
         ))
     }
 
@@ -99,6 +117,10 @@ final class FeedResolver: FeedResolving {
 
     func view(for id: FeedID) -> AnyView {
         providers[id.namespace]?.view(id) ?? AnyView(EmptyView())
+    }
+
+    var pinnableFeeds: [FeedID] {
+        providers.keys.sorted().flatMap { providers[$0]?.pinnableFeeds() ?? [] }
     }
 
     func registerNavigationDestinations(on root: AnyView) -> AnyView {

@@ -14,4 +14,11 @@ struct Settings: Codable, Equatable, Sendable {
     // MARK: - Areas
 
     var areasGroupedByFloor = true
+
+    // MARK: - Main Navigation
+
+    /// `nil` until the pill row is first changed, which shows the default row.
+    var feedRow: [FeedID]?
+    /// Built-ins already added to the row once, so one the user removed stays removed.
+    var offeredBuiltInFeeds = FeedID.builtIns
 }

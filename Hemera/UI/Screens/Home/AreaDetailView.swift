@@ -5,6 +5,8 @@ import TileGridEngine
 
 struct AreaDetailView: View {
     let viewModel: AreaDetailViewModel
+    /// Shown as a page under the feed header rather than pushed, so it leaves the bar's title alone.
+    var isFeed = false
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var overlayTransition
@@ -39,8 +41,9 @@ struct AreaDetailView: View {
                 )
             }
         }
-        .navigationTitle(viewModel.areaName)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle(isFeed ? "" : viewModel.areaName)
+        .navigationBarTitleDisplayMode(isFeed ? .inline : .large)
+        .feedIsEditing(hideMode.isActive)
         .toolbar {
             if hideMode.isActive {
                 ToolbarItem(placement: .confirmationAction) {
