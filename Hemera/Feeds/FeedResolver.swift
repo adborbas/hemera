@@ -1,4 +1,6 @@
+import SwiftData
 import SwiftUI
+import TileGridEngine
 
 /// What a pill shows for a feed.
 struct FeedSummary: Equatable {
@@ -52,6 +54,43 @@ final class FeedResolver: FeedResolving {
         ))
     }
 
+    func registerEntityFeeds(
+        context: ModelContext,
+        viewModelFactory: ViewModelFactory,
+        homeTileRepository: any HomeTileRepository,
+        authManager: any AuthManaging,
+        isDemoMode: Bool
+    ) {
+        func feed<Entity: StoredEntity>(
+            _ type: Entity.Type,
+            _ title: String,
+            _ icon: String,
+            _ tileSize: TileSize
+        ) -> (String, EntityFeedViewModel) {
+            (Entity.domain, EntityFeedViewModel(
+                type,
+                summary: FeedSummary(title: title, icon: icon),
+                tileSize: tileSize,
+                context: context,
+                viewModelFactory: viewModelFactory,
+                homeTileRepository: homeTileRepository,
+                haWebViewPresenter: HAWebViewPresenter(authManager: authManager),
+                isDemoMode: isDemoMode
+            ))
+        }
+        let feeds = Dictionary(uniqueKeysWithValues: [
+            feed(LightEntity.self, Localization.lights, "lightbulb", .small),
+            feed(CoverEntity.self, Localization.covers, "blinds.horizontal.closed", .small),
+            feed(ClimateEntity.self, Localization.climate, "thermometer.medium", .medium),
+            feed(SceneEntity.self, Localization.scenes, "sparkles", .small)
+        ])
+        register(Provider(
+            namespace: FeedID.domain("").namespace,
+            summary: { id in feeds[id.value]?.summary },
+            view: { id in feeds[id.value].map { AnyView(EntityFeedView(viewModel: $0)) } ?? AnyView(EmptyView()) }
+        ))
+    }
+
     // MARK: - FeedResolving
 
     func summary(for id: FeedID) -> FeedSummary? {
@@ -71,5 +110,9 @@ private extension FeedResolver {
     enum Localization {
         static let home = String(localized: "Home", comment: "Pill label for the Home feed showing pinned entities")
         static let areas = String(localized: "Areas", comment: "Pill label for the Areas feed showing entities grouped by area")
+        static let lights = String(localized: "Lights", comment: "Pill label for the feed showing every light, grouped by area")
+        static let covers = String(localized: "Covers", comment: "Pill label for the feed showing every cover such as blinds, grouped by area")
+        static let climate = String(localized: "Climate", comment: "Pill label for the feed showing every thermostat and AC, grouped by area")
+        static let scenes = String(localized: "Scenes", comment: "Pill label for the feed showing every scene, grouped by area")
     }
 }

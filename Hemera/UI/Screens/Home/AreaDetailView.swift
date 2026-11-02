@@ -334,27 +334,13 @@ private struct AreaDetailSection: View {
                         }
                     }
                     .contextMenu {
-                        if !viewModel.isOnHome(entityId: vm.id) {
-                            Button {
-                                viewModel.addToHome(entityId: vm.id)
-                            } label: {
-                                Label(Localization.addToHome, systemImage: "plus")
-                            }
-                        }
-                        if !viewModel.isDemoMode {
-                            Button {
-                                onEnterHideMode()
-                            } label: {
-                                Label(Localization.showHideItems, systemImage: "eye.slash")
-                            }
-                        }
-                        if !viewModel.isDemoMode {
-                            Button {
-                                viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId)
-                            } label: {
-                                Label(Localization.openInHomeAssistant, systemImage: "globe")
-                            }
-                        }
+                        EntityCardContextMenu(
+                            isOnHome: viewModel.isOnHome(entityId: vm.id),
+                            isDemoMode: viewModel.isDemoMode,
+                            addToHome: { viewModel.addToHome(entityId: vm.id) },
+                            openInHomeAssistant: { viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId) },
+                            showHideItems: onEnterHideMode
+                        )
                     }
             }
         } else {
@@ -392,13 +378,5 @@ private extension AreaDetailView {
         static let moreOptions = String(localized: "More Options", comment: "Toolbar button to show additional actions for an area")
         static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
         static let done = String(localized: "Done", comment: "Toolbar button that exits the show/hide-items editing mode for an area")
-    }
-}
-
-private extension AreaDetailSection {
-    enum Localization {
-        static let showHideItems = String(localized: "Show/Hide Items", comment: "Context menu action that enters a mode for hiding or revealing entities in an area")
-        static let addToHome = String(localized: "Add to Home", comment: "Context menu action to pin an entity to the Home screen")
-        static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
     }
 }

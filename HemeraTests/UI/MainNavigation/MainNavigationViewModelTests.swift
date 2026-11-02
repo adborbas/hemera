@@ -19,15 +19,17 @@ struct MainNavigationViewModelTests {
     @Test func pills_followRowOrder() {
         let viewModel = MainNavigationViewModel(resolver: StubFeedResolver(), connectionStatusProvider: nil)
 
-        #expect(viewModel.pills.map(\.id) == [.home, .areas])
+        #expect(viewModel.pills.map(\.id) == [
+            .home, .areas, .domain("light"), .domain("cover"), .domain("climate"), .domain("scene")
+        ])
     }
 
     @Test func pills_whenFeedDoesNotResolve_hidesItsPill() {
         // A feed with nothing to show must never get a pill or a page.
-        let resolver = StubFeedResolver(unresolvable: [.areas])
+        let resolver = StubFeedResolver(unresolvable: [.areas, .domain("light"), .domain("cover"), .domain("scene")])
         let viewModel = MainNavigationViewModel(resolver: resolver, connectionStatusProvider: nil)
 
-        #expect(viewModel.pills.map(\.id) == [.home])
+        #expect(viewModel.pills.map(\.id) == [.home, .domain("climate")])
     }
 
     // MARK: - isConnected

@@ -14,7 +14,14 @@ final class MainNavigationViewModel {
 
     let resolver: any FeedResolving
 
-    private let feedRow: [FeedID] = [.home, .areas]
+    private let feedRow: [FeedID] = [
+        .home,
+        .areas,
+        .domain(LightEntity.domain),
+        .domain(CoverEntity.domain),
+        .domain(ClimateEntity.domain),
+        .domain(SceneEntity.domain)
+    ]
     private let connectionStatusProvider: (any ConnectionStatusProviding)?
     private let offlineBannerDelay: Duration
     private var offlineBannerTask: Task<Void, Never>?

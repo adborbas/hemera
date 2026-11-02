@@ -138,6 +138,7 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
             feedResolver: makeFeedResolver(
+                context: demoContext,
                 homeTileRepository: tileRepo,
                 viewModelFactory: factory,
                 errorNotifier: errorNotifier,
@@ -243,6 +244,7 @@ private extension SessionManager {
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
             feedResolver: makeFeedResolver(
+                context: container.mainContext,
                 homeTileRepository: tileRepo,
                 viewModelFactory: factory,
                 errorNotifier: errorNotifier,
@@ -273,6 +275,7 @@ private extension SessionManager {
     }
 
     func makeFeedResolver(
+        context: ModelContext,
         homeTileRepository: any HomeTileRepository,
         viewModelFactory: ViewModelFactory,
         errorNotifier: ErrorNotifier,
@@ -300,6 +303,13 @@ private extension SessionManager {
                 connectionRetrier: self,
                 resync: resync
             )
+        )
+        resolver.registerEntityFeeds(
+            context: context,
+            viewModelFactory: viewModelFactory,
+            homeTileRepository: homeTileRepository,
+            authManager: authManager,
+            isDemoMode: sl.demoCoordinator.isActive
         )
         return resolver
     }

@@ -19,6 +19,7 @@ import Foundation
 protocol StoredEntity: PersistentModel {
     static var domain: String { get }
     var entityId: String { get set }
+    var name: String { get }
     var deviceId: String? { get set }
     var area: AreaEntity? { get set }
 
