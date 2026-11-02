@@ -137,6 +137,7 @@ private struct AreaContentView: View {
                     .padding(.vertical, TileGridConstants.sectionPadding)
                 }
             }
+            .reportsFeedScroll()
         }
     }
 
@@ -283,6 +284,7 @@ private struct UnassignedContentView: View {
                         .padding(.vertical, TileGridConstants.sectionPadding)
                     }
                 }
+                .reportsFeedScroll()
             }
         }
     }

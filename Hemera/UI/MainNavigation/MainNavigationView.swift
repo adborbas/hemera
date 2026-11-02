@@ -10,8 +10,11 @@ struct MainNavigationView: View {
     @State private var isFeedEditing = false
     @State private var showSettings = false
     @State private var settingsInitialRoute: SettingsViewModel.Route?
+    @State private var headerScroll = FeedHeaderScroll()
 
     @Environment(ScreenManager.self) private var screenManager
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(session: Session) {
         _viewModel = State(initialValue: MainNavigationViewModel(
@@ -54,18 +57,23 @@ struct MainNavigationView: View {
                 bottom: safeAreaInsets.bottom,
                 trailing: 0
             ),
-            page: viewModel.resolver.view(for:)
+            page: { id in
+                AnyView(viewModel.resolver.view(for: id)
+                    .environment(\.feedHeaderScroll, id == viewModel.selectedFeed ? headerScroll : nil))
+            }
         )
         .ignoresSafeArea()
         .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeAreaInsets = $0 }
         .overlay(alignment: .top) {
-            FeedHeader(
-                title: Localization.title,
-                pills: viewModel.pills,
-                selection: viewModel.selectedFeed,
-                onSelect: select
-            )
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+            HeaderOffset(scroll: headerScroll) {
+                FeedHeader(
+                    title: Localization.title,
+                    pills: viewModel.pills,
+                    selection: viewModel.selectedFeed,
+                    onSelect: select
+                )
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+            }
         }
         .overlay(alignment: .topTrailing) {
             if !isFeedEditing {
@@ -84,12 +92,31 @@ struct MainNavigationView: View {
             viewModel.updateBannerVisibility()
         }
         .onPreferenceChange(FeedIsEditingKey.self) { isFeedEditing = $0 }
+        .onChange(of: safeAreaInsets.top + headerHeight, initial: true) { headerScroll.hideRange = $1 }
+        .onChange(of: headerCanHide, initial: true) { headerScroll.canHide = headerCanHide }
+        .onChange(of: viewModel.selectedFeed) { headerScroll.reset() }
         .toolbar(isFeedEditing ? .visible : .hidden, for: .navigationBar)
         .environment(\.openFeed, select)
     }
 
+    private var headerCanHide: Bool {
+        !voiceOverEnabled && !reduceMotion && !isFeedEditing
+    }
+
     private func select(_ id: FeedID) {
         viewModel.selectedFeed = id
+    }
+}
+
+// MARK: - Header Offset
+
+/// Reads the per-frame offset itself so scrolling redraws only the header.
+private struct HeaderOffset<Content: View>: View {
+    let scroll: FeedHeaderScroll
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content.offset(y: -scroll.hiddenAmount)
     }
 }
 

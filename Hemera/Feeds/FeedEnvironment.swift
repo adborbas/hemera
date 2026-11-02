@@ -1,9 +1,8 @@
 import SwiftUI
 
 extension EnvironmentValues {
-    /// Receives the feed's scroll offset; set by the navigation screen, `nil` outside it.
-    @Entry var feedScrollOffsetChanged: (@MainActor (CGFloat) -> Void)?
-    @Entry var feedScrollPhaseChanged: (@MainActor (ScrollPhase) -> Void)?
+    /// Receives the selected feed's scrolling; set by the navigation screen, `nil` elsewhere.
+    @Entry var feedHeaderScroll: FeedHeaderScroll?
     /// Selects another feed in place, e.g. from an empty state pointing elsewhere.
     @Entry var openFeed: (@MainActor (FeedID) -> Void)?
 }
@@ -29,8 +28,7 @@ struct FeedIsEditingKey: PreferenceKey {
 }
 
 private struct FeedScrollReporter: ViewModifier {
-    @Environment(\.feedScrollOffsetChanged) private var offsetChanged
-    @Environment(\.feedScrollPhaseChanged) private var phaseChanged
+    @Environment(\.feedHeaderScroll) private var headerScroll
 
     func body(content: Content) -> some View {
         content
@@ -41,10 +39,10 @@ private struct FeedScrollReporter: ViewModifier {
                     - geometry.containerSize.height
                 return min(geometry.contentOffset.y + top, max(0, maxOffset))
             } action: { _, offset in
-                offsetChanged?(offset)
+                headerScroll?.scrolled(to: offset)
             }
             .onScrollPhaseChange { _, phase in
-                phaseChanged?(phase)
+                headerScroll?.phaseChanged(to: phase)
             }
     }
 }
