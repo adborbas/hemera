@@ -72,22 +72,14 @@ struct MainNavigationView: View {
             HeaderOffset(scroll: headerScroll) {
                 FeedHeader(
                     title: viewModel.title,
-                    actions: isFeedEditing ? [] : viewModel.resolver.actions(for: viewModel.selectedFeed),
                     pills: viewModel.pills,
                     unpinnedFeeds: viewModel.unpinnedFeeds,
                     selection: viewModel.selectedFeed,
                     onSelect: select,
                     onPin: viewModel.pin,
-                    onUnpin: viewModel.unpin,
-                    onAction: { viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform($0, item: $1) }
+                    onUnpin: viewModel.unpin
                 )
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if !isFeedEditing {
-                AccountButton(account: viewModel.homeProfile.account) { showSettings = true }
-                    .padding(.trailing, Mortar.Spacing.s)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -105,7 +97,20 @@ struct MainNavigationView: View {
         .onChange(of: headerCanHide, initial: true) { headerScroll.canHide = headerCanHide }
         .onChange(of: viewModel.selectedFeed) { headerScroll.reset() }
         .onChange(of: viewModel.pills.map(\.id)) { viewModel.reselectHomeIfSelectionIsHidden() }
-        .toolbar(isFeedEditing ? .visible : .hidden, for: .navigationBar)
+        // Always shown, so its inset never changes; one group makes the actions and avatar share one glass.
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            if !isFeedEditing {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    ForEach(viewModel.resolver.actions(for: viewModel.selectedFeed)) { action in
+                        FeedActionButton(action: action) { item in
+                            viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform(action.id, item: item)
+                        }
+                    }
+                    AccountButton(account: viewModel.homeProfile.account) { showSettings = true }
+                }
+            }
+        }
         .environment(\.openFeed, select)
     }
 
@@ -139,10 +144,7 @@ private struct AccountButton: View {
     var body: some View {
         Button(action: action) {
             AccountAvatar(account: account, size: Constants.avatarSize)
-                .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                .contentShape(.circle)
         }
-        .buttonStyle(.plain)
         .accessibilityLabel(Localization.accountAndSettings)
         .accessibilityValue(account?.name ?? "")
     }

@@ -1,29 +1,18 @@
 import SwiftUI
 import Mortar
 
-/// The selected feed's actions, title and pill row floating over the feeds.
+/// The title and pill row floating over the feeds.
 struct FeedHeader: View {
     let title: String
-    let actions: [FeedAction]
     let pills: [MainNavigationViewModel.Pill]
     let unpinnedFeeds: [MainNavigationViewModel.Pill]
     let selection: FeedID
     let onSelect: (FeedID) -> Void
     let onPin: (FeedID) -> Void
     let onUnpin: (FeedID) -> Void
-    let onAction: (_ actionID: String, _ item: String?) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: Mortar.Spacing.s) {
-                ForEach(actions) { action in
-                    FeedActionButton(action: action) { item in onAction(action.id, item) }
-                }
-            }
-            .frame(height: Mortar.TapTarget.minimum)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            // Leaves the trailing end of the row to the account button floating above it.
-            .padding(.trailing, Mortar.TapTarget.minimum + Mortar.Spacing.s * 2)
             Text(title)
                 .font(.largeTitle.bold())
                 .lineLimit(1)
@@ -115,7 +104,8 @@ private struct PillButton: View {
     }
 }
 
-private struct FeedActionButton: View {
+/// A feed action in the navigation bar, where the system draws its glass.
+struct FeedActionButton: View {
     let action: FeedAction
     let perform: (_ item: String?) -> Void
 
@@ -133,14 +123,14 @@ private struct FeedActionButton: View {
                     }
                 }
             } label: {
-                HeaderIconLabel(title: action.title, systemImage: action.icon)
+                Label(action.title, systemImage: action.icon)
+                    .labelStyle(.iconOnly)
             }
-            .buttonStyle(.plain)
         } else {
             Button { perform(nil) } label: {
-                HeaderIconLabel(title: action.title, systemImage: action.icon)
+                Label(action.title, systemImage: action.icon)
+                    .labelStyle(.iconOnly)
             }
-            .buttonStyle(.plain)
         }
     }
 }

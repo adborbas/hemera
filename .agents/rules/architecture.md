@@ -158,8 +158,8 @@ The main screen has no tab bar: pills switch between **feeds** paged under a flo
 A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll
 view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase through the
 environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
-may omit it. Optional channels: `.feedIsEditing(_:)` shows the system navigation bar for the feed's
-toolbar (Home's undo/redo/Done), and `\.openFeed` selects another feed in place.
+may omit it. Optional channels: `.feedIsEditing(_:)` swaps the navigation bar's items for the feed's
+own toolbar (Home's undo/redo/Done), and `\.openFeed` selects another feed in place.
 
 ## Concurrency Model
 
@@ -187,7 +187,8 @@ Demo mode is a first-class feature, not an afterthought:
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.
 - `.authenticated` shows `MainNavigationView`: one `NavigationStack` whose root is the feed pager, with
-  the header and account button as overlays (see Feeds). Settings opens from the account button as a sheet.
+  the header as an overlay (see Feeds). The selected feed's actions and the account button share one
+  trailing group in an always-visible, transparent navigation bar. Settings opens from the account button as a sheet.
 
 ## Data Flow
 
