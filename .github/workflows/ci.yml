@@ -30,16 +30,6 @@ jobs:
           xcrun simctl boot "$UDID"
           echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
 
-      - name: Cache SPM packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-            ~/Library/org.swift.swiftpm
-          # Named rather than globbed: `**` walks the whole workspace and times out at 120s.
-          key: spm-${{ runner.os }}-${{ hashFiles('Hemera.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'Packages/AppStoreScreenshots/Package.resolved') }}
-          restore-keys: spm-${{ runner.os }}-
-
       - name: Install xcbeautify
         run: brew install xcbeautify
 
