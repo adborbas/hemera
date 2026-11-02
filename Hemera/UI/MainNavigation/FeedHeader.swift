@@ -43,13 +43,14 @@ private struct PillRow: View {
     let onUnpin: (FeedID) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var highlight
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: Mortar.Spacing.s) {
                     ForEach(pills) { pill in
-                        PillButton(pill: pill, isSelected: pill.id == selection) {
+                        PillButton(pill: pill, isSelected: pill.id == selection, highlight: highlight) {
                             onSelect(pill.id)
                         }
                         .modifier(UnpinActions(isPinned: pill.isPinned) { onUnpin(pill.id) })
@@ -57,6 +58,8 @@ private struct PillRow: View {
                     }
                     PinMenu(unpinnedFeeds: unpinnedFeeds, onPin: onPin)
                 }
+                // Selection changes from swipes aren't animated, so the highlight animates itself.
+                .animation(reduceMotion ? nil : Mortar.Motion.springNormal, value: selection)
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.vertical, Mortar.Spacing.xs)
             }
@@ -74,6 +77,7 @@ private struct PillRow: View {
 private struct PillButton: View {
     let pill: MainNavigationViewModel.Pill
     let isSelected: Bool
+    let highlight: Namespace.ID
     let action: () -> Void
 
     @ScaledMetric(relativeTo: .subheadline) private var iconSize = Mortar.IconSize.xs
@@ -93,10 +97,13 @@ private struct PillButton: View {
             .padding(.horizontal, Mortar.Spacing.l)
             .frame(minHeight: Mortar.TapTarget.minimum)
             .foregroundStyle(isSelected ? Color.white : Color.primary)
-            .background(
-                isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.regularMaterial),
-                in: .capsule
-            )
+            .background {
+                Capsule().fill(.regularMaterial)
+                if isSelected {
+                    // One capsule matched across pills, so the highlight slides to the new selection.
+                    Capsule().fill(Color.accentColor).matchedGeometryEffect(id: "highlight", in: highlight)
+                }
+            }
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
