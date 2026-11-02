@@ -96,7 +96,7 @@ struct AuthenticatedWebView: UIViewRepresentable {
         private func handleGetExternalAuth(_ message: WKScriptMessage) {
             guard let dict = message.body as? [String: Any],
                   let callback = dict["callback"] as? String else { return }
-            guard isServerOrigin(message, refusing: callback, named: "getExternalAuth") else { return }
+            guard isServerMainFrame(message, named: "getExternalAuth") else { return }
 
             Task { @MainActor in
                 do {
@@ -112,27 +112,21 @@ struct AuthenticatedWebView: UIViewRepresentable {
         private func handleRevokeExternalAuth(_ message: WKScriptMessage) {
             guard let dict = message.body as? [String: Any],
                   let callback = dict["callback"] as? String else { return }
-            guard isServerOrigin(message, refusing: callback, named: "revokeExternalAuth") else { return }
+            guard isServerMainFrame(message, named: "revokeExternalAuth") else { return }
             Task { @MainActor in
                 _ = try? await self.webView?.evaluateJavaScript("\(callback)(true);")
             }
         }
 
         /**
-         A page that is not the server never receives a token; it is told the request failed.
-         The callback name came from that page, so running it there grants it nothing new.
+         Only the server's own main frame may ask: the callback name is run in the main frame, so
+         taking one from a subframe would run that frame's string inside the server's page.
         */
-        private func isServerOrigin(
-            _ message: WKScriptMessage,
-            refusing callback: String,
-            named name: String
-        ) -> Bool {
+        private func isServerMainFrame(_ message: WKScriptMessage, named name: String) -> Bool {
             let origin = message.frameInfo.securityOrigin
-            guard originPolicy.allows(scheme: origin.protocol, host: origin.host, port: origin.port) else {
-                Log.warning("Refused \(name) from \(origin.protocol)://\(origin.host) — not the server's origin")
-                Task { @MainActor in
-                    _ = try? await self.webView?.evaluateJavaScript("\(callback)(false);")
-                }
+            guard message.frameInfo.isMainFrame,
+                  originPolicy.allows(scheme: origin.protocol, host: origin.host, port: origin.port) else {
+                Log.warning("Refused \(name) from \(origin.protocol)://\(origin.host) — not the server's main frame")
                 return false
             }
             return true

@@ -24,9 +24,21 @@ struct WebViewOriginPolicyTests {
         #expect(!policy.allows(scheme: "http", host: "evil.example", port: 8123))
     }
 
+    /// A proxy redirecting the document to https is the same server; refusing it blanks the page.
     @Test
-    func allowsOrigin_differentScheme_isFalse() {
-        #expect(!policy.allows(scheme: "https", host: "ha.local", port: 8123))
+    func allowsOrigin_httpsUpgradeOfTheSameAddress_isTrue() {
+        #expect(policy.allows(scheme: "https", host: "ha.local", port: 8123))
+        #expect(WebViewOriginPolicy(serverURL: URL(string: "http://ha.local")!)
+            .allows(scheme: "https", host: "ha.local", port: 443))
+    }
+
+    /// Upgrading is the same server; dropping to plain http is a different one and gets no token.
+    @Test
+    func allowsOrigin_httpDowngradeOfAnHTTPSServer_isFalse() {
+        let secure = WebViewOriginPolicy(serverURL: URL(string: "https://ha.local:8123")!)
+
+        #expect(!secure.allows(scheme: "http", host: "ha.local", port: 8123))
+        #expect(!secure.allows(scheme: "http", host: "ha.local", port: 80))
     }
 
     @Test
@@ -53,6 +65,11 @@ struct WebViewOriginPolicyTests {
     @Test
     func allowsURL_sameOrigin_isTrue() {
         #expect(policy.allows(URL(string: "http://ha.local:8123/lovelace/0")!))
+    }
+
+    @Test
+    func allowsURL_httpsUpgradeOfTheSameAddress_isTrue() {
+        #expect(policy.allows(URL(string: "https://ha.local:8123/lovelace/0")!))
     }
 
     @Test

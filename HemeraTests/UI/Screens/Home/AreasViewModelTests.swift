@@ -49,6 +49,7 @@ struct AreasViewModelTests {
     private func makeViewModel(
         errorNotifier: ErrorNotifier? = nil,
         connectionRetrier: (any ConnectionRetrying)? = nil,
+        readOnlySettings: Bool = false,
         resync: @escaping () async -> Void = { }
     ) -> AreasViewModel {
         AreasViewModel(
@@ -56,7 +57,7 @@ struct AreasViewModelTests {
             viewModelFactory: factory,
             demoCoordinator: demoCoordinator,
             authManager: authManager,
-            store: InMemorySettingsStore(),
+            store: InMemorySettingsStore(isReadOnly: readOnlySettings),
             errorNotifier: errorNotifier,
             connectionRetrier: connectionRetrier,
             resync: resync
@@ -81,6 +82,18 @@ struct AreasViewModelTests {
         let floor = FloorEntity(floorId: id, name: name, level: level, sortOrder: sortOrder)
         context.insert(floor)
         return floor
+    }
+
+    // MARK: - Grouping
+
+    /**
+     A read-only store drops the write, so offering the grouping control would show a change
+     that silently reverts on the next launch.
+    */
+    @Test
+    func settingsAreReadOnly_withAStoreFromANewerBuild_isTrue() {
+        #expect(makeViewModel(readOnlySettings: true).settingsAreReadOnly)
+        #expect(!makeViewModel().settingsAreReadOnly)
     }
 
     // MARK: - Demo Mode
