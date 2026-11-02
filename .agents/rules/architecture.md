@@ -33,8 +33,8 @@ For ViewModels that only use app-lifetime deps, a `convenience init()` pulls fro
 
 - Configured once at app start with long-lived dependencies: `authManager`, `router`, `demoCoordinator`, `sessionManager`, `screenManager`.
 - Session-scoped dependencies are bundled in a `Session` struct (`Session.swift`), stored as `var session: Session?`. Created atomically by `SessionManager` when sessions start, nilled on teardown.
-- `Session` contains: `connectionStatusProvider`, `areaRepository`, `homeTileRepository`, `viewModelFactory`, `restClient`, `errorNotifier`. All non-optional — a Session is always complete.
-- `MainTabView` resolves `sl.session!` once in its `init` and injects deps into child ViewModels via their testable inits.
+- `Session` contains: `connectionStatusProvider`, `areaRepository`, `homeTileRepository`, `viewModelFactory`, `feedResolver`, `restClient`, `errorNotifier`. All non-optional — a Session is always complete.
+- `RootView` resolves the `Session` and hands it to `MainNavigationView`, which injects deps into its ViewModel via the testable init. Feed ViewModels (Home, Areas) are built per session by `SessionManager` and held by the feed providers.
 - Do not add new singleton services here without discussion. Prefer protocol-based injection.
 
 ## Protocol-Based Dependency Injection
@@ -137,6 +137,30 @@ Provides type-erased rendering for heterogeneous entity collections:
 - `makeViewModels(for area:)` — all VMs for an area (delegates to registered factories).
 - `makeViewModel(forEntityId:)` — single VM lookup (delegates to registered factories).
 
+## Feeds
+
+The main screen has no tab bar: pills switch between **feeds** paged under a floating header
+(ADR-0002). Each feed is identified by a `FeedID` (`home`, `areas`, later `domain:<domain>`,
+`area:<id>`), and `MainNavigationView` only ever holds feed IDs.
+
+- `FeedResolver` (`Feeds/FeedResolver.swift`) is session-scoped, lives in `Session` and is built by
+  `SessionManager` (demo gets its own). It turns an ID into a pill `FeedSummary` (`nil` hides the
+  pill) and an `AnyView`, delegating to the `FeedResolver.Provider` registered for the ID's namespace.
+  A new kind of feed is a new provider; the header and pager don't change.
+- Providers that push screens register their `navigationDestination`s through the provider, because
+  the pager's pages are not a valid place for them. Pushed screens use the system navigation bar.
+- `FeedPager` pages horizontally, bound to the selected feed both ways, and only builds the selected
+  page and its neighbours. Each page gets fixed top and bottom content margins for the header and the
+  home indicator; feed views must not add their own top inset for the header.
+
+### Feed contract (`Feeds/FeedEnvironment.swift`)
+
+A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll
+view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase through the
+environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
+may omit it. Optional channels: `.feedIsEditing(_:)` shows the system navigation bar for the feed's
+toolbar (Home's undo/redo/Done), and `\.openFeed` selects another feed in place.
+
 ## Concurrency Model
 
 - Swift 6 strict concurrency is enabled.
@@ -162,6 +186,8 @@ Demo mode is a first-class feature, not an afterthought:
 - `AppRouter` reacts to `AuthManager` state changes automatically.
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.
+- `.authenticated` shows `MainNavigationView`: one `NavigationStack` whose root is the feed pager, with
+  the header and account button as overlays (see Feeds). Settings opens from the account button as a sheet.
 
 ## Data Flow
 

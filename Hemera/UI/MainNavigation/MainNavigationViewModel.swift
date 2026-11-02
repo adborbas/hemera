@@ -2,35 +2,42 @@ import Foundation
 
 @Observable
 @MainActor
-final class MainTabViewModel {
+final class MainNavigationViewModel {
 
-    let hasHomeTiles: Bool
+    struct Pill: Identifiable, Equatable {
+        let id: FeedID
+        let summary: FeedSummary
+    }
+
+    var selectedFeed: FeedID = .home
     private(set) var showOfflineBanner = false
 
+    let resolver: any FeedResolving
+
+    private let feedRow: [FeedID] = [.home, .areas]
     private let connectionStatusProvider: (any ConnectionStatusProviding)?
     private let offlineBannerDelay: Duration
     private var offlineBannerTask: Task<Void, Never>?
+
+    /// One per feed in the row that can be shown right now, in row order.
+    var pills: [Pill] {
+        feedRow.compactMap { id in
+            resolver.summary(for: id).map { Pill(id: id, summary: $0) }
+        }
+    }
 
     var isConnected: Bool {
         connectionStatusProvider?.isConnected ?? true
     }
 
     init(
+        resolver: any FeedResolving,
         connectionStatusProvider: (any ConnectionStatusProviding)?,
-        homeTileRepository: (any HomeTileRepository)?,
         offlineBannerDelay: Duration = .seconds(3)
     ) {
+        self.resolver = resolver
         self.connectionStatusProvider = connectionStatusProvider
-        self.hasHomeTiles = homeTileRepository?.hasAnyHomeTile() ?? false
         self.offlineBannerDelay = offlineBannerDelay
-    }
-
-    convenience init() {
-        let sl = ServiceLocator.shared
-        self.init(
-            connectionStatusProvider: sl.session?.connectionStatusProvider,
-            homeTileRepository: sl.session?.homeTileRepository
-        )
     }
 
     func updateBannerVisibility() {

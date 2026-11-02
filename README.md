@@ -10,7 +10,7 @@
 
 **Control** — Lights with brightness, color temperature, and color picking. Covers with position control and open/close/stop. Climate with HVAC modes, target temperature, and fan speed. Switches, buttons, scenes, and automations.
 
-**Dashboard** — Customizable tile grid with drag-and-drop reordering. Curated Home tab for your favorite entities and area-based browsing for everything else. Real-time state sync over WebSocket.
+**Dashboard** — Customizable tile grid with drag-and-drop reordering. Curated Home for your favorite entities and area-based browsing for everything else. Real-time state sync over WebSocket.
 
 **Display** — Stay-awake mode with configurable inactivity dimming. Full-screen clock for wall-mounted or bedside use. Configurable 12/24-hour time format.
 

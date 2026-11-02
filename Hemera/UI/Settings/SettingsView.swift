@@ -11,20 +11,9 @@ extension Bundle {
 
 struct SettingsView: View {
 
-    enum PresentationContext {
-        case sheet
-        case tab
-    }
-
     @Bindable var viewModel: SettingsViewModel
-    let presentationContext: PresentationContext
     @Environment(\.dismiss) private var dismiss
     @Environment(ScreenManager.self) private var screenManager
-
-    init(viewModel: SettingsViewModel, presentationContext: PresentationContext = .sheet) {
-        self.viewModel = viewModel
-        self.presentationContext = presentationContext
-    }
 
     var body: some View {
         NavigationStack(path: $viewModel.path) {
@@ -58,12 +47,10 @@ struct SettingsView: View {
             }
             .navigationTitle(Localization.settings)
             .toolbar {
-                if presentationContext == .sheet {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button { dismiss() } label: {
-                            Label(Localization.close, systemImage: "xmark")
-                                .labelStyle(.iconOnly)
-                        }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: {
+                        Label(Localization.close, systemImage: "xmark")
+                            .labelStyle(.iconOnly)
                     }
                 }
             }
@@ -94,7 +81,7 @@ struct SettingsView: View {
             .alert(Localization.logOutQuestion, isPresented: $viewModel.showLogoutConfirmation) {
                 Button(Localization.logOut, role: .destructive) {
                     viewModel.confirmLogout()
-                    if presentationContext == .sheet { dismiss() }
+                    dismiss()
                 }
                 Button(Localization.cancel, role: .cancel) {}
             } message: {
@@ -105,7 +92,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .interactiveDismissDisabled(presentationContext == .sheet)
+        .interactiveDismissDisabled()
     }
 
     private var demoModeHeader: some View {

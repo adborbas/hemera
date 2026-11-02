@@ -23,7 +23,7 @@ struct AppCoordinatorTests {
             settingsStore: env.settingsStore
         )
 
-        coordinator = AppCoordinator(sessionManager: sessionManager, authManager: authManager, router: router)
+        coordinator = AppCoordinator(sessionManager: sessionManager, router: router)
     }
 
     // MARK: - demoDidEnter

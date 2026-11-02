@@ -129,15 +129,24 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
         let demoStorage = SwiftDataStorage(context: demoContext)
         let tileRepo = SwiftDataHomeTileRepository(storage: demoStorage)
 
+        let errorNotifier = ErrorNotifier()
+        let resync: () async -> Void = { }
+
         ServiceLocator.shared.session = Session(
             container: demoContainer,
             connectionStatusProvider: DemoConnectionStatusProvider(),
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
+            feedResolver: makeFeedResolver(
+                homeTileRepository: tileRepo,
+                viewModelFactory: factory,
+                errorNotifier: errorNotifier,
+                resync: resync
+            ),
             mainContext: demoContext,
             restClient: DemoRESTClient(),
-            errorNotifier: ErrorNotifier(),
-            resync: { },
+            errorNotifier: errorNotifier,
+            resync: resync,
             sensorHistoryProvider: DemoSensorHistoryProvider()
         )
     }
@@ -226,15 +235,23 @@ private extension SessionManager {
             self?.resyncIfNeeded()
         }
 
+        let resync: () async -> Void = { [weak self] in await self?.performResync() }
+
         ServiceLocator.shared.session = Session(
             container: container,
             connectionStatusProvider: connectionManager,
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
+            feedResolver: makeFeedResolver(
+                homeTileRepository: tileRepo,
+                viewModelFactory: factory,
+                errorNotifier: errorNotifier,
+                resync: resync
+            ),
             mainContext: container.mainContext,
             restClient: restClient,
             errorNotifier: errorNotifier,
-            resync: { [weak self] in await self?.performResync() },
+            resync: resync,
             sensorHistoryProvider: SensorHistoryService(connectionManager: connectionManager)
         )
 
@@ -253,6 +270,38 @@ private extension SessionManager {
         wasBackgrounded = false
         clearServiceLocator()
         wipeLocalData()
+    }
+
+    func makeFeedResolver(
+        homeTileRepository: any HomeTileRepository,
+        viewModelFactory: ViewModelFactory,
+        errorNotifier: ErrorNotifier,
+        resync: @escaping () async -> Void
+    ) -> FeedResolver {
+        let sl = ServiceLocator.shared
+        let resolver = FeedResolver()
+        resolver.registerBuiltInFeeds(
+            home: CuratedHomeViewModel(
+                homeTileRepository: homeTileRepository,
+                viewModelFactory: viewModelFactory,
+                authManager: authManager,
+                demoCoordinator: sl.demoCoordinator,
+                errorNotifier: errorNotifier,
+                connectionRetrier: self,
+                resync: resync
+            ),
+            areas: AreasViewModel(
+                homeTileRepository: homeTileRepository,
+                viewModelFactory: viewModelFactory,
+                demoCoordinator: sl.demoCoordinator,
+                authManager: authManager,
+                store: sl.settingsStore,
+                errorNotifier: errorNotifier,
+                connectionRetrier: self,
+                resync: resync
+            )
+        )
+        return resolver
     }
 
     func clearServiceLocator() {

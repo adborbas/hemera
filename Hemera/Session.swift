@@ -12,6 +12,7 @@ struct Session {
     let connectionStatusProvider: any ConnectionStatusProviding
     let homeTileRepository: any HomeTileRepository
     let viewModelFactory: ViewModelFactory
+    let feedResolver: FeedResolver
     let mainContext: ModelContext
     let restClient: any HARESTClienting
     let errorNotifier: ErrorNotifier

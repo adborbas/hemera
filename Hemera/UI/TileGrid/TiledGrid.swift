@@ -84,6 +84,7 @@ struct TiledGrid<Content: View>: View {
                 }
                 .padding(.vertical, TileGridConstants.sectionPadding)
             }
+            .reportsFeedScroll()
         }
     }
 

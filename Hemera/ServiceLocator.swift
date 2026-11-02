@@ -9,7 +9,6 @@ final class ServiceLocator {
     let sessionManager: SessionManager
     let screenManager: ScreenManager
     let settingsStore: any SettingsStoring
-    var appCoordinator: AppCoordinator?
 
     /// Session-scoped dependencies. Non-nil when a session (HA or demo) is active.
     var session: Session?

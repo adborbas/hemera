@@ -42,93 +42,90 @@ struct CuratedHomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.isRetrying {
-                    ProgressView()
-                        .controlSize(.large)
-                } else if viewModel.syncFailed, isEmpty {
-                    SyncErrorView {
-                        viewModel.retrySyncAndReload()
+        Group {
+            if viewModel.isRetrying {
+                ProgressView()
+                    .controlSize(.large)
+            } else if viewModel.syncFailed, isEmpty {
+                SyncErrorView {
+                    viewModel.retrySyncAndReload()
+                }
+            } else if isEmpty {
+                HomeEmptyView()
+            } else {
+                TiledGrid(
+                    sections: sectionsBinding,
+                    isEditing: Binding(
+                        get: { viewModel.isEditing },
+                        set: { _ in /* edit-mode is driven by VM actions */ }
+                    ),
+                    onReorder: { previousOrder in
+                        viewModel.recordReorderUndo(previousOrder: previousOrder)
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     }
-                } else if isEmpty {
-                    HomeEmptyView()
-                } else {
-                    TiledGrid(
-                        sections: sectionsBinding,
-                        isEditing: Binding(
-                            get: { viewModel.isEditing },
-                            set: { _ in /* edit-mode is driven by VM actions */ }
-                        ),
-                        onReorder: { previousOrder in
-                            viewModel.recordReorderUndo(previousOrder: previousOrder)
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        }
-                    ) { tile in
-                        tileView(for: tile)
-                    }
-                    .onTapGesture {
-                        if viewModel.isEditing {
-                            withAnimation {
-                                viewModel.exitEditMode(commit: true)
-                            }
+                ) { tile in
+                    tileView(for: tile)
+                }
+                .onTapGesture {
+                    if viewModel.isEditing {
+                        withAnimation {
+                            viewModel.exitEditMode(commit: true)
                         }
                     }
                 }
             }
-            .refreshable {
-                await viewModel.refresh()
-            }
-            .navigationTitle(Localization.home)
-            .toolbar {
-                if viewModel.isEditing {
-                    ToolbarItemGroup(placement: .topBarLeading) {
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                viewModel.performUndo()
-                            }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        } label: {
-                            Label(Localization.undo, systemImage: "arrow.uturn.backward")
-                                .labelStyle(.iconOnly)
-                        }
-                        .disabled(!viewModel.canUndo)
-
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                viewModel.performRedo()
-                            }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        } label: {
-                            Label(Localization.redo, systemImage: "arrow.uturn.forward")
-                                .labelStyle(.iconOnly)
-                        }
-                        .disabled(!viewModel.canRedo)
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(Localization.done) {
-                            withAnimation {
-                                viewModel.exitEditMode(commit: true)
-                            }
-                        }
-                        .fontWeight(.semibold)
-                    }
-                }
-            }
-            .sheet(item: $overlayItem) { item in
-                item.viewModel.makeOverlayView(isPresented: $overlayItem.isPresented)
-                    .applyUnlessScreenshotMode {
-                        $0.navigationTransition(.zoom(sourceID: item.id, in: overlayTransition))
-                    }
-            }
-            .haWebViewCover(presenter: viewModel.haWebViewPresenter)
         }
+        .refreshable {
+            await viewModel.refresh()
+        }
+        .feedIsEditing(viewModel.isEditing)
+        .toolbar {
+            if viewModel.isEditing {
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            viewModel.performUndo()
+                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        Label(Localization.undo, systemImage: "arrow.uturn.backward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .disabled(!viewModel.canUndo)
+
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            viewModel.performRedo()
+                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        Label(Localization.redo, systemImage: "arrow.uturn.forward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .disabled(!viewModel.canRedo)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(Localization.done) {
+                        withAnimation {
+                            viewModel.exitEditMode(commit: true)
+                        }
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .sheet(item: $overlayItem) { item in
+            item.viewModel.makeOverlayView(isPresented: $overlayItem.isPresented)
+                .applyUnlessScreenshotMode {
+                    $0.navigationTransition(.zoom(sourceID: item.id, in: overlayTransition))
+                }
+        }
+        .haWebViewCover(presenter: viewModel.haWebViewPresenter)
         .task {
             viewModel.startFirstLoadTimer(tileCount: homeTiles.count)
         }
         .onDisappear {
-            // Leaving the tab mid-edit would otherwise strand the draft;
-            // commit, matching the tap-outside-to-exit behavior.
+            // Leaving the feed mid-edit would otherwise strand the draft; commit, as tapping outside does.
             if viewModel.isEditing {
                 viewModel.exitEditMode(commit: true)
             }
@@ -203,7 +200,6 @@ private extension CuratedHomeView {
 
 private extension CuratedHomeView {
     enum Localization {
-        static let home = String(localized: "Home", comment: "Navigation title for the Home screen showing pinned entities")
         static let done = String(localized: "Done", comment: "Button to commit layout edits and leave edit mode on the Home screen")
         static let undo = String(localized: "Undo", comment: "Toolbar button to undo the last layout edit")
         static let redo = String(localized: "Redo", comment: "Toolbar button to re-apply the last undone layout edit")
