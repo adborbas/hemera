@@ -20,7 +20,7 @@ final class ServerURLViewModel {
     init(
         mode: ServerAddressMode,
         urlChanger: any ServerURLChanging,
-        serverProbe: any ServerProbing = ServerProbe()
+        serverProbe: any ServerProbing
     ) {
         self.mode = mode
         self.urlChanger = urlChanger
@@ -33,7 +33,8 @@ final class ServerURLViewModel {
         let current = sl.authManager.credentials?.serverURL
         self.init(
             mode: current.map { .edit(current: $0) } ?? .initial,
-            urlChanger: sl.sessionManager
+            urlChanger: sl.sessionManager,
+            serverProbe: ServerProbe()
         )
     }
 

@@ -147,7 +147,10 @@ struct AuthenticatedWebView: UIViewRepresentable {
             let url = navigationAction.request.url
             guard originPolicy.allows(url) else {
                 decisionHandler(.cancel)
-                if let url { UIApplication.shared.open(url) }
+                // Only the web is handed over; any other scheme would deep-link into an installed app.
+                if let url, let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
+                    UIApplication.shared.open(url)
+                }
                 return
             }
             decisionHandler(.allow)

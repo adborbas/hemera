@@ -17,8 +17,8 @@ final class EntityRegistry: Sendable {
         let domain: String
         let entityType: any StoredEntity.Type
         let upsert: @Sendable (ModelContext, HAEntity) -> Void
-        let assignArea: @Sendable (AreaEntity, String, ModelContext) -> Bool
-        let assignDeviceId: @Sendable (String, String, ModelContext) -> Bool
+        let assignArea: @Sendable (AreaEntity, String, ModelContext) -> Void
+        let assignDeviceId: @Sendable (String, String, ModelContext) -> Void
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
         let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
         let applyHAHidden: @Sendable (Set<String>, ModelContext) -> Void
@@ -58,7 +58,6 @@ final class EntityRegistry: Sendable {
                 applyHAHidden: { hiddenEntityIds, context in
                     type.applyHAHidden(hiddenEntityIds: hiddenEntityIds, in: context)
                 }
-
             )
         }
     }
@@ -75,13 +74,13 @@ final class EntityRegistry: Sendable {
     /// Assigns an area to an entity by ID.
     func assignArea(_ area: AreaEntity, toEntityWithId entityId: String, in context: ModelContext) {
         guard let registration = registration(forEntityId: entityId) else { return }
-        _ = registration.assignArea(area, entityId, context)
+        registration.assignArea(area, entityId, context)
     }
 
     /// Assigns a device ID to an entity by its entity ID.
     func assignDeviceId(_ deviceId: String, toEntityWithId entityId: String, in context: ModelContext) {
         guard let registration = registration(forEntityId: entityId) else { return }
-        _ = registration.assignDeviceId(deviceId, entityId, context)
+        registration.assignDeviceId(deviceId, entityId, context)
     }
 
     /// HA ids are `"<domain>.<object>"`, so one lookup replaces a fetch per registered type.

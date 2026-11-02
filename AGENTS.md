@@ -117,7 +117,7 @@ Custom component library providing the visual foundation for the app. Always use
 
 1. Create `Hemera/Entities/<Domain>/` directory.
 2. Add `<Domain>Entity.swift` — `@Model` conforming to `StoredEntity` with `static let domain`, `update(from:)` and `entityIdPredicate(_:)`. The predicate must use `#Predicate` at the concrete type level (never in generic or protocol-extension scope).
-3. Add a `@Relationship(inverse: \<Domain>Entity.area)` property to `AreaEntity.swift`.
+3. Add a `@Relationship(inverse: \<Domain>Entity.area)` property to `AreaEntity.swift`, and include it in `hasHiddenEntity` in that file.
 4. Add `<Domain>Controlling.swift` — `@MainActor` protocol with domain-specific control methods (`func ... async`).
 5. Add `UI/<Domain>CardViewModel.swift` — `@Observable @MainActor final class` conforming to `EntityCardViewModel` with `makeCardView()` and optionally `makeOverlayView(isPresented:)`. Include a `static func registration(controller:) -> ViewModelFactory.Registration` method.
 6. Add `UI/<Domain>Card.swift` — SwiftUI view using `EntityCard` from Mortar.

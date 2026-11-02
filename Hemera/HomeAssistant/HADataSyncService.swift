@@ -543,9 +543,9 @@ final class HADataSyncService {
         let delay = eventSaveDelay
         pendingSave = Task { [weak self] in
             try? await Task.sleep(for: delay)
-            guard let self else { return }
+            // A cancelled timer has already been replaced; clearing the handle would lose it.
+            guard !Task.isCancelled, let self else { return }
             self.pendingSave = nil
-            guard !Task.isCancelled else { return }
             self.saveBatch("state_changed burst")
         }
     }
