@@ -12,38 +12,15 @@ struct TokenRefresherTests {
 
     // MARK: - Expiry buffer
 
-    @Test
-    func validToken_withPlentyOfTimeLeft_returnsTheExistingTokenWithoutRefreshing() async throws {
+    /// A token within 60 seconds of expiry is still valid, but too close to hand to a caller.
+    @Test(arguments: [(600.0, "old-access", 0), (30.0, "new-access", 1), (-600.0, "new-access", 1)])
+    func validToken_byTimeLeft(secondsLeft: TimeInterval, expected: String, refreshes: Int) async throws {
         let spy = RefreshSpy()
-        let refresher = TokenRefresher(keychainStore: MockKeychainStore(), refreshToken: spy.refresh)
 
-        let (token, _) = try await refresher.validToken(for: credentials(expiringIn: 600))
+        let (token, _) = try await makeRefresher(spy).validToken(for: credentials(expiringIn: secondsLeft))
 
-        #expect(token == "old-access")
-        #expect(spy.callCount == 0)
-    }
-
-    /// A token inside the 60-second buffer is still valid but too close to expiry to hand out.
-    @Test
-    func validToken_insideTheSixtySecondBuffer_refreshes() async throws {
-        let spy = RefreshSpy()
-        let refresher = TokenRefresher(keychainStore: MockKeychainStore(), refreshToken: spy.refresh)
-
-        let (token, _) = try await refresher.validToken(for: credentials(expiringIn: 30))
-
-        #expect(token == "new-access")
-        #expect(spy.callCount == 1)
-    }
-
-    @Test
-    func validToken_whenAlreadyExpired_refreshes() async throws {
-        let spy = RefreshSpy()
-        let refresher = TokenRefresher(keychainStore: MockKeychainStore(), refreshToken: spy.refresh)
-
-        let (token, _) = try await refresher.validToken(for: credentials(expiringIn: -600))
-
-        #expect(token == "new-access")
-        #expect(spy.callCount == 1)
+        #expect(token == expected)
+        #expect(spy.callCount == refreshes)
     }
 
     // MARK: - Coalescing
@@ -52,7 +29,7 @@ struct TokenRefresherTests {
     @Test
     func validToken_withTwoConcurrentCallers_refreshesOnlyOnce() async throws {
         let spy = RefreshSpy(delay: .milliseconds(100))
-        let refresher = TokenRefresher(keychainStore: MockKeychainStore(), refreshToken: spy.refresh)
+        let refresher = makeRefresher(spy)
         let expired = credentials(expiringIn: -600)
 
         async let first = refresher.validToken(for: expired)
@@ -69,7 +46,7 @@ struct TokenRefresherTests {
     @Test
     func validToken_afterRefreshing_persistsTheNewCredentials() async throws {
         let store = MockKeychainStore()
-        let refresher = TokenRefresher(keychainStore: store, refreshToken: RefreshSpy().refresh)
+        let refresher = makeRefresher(store: store)
 
         _ = try await refresher.validToken(for: credentials(expiringIn: -600))
 
@@ -80,7 +57,7 @@ struct TokenRefresherTests {
     @Test
     func validToken_whenTheKeychainWriteFails_stillReturnsTheNewToken() async throws {
         let store = MockKeychainStore(saveError: MockKeychainError())
-        let refresher = TokenRefresher(keychainStore: store, refreshToken: RefreshSpy().refresh)
+        let refresher = makeRefresher(store: store)
 
         let (token, _) = try await refresher.validToken(for: credentials(expiringIn: -600))
 
@@ -109,7 +86,7 @@ struct TokenRefresherTests {
     @Test
     func validToken_afterAFailedRefresh_refreshesAgainOnTheNextCall() async throws {
         let spy = RefreshSpy(failFirstCall: true)
-        let refresher = TokenRefresher(keychainStore: MockKeychainStore(), refreshToken: spy.refresh)
+        let refresher = makeRefresher(spy)
         let expired = credentials(expiringIn: -600)
 
         await #expect(throws: (any Error).self) {
@@ -122,6 +99,13 @@ struct TokenRefresherTests {
     }
 
     // MARK: - Helpers
+
+    private func makeRefresher(
+        _ spy: RefreshSpy = RefreshSpy(),
+        store: MockKeychainStore = MockKeychainStore()
+    ) -> TokenRefresher {
+        TokenRefresher(keychainStore: store, refreshToken: spy.refresh)
+    }
 
     private func credentials(expiringIn seconds: TimeInterval) -> ServerCredentials {
         ServerCredentials(

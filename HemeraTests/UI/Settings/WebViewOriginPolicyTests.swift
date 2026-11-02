@@ -20,8 +20,9 @@ struct WebViewOriginPolicyTests {
      frontend reaches pages like `home-assistant.io` by a single link tap.
     */
     @Test
-    func allowsOrigin_differentHost_isFalse() {
+    func allowsOrigin_differentHostOrPort_isFalse() {
         #expect(!policy.allows(scheme: "http", host: "evil.example", port: 8123))
+        #expect(!policy.allows(scheme: "http", host: "ha.local", port: 9000))
     }
 
     /// A proxy redirecting the document to https is the same server; refusing it blanks the page.
@@ -42,11 +43,6 @@ struct WebViewOriginPolicyTests {
     }
 
     @Test
-    func allowsOrigin_differentPort_isFalse() {
-        #expect(!policy.allows(scheme: "http", host: "ha.local", port: 9000))
-    }
-
-    @Test
     func allowsOrigin_hostDifferingOnlyByCase_isTrue() {
         #expect(policy.allows(scheme: "HTTP", host: "HA.Local", port: 8123))
     }
@@ -63,12 +59,8 @@ struct WebViewOriginPolicyTests {
     // MARK: - Navigation targets
 
     @Test
-    func allowsURL_sameOrigin_isTrue() {
+    func allowsURL_sameOriginOrItsHTTPSUpgrade_isTrue() {
         #expect(policy.allows(URL(string: "http://ha.local:8123/lovelace/0")!))
-    }
-
-    @Test
-    func allowsURL_httpsUpgradeOfTheSameAddress_isTrue() {
         #expect(policy.allows(URL(string: "https://ha.local:8123/lovelace/0")!))
     }
 
