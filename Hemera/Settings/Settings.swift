@@ -14,4 +14,8 @@ struct Settings: Codable, Equatable, Sendable {
     // MARK: - Areas
 
     var areasGroupedByFloor = true
+
+    // MARK: - Updates
+
+    var skippedVersion: String?
 }

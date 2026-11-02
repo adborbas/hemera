@@ -1,9 +1,11 @@
 import Foundation
 import HemeraLog
 
-struct AvailableUpdate: Equatable {
+struct AvailableUpdate: Equatable, Identifiable {
     let version: String
     let appStoreId: Int
+
+    var id: String { version }
 }
 
 /// Nudges a Kiosk Mode device to update, because iOS never updates an app that stays in the foreground.
@@ -26,8 +28,12 @@ final class UpdateNudge {
 
     private var dueUpdate: AvailableUpdate?
     private var behindSince: Date?
+    private var skippedVersion: String? {
+        didSet { store.settings.skippedVersion = skippedVersion }
+    }
 
     private let lookup: any AppStoreLookup
+    private let store: any SettingsStoring
     private let screenManager: ScreenManager
     private let now: () -> Date
     private let installedVersion: String
@@ -40,6 +46,7 @@ final class UpdateNudge {
 
     init(
         lookup: any AppStoreLookup,
+        store: any SettingsStoring,
         screenManager: ScreenManager,
         now: @escaping () -> Date = { .now },
         installedVersion: String,
@@ -47,11 +54,13 @@ final class UpdateNudge {
         buildMayCheck: Bool
     ) {
         self.lookup = lookup
+        self.store = store
         self.screenManager = screenManager
         self.now = now
         self.installedVersion = installedVersion
         self.osVersion = osVersion
         self.buildMayCheck = buildMayCheck
+        self.skippedVersion = store.settings.skippedVersion
     }
 
     // MARK: - Public Methods
@@ -92,9 +101,17 @@ final class UpdateNudge {
         let deviceIsStale = now.timeIntervalSince(behindSince) >= Self.gracePeriod
         let osSupported = Self.compare(osVersion, release.minimumOsVersion) != .orderedAscending
 
-        dueUpdate = osSupported && (releaseIsSettled || deviceIsStale)
+        dueUpdate = release.version != skippedVersion && osSupported && (releaseIsSettled || deviceIsStale)
             ? AvailableUpdate(version: release.version, appStoreId: release.trackId)
             : nil
+    }
+
+    /// Restarts the behind-since clock, so a newer version waits a week from now, not from first seen.
+    func skip() {
+        guard let dueUpdate else { return }
+        skippedVersion = dueUpdate.version
+        self.dueUpdate = nil
+        behindSince = now()
     }
 
     func checkDaily() async {

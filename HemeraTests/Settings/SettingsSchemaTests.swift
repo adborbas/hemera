@@ -23,6 +23,18 @@ struct SettingsSchemaTests {
     }
     """
 
+    /// v1 once a version has been skipped; the key is absent while it is `nil`.
+    static let v1SkippedVersion = """
+    {
+      "areasGroupedByFloor" : true,
+      "clockFormat" : 0,
+      "dimTimeout" : 30,
+      "schemaVersion" : 1,
+      "skippedVersion" : "1.2",
+      "stayAwake" : true
+    }
+    """
+
     let defaults: UserDefaults
 
     init() {
@@ -50,5 +62,24 @@ struct SettingsSchemaTests {
         let written = defaults.string(forKey: UserDefaultsSettingsStore.storageKey)
 
         #expect(written == Self.v1)
+    }
+
+    @Test func v1SkippedVersion_decodes() {
+        defaults.set(Self.v1SkippedVersion, forKey: UserDefaultsSettingsStore.storageKey)
+
+        let settings = UserDefaultsSettingsStore(defaults: defaults).settings
+
+        #expect(settings.skippedVersion == "1.2")
+        #expect(settings.stayAwake == true)
+    }
+
+    @Test func currentEncoding_withSkippedVersion_matchesV1SkippedVersion() {
+        let store = UserDefaultsSettingsStore(defaults: defaults)
+        store.settings.stayAwake = true
+        store.settings.skippedVersion = "1.2"
+
+        let written = defaults.string(forKey: UserDefaultsSettingsStore.storageKey)
+
+        #expect(written == Self.v1SkippedVersion)
     }
 }

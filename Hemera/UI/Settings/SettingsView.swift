@@ -19,6 +19,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(ScreenManager.self) private var screenManager
     @Environment(UpdateNudge.self) private var updateNudge
+    @State private var presentedUpdate: AvailableUpdate?
 
     init(viewModel: SettingsViewModel, presentationContext: PresentationContext = .sheet) {
         self.viewModel = viewModel
@@ -160,7 +161,14 @@ struct SettingsView: View {
     private var aboutSection: some View {
         Section(Localization.about) {
             LabeledContent {
-                Text(Bundle.main.appVersion)
+                HStack(spacing: Mortar.Spacing.s) {
+                    Text(Bundle.main.appVersion)
+                    if updateNudge.availableUpdate != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             } label: {
                 Text(Localization.version)
                 if let update = updateNudge.availableUpdate {
@@ -169,8 +177,20 @@ struct SettingsView: View {
                         .foregroundStyle(Color.warning)
                 }
             }
+            .contentShape(Rectangle())
             .onTapGesture {
-                viewModel.versionTapped()
+                if let update = updateNudge.availableUpdate {
+                    presentedUpdate = update
+                } else {
+                    viewModel.versionTapped()
+                }
+            }
+            .accessibilityAddTraits(updateNudge.availableUpdate == nil ? [] : .isButton)
+            .sheet(item: $presentedUpdate) { update in
+                UpdateSheet(update: update, installedVersion: Bundle.main.appVersion) {
+                    updateNudge.skip()
+                    presentedUpdate = nil
+                }
             }
             NavigationLink(Localization.acknowledgements) {
                 AcknowledgementsView()
