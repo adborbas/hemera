@@ -59,7 +59,7 @@ private struct PillRow: View {
                     PinMenu(unpinnedFeeds: unpinnedFeeds, onPin: onPin)
                 }
                 // Selection changes from swipes aren't animated, so the highlight animates itself.
-                .animation(reduceMotion ? nil : Mortar.Motion.springNormal, value: selection)
+                .animation(reduceMotion ? nil : Mortar.Motion.springElastic, value: selection)
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.vertical, Mortar.Spacing.xs)
             }

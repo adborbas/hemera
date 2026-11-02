@@ -14,6 +14,8 @@ extension Mortar {
         public static var springBouncy: Animation { .spring(duration: slow, bounce: 0.15) }
         /// Entrance-quality spring — slightly longer than springBouncy for visual settling.
         public static var springSnappy: Animation { .spring(duration: 0.35, bounce: 0.12) }
+        /// Overshoots and wobbles before settling, like a stretched sponge.
+        public static var springElastic: Animation { .spring(duration: 0.5, bounce: 0.45) }
 
         /// Points per second an activity indicator's segment travels — one lap of a small tile in ~1.5s.
         public static let borderTravelSpeed: CGFloat = 375
