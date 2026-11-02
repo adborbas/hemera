@@ -8,6 +8,7 @@ final class ServiceLocator {
     let demoCoordinator: any DemoCoordinating
     let sessionManager: SessionManager
     let screenManager: ScreenManager
+    let updateNudge: UpdateNudge
     let settingsStore: any SettingsStoring
 
     /// Session-scoped dependencies. Non-nil when a session (HA or demo) is active.
@@ -28,6 +29,7 @@ final class ServiceLocator {
         demoCoordinator: any DemoCoordinating,
         sessionManager: SessionManager,
         screenManager: ScreenManager,
+        updateNudge: UpdateNudge,
         settingsStore: any SettingsStoring
     ) {
         _shared = ServiceLocator(
@@ -36,16 +38,18 @@ final class ServiceLocator {
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
             screenManager: screenManager,
+            updateNudge: updateNudge,
             settingsStore: settingsStore
         )
     }
 
-    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, settingsStore: any SettingsStoring) {
+    private init(authManager: any AuthManaging, router: AppRouter, demoCoordinator: any DemoCoordinating, sessionManager: SessionManager, screenManager: ScreenManager, updateNudge: UpdateNudge, settingsStore: any SettingsStoring) {
         self.authManager = authManager
         self.router = router
         self.demoCoordinator = demoCoordinator
         self.sessionManager = sessionManager
         self.screenManager = screenManager
+        self.updateNudge = updateNudge
         self.settingsStore = settingsStore
     }
 
@@ -68,6 +72,7 @@ final class ServiceLocator {
             demoCoordinator: demoCoordinator,
             sessionManager: sessionManager,
             screenManager: env.screenManager,
+            updateNudge: env.updateNudge,
             settingsStore: env.settingsStore
         )
 

@@ -20,6 +20,7 @@ struct AppCoordinatorTests {
             demoCoordinator: DemoCoordinator(),
             sessionManager: sessionManager,
             screenManager: env.screenManager,
+            updateNudge: env.updateNudge,
             settingsStore: env.settingsStore
         )
 

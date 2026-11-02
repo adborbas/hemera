@@ -27,7 +27,7 @@ struct HemeraApp: App {
         let appCoordinator = AppCoordinator(sessionManager: sessionManager, router: rtr)
         demoCoordinator.delegate = appCoordinator
 
-        ServiceLocator.configure(authManager: auth, router: rtr, demoCoordinator: demoCoordinator, sessionManager: sessionManager, screenManager: env.screenManager, settingsStore: env.settingsStore)
+        ServiceLocator.configure(authManager: auth, router: rtr, demoCoordinator: demoCoordinator, sessionManager: sessionManager, screenManager: env.screenManager, updateNudge: env.updateNudge, settingsStore: env.settingsStore)
 
         // Start session for returning authenticated users — must be after ServiceLocator.configure()
         sessionManager.startIfAuthenticated()
@@ -61,10 +61,15 @@ struct HemeraApp: App {
                 .scrollIndicators(.hidden)
                 .modelContainer(environment.container)
                 .environment(environment.screenManager)
+                .environment(environment.updateNudge)
+                .task { await environment.updateNudge.checkDaily() }
                 .onChange(of: scenePhase) { _, newPhase in
                     Log.info("Scene phase: \(newPhase.label)")
                     environment.screenManager.handleScenePhase(newPhase)
                     sessionManager.handleScenePhase(newPhase)
+                    if newPhase == .active {
+                        Task { await environment.updateNudge.check() }
+                    }
                 }
         }
     }
