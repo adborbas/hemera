@@ -13,7 +13,7 @@ struct TokenRefresherTests {
     // MARK: - Expiry buffer
 
     /// A token within 60 seconds of expiry is still valid, but too close to hand to a caller.
-    @Test(arguments: [(600.0, "old-access", 0), (30.0, "new-access", 1), (-600.0, "new-access", 1)])
+    @Test(arguments: [(61.0, "old-access", 0), (30.0, "new-access", 1), (-600.0, "new-access", 1)])
     func validToken_byTimeLeft(secondsLeft: TimeInterval, expected: String, refreshes: Int) async throws {
         let spy = RefreshSpy()
 

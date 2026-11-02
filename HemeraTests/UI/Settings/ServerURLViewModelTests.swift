@@ -106,22 +106,11 @@ struct ServerURLViewModelTests {
      The whole point: committing an address proves it by sending it this session's refresh token,
      so an address that has not answered as Home Assistant must never reach the changer.
     */
-    @Test func save_whenAddressIsNotHomeAssistant_sendsNoTokenAndReports() async {
+    @Test(arguments: [AuthError.notHomeAssistant, AuthError.serverUnreachable])
+    func save_whenTheProbeFails_sendsNoTokenAndReports(error: AuthError) async {
         let spy = SpyURLChanger()
-        let viewModel = makeViewModel(urlChanger: spy, probe: .failing(AuthError.notHomeAssistant))
+        let viewModel = makeViewModel(urlChanger: spy, probe: .failing(error))
         viewModel.text = "https://router.example.com"
-
-        let result = await viewModel.submit()
-
-        #expect(!result)
-        #expect(spy.changeCalls.isEmpty)
-        #expect(viewModel.errorMessage != nil)
-    }
-
-    @Test func save_whenProbeCannotReachTheAddress_sendsNoToken() async {
-        let spy = SpyURLChanger()
-        let viewModel = makeViewModel(urlChanger: spy, probe: .failing(AuthError.serverUnreachable))
-        viewModel.text = "https://192.168.1.250:8123"
 
         let result = await viewModel.submit()
 
