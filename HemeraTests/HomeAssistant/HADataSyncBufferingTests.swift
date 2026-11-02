@@ -154,7 +154,7 @@ struct HADataSyncBufferingTests {
         service.flushBufferedEvents()
 
         service.handleStateChanged(try lightEvent(entityId: "light.a", state: "on"))
-        try await Task.sleep(for: .milliseconds(500))
+        await service.pendingSave?.value
 
         #expect(!context.hasChanges)
     }

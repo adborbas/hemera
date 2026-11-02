@@ -39,7 +39,8 @@ final class HADataSyncService {
     */
     static let defaultEventSaveDelay: Duration = .milliseconds(250)
     private let eventSaveDelay: Duration
-    private var pendingSave: Task<Void, Never>?
+    /// Readable so a test can await the coalesced save rather than sleeping past its window.
+    private(set) var pendingSave: Task<Void, Never>?
 
     /**
      Guards the real-time path until the initial snapshot has been applied.
