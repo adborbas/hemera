@@ -6,6 +6,7 @@ struct MainTabView: View {
 
     @State private var selectedTab: Tab
     @Environment(ScreenManager.self) private var screenManager
+    @Environment(UpdateNudge.self) private var updateNudge
 
     let viewModel: MainTabViewModel
     private let tabViewModels: TabViewModels
@@ -18,6 +19,7 @@ struct MainTabView: View {
             preconditionFailure("MainTabView requires AppCoordinator to have built tab VMs")
         }
         self.tabViewModels = vms
+        Self.colorBadgesAsWarnings()
     }
 
     var body: some View {
@@ -40,6 +42,8 @@ struct MainTabView: View {
                 .tabItem {
                     Label(Localization.settings, systemImage: "gearshape")
                 }
+                // An empty badge renders as a dot.
+                .badge(updateNudge.availableUpdate == nil ? nil : Text(""))
                 .tag(Tab.settings)
                 .accessibilityIdentifier("settingsTab")
         }
@@ -94,6 +98,22 @@ private extension OfflineBanner {
 }
 
 private extension MainTabView {
+    // SwiftUI ignores `UITabBarItem.badgeColor`; only the bar appearance recolours badges.
+    static func colorBadgesAsWarnings() {
+        let appearance = UITabBarAppearance()
+        let layouts = [
+            appearance.stackedLayoutAppearance,
+            appearance.inlineLayoutAppearance,
+            appearance.compactInlineLayoutAppearance
+        ]
+        for layout in layouts {
+            layout.normal.badgeBackgroundColor = UIColor(Color.warning)
+            layout.selected.badgeBackgroundColor = UIColor(Color.warning)
+        }
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+
     enum Tab: Hashable {
         case home
         case areas
