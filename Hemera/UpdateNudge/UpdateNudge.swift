@@ -21,8 +21,13 @@ final class UpdateNudge {
     }
 
     #if DEBUG
-    var fakesAppStoreUpdate = false {
-        didSet { Task { await check() } }
+    static let fakeUpdateKey = "debug.fakesAppStoreUpdate"
+
+    var fakesAppStoreUpdate = UserDefaults.standard.bool(forKey: UpdateNudge.fakeUpdateKey) {
+        didSet {
+            UserDefaults.standard.set(fakesAppStoreUpdate, forKey: Self.fakeUpdateKey)
+            Task { await check() }
+        }
     }
     #endif
 
@@ -74,7 +79,9 @@ final class UpdateNudge {
             mayCheck = { true }
         }
         #endif
-        guard screenManager.stayAwake, await mayCheck() else {
+        let kioskModeOn = screenManager.stayAwake
+        guard kioskModeOn, await mayCheck() else {
+            Log.info("Update check skipped (Kiosk Mode \(kioskModeOn ? "on" : "off"))")
             dueUpdate = nil
             return
         }
@@ -88,6 +95,7 @@ final class UpdateNudge {
         }
 
         guard let release, Self.compare(release.version, installedVersion) == .orderedDescending else {
+            Log.info("Update check: up to date (latest \(release?.version ?? "none"))")
             behindSince = nil
             dueUpdate = nil
             return
@@ -104,6 +112,7 @@ final class UpdateNudge {
         dueUpdate = release.version != skippedVersion && osSupported && (releaseIsSettled || deviceIsStale)
             ? AvailableUpdate(version: release.version, appStoreId: release.trackId)
             : nil
+        Log.info("Update check: latest \(release.version), installed \(installedVersion), due \(dueUpdate != nil)")
     }
 
     /// Restarts the behind-since clock, so a newer version waits a week from now, not from first seen.
