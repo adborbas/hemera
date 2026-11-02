@@ -34,12 +34,12 @@ struct SessionManagerTests {
             sessionManager: sessionManager,
             screenManager: screenManager,
             updateNudge: UpdateNudge(
-                lookup: NoAppStoreRelease(),
+                lookup: AppStoreClient(),
                 store: InMemorySettingsStore(),
                 screenManager: screenManager,
                 installedVersion: "1.0",
                 osVersion: "18.0",
-                buildMayCheck: false
+                mayCheck: { false }
             ),
             settingsStore: InMemorySettingsStore()
         )

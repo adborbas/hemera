@@ -38,7 +38,7 @@ final class UpdateNudge {
     private let now: () -> Date
     private let installedVersion: String
     private let osVersion: String
-    private let buildMayCheck: Bool
+    private let mayCheck: () async -> Bool
 
     private static let gracePeriod: TimeInterval = 7 * 24 * 60 * 60
 
@@ -51,7 +51,7 @@ final class UpdateNudge {
         now: @escaping () -> Date = { .now },
         installedVersion: String,
         osVersion: String,
-        buildMayCheck: Bool
+        mayCheck: @escaping () async -> Bool
     ) {
         self.lookup = lookup
         self.store = store
@@ -59,7 +59,7 @@ final class UpdateNudge {
         self.now = now
         self.installedVersion = installedVersion
         self.osVersion = osVersion
-        self.buildMayCheck = buildMayCheck
+        self.mayCheck = mayCheck
         self.skippedVersion = store.settings.skippedVersion
     }
 
@@ -67,14 +67,14 @@ final class UpdateNudge {
 
     func check() async {
         var lookup = lookup
-        var mayCheck = buildMayCheck
+        var mayCheck = mayCheck
         #if DEBUG
         if fakesAppStoreUpdate {
             lookup = FakeAppStoreLookup()
-            mayCheck = true
+            mayCheck = { true }
         }
         #endif
-        guard screenManager.stayAwake, mayCheck else {
+        guard screenManager.stayAwake, await mayCheck() else {
             dueUpdate = nil
             return
         }

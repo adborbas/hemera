@@ -26,7 +26,7 @@ struct UpdateNudgeTests {
             now: { [clock] in clock.now },
             installedVersion: installed,
             osVersion: os,
-            buildMayCheck: true
+            mayCheck: { true }
         )
     }
 
