@@ -10,15 +10,18 @@ struct UpdateNudgeTests {
 
     private let lookup = StubAppStoreLookup()
     private let clock = TestClock(now: UpdateNudgeTests.start)
-    private let screenManager = ScreenManager(store: InMemorySettingsStore())
+    private let store = InMemorySettingsStore()
+    private let screenManager: ScreenManager
 
     init() {
+        screenManager = ScreenManager(store: store)
         screenManager.stayAwake = true
     }
 
     private func makeNudge(installed: String = "1.0", os: String = "18.0") -> UpdateNudge {
         UpdateNudge(
             lookup: lookup,
+            store: store,
             screenManager: screenManager,
             now: { [clock] in clock.now },
             installedVersion: installed,
@@ -127,6 +130,56 @@ struct UpdateNudgeTests {
 
         #expect(lookup.callCount == 0)
         #expect(nudge.availableUpdate == nil)
+    }
+
+    // MARK: - Skip
+
+    /// An owner who chose to stay on a version must not be nagged about it again, even after relaunch.
+    @Test func skip_sameVersion_staysQuietAcrossRelaunch() async {
+        lookup.result = .success(release("1.1", daysOld: 30))
+        let nudge = makeNudge()
+        await nudge.check()
+        nudge.skip()
+        #expect(nudge.availableUpdate == nil)
+
+        await nudge.check()
+        #expect(nudge.availableUpdate == nil)
+
+        let relaunched = makeNudge()
+        await relaunched.check()
+        #expect(relaunched.availableUpdate == nil)
+    }
+
+    /// Without restarting the clock, a stale device would nag again with the next fresh release.
+    @Test func skip_newerFreshVersion_waitsAWeekFromSkip() async {
+        let nudge = makeNudge()
+        lookup.result = .success(release("1.1", daysOld: 0))
+        await nudge.check()
+        clock.now += 7 * Self.day
+        await nudge.check()
+        nudge.skip()
+
+        clock.now += 1 * Self.day
+        lookup.result = .success(release("1.2", daysOld: 0))
+        await nudge.check()
+        #expect(nudge.availableUpdate == nil)
+
+        clock.now += 6 * Self.day
+        await nudge.check()
+        #expect(nudge.availableUpdate?.version == "1.2")
+    }
+
+    /// Skipping one version is not opting out: a settled newer release nudges straight away.
+    @Test func skip_newerVersionAWeekOld_isDue() async {
+        lookup.result = .success(release("1.1", daysOld: 30))
+        let nudge = makeNudge()
+        await nudge.check()
+        nudge.skip()
+
+        lookup.result = .success(release("1.2", daysOld: 7))
+        await nudge.check()
+
+        #expect(nudge.availableUpdate?.version == "1.2")
     }
 
     // MARK: - Failures

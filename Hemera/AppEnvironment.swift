@@ -45,6 +45,7 @@ final class AppEnvironment {
         self.screenManager = ScreenManager(store: settingsStore)
         self.updateNudge = UpdateNudge(
             lookup: NoAppStoreRelease(),
+            store: settingsStore,
             screenManager: screenManager,
             installedVersion: Bundle.main.appVersion,
             osVersion: UIDevice.current.systemVersion,

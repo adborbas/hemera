@@ -21,4 +21,8 @@ struct Settings: Codable, Equatable, Sendable {
     var feedRow: [FeedID]?
     /// Built-ins already added to the row once, so one the user removed stays removed.
     var offeredBuiltInFeeds = FeedID.builtIns
+
+    // MARK: - Updates
+
+    var skippedVersion: String?
 }

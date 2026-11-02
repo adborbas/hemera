@@ -35,6 +35,7 @@ struct SessionManagerTests {
             screenManager: screenManager,
             updateNudge: UpdateNudge(
                 lookup: NoAppStoreRelease(),
+                store: InMemorySettingsStore(),
                 screenManager: screenManager,
                 installedVersion: "1.0",
                 osVersion: "18.0",
