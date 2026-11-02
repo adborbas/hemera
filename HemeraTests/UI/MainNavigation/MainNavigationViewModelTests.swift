@@ -227,6 +227,28 @@ struct MainNavigationViewModelTests {
         #expect(viewModel.showOfflineBanner == false)
     }
 
+    // MARK: - Title
+
+    @Test func title_beforeHomeNameLoads_isHome() {
+        // The header must never show an empty title while the config request is in flight or failed.
+        let viewModel = makeViewModel(homeProfile: HomeProfile(homeName: nil))
+
+        #expect(viewModel.title == "Home")
+    }
+
+    @Test func title_withBlankLocationName_isHome() {
+        // Home Assistant allows clearing the location name; a blank title would look broken.
+        #expect(makeViewModel(homeProfile: HomeProfile(homeName: "")).title == "Home")
+        #expect(makeViewModel(homeProfile: HomeProfile(homeName: "  ")).title == "Home")
+    }
+
+    @Test func title_withLocationName_showsIt() {
+        // The title tells the user which home they are looking at.
+        let viewModel = makeViewModel(homeProfile: HomeProfile(homeName: "Lake House"))
+
+        #expect(viewModel.title == "Lake House")
+    }
+
     private let kitchen = FeedID.area("kitchen")
 
     private func makeViewModel(
@@ -234,7 +256,8 @@ struct MainNavigationViewModelTests {
         store: InMemorySettingsStore? = nil,
         row: [FeedID]? = nil,
         provider: (any ConnectionStatusProviding)? = nil,
-        delay: Duration = .seconds(3)
+        delay: Duration = .seconds(3),
+        homeProfile: HomeProfile? = nil
     ) -> MainNavigationViewModel {
         let store = store ?? InMemorySettingsStore()
         if let row {
@@ -243,6 +266,7 @@ struct MainNavigationViewModelTests {
         return MainNavigationViewModel(
             resolver: resolver ?? StubFeedResolver(),
             store: store,
+            homeProfile: homeProfile ?? HomeProfile(),
             connectionStatusProvider: provider,
             offlineBannerDelay: delay
         )

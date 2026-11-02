@@ -13,6 +13,7 @@ struct Session {
     let homeTileRepository: any HomeTileRepository
     let viewModelFactory: ViewModelFactory
     let feedResolver: FeedResolver
+    let homeProfile: HomeProfile
     let mainContext: ModelContext
     let restClient: any HARESTClienting
     let errorNotifier: ErrorNotifier

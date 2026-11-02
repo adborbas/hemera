@@ -26,6 +26,8 @@ struct FeedHeader: View {
             .padding(.trailing, Mortar.TapTarget.minimum + Mortar.Spacing.s * 2)
             Text(title)
                 .font(.largeTitle.bold())
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .accessibilityAddTraits(.isHeader)
                 .padding(.horizontal, Mortar.Spacing.l)
             PillRow(

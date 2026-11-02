@@ -144,6 +144,10 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
                 errorNotifier: errorNotifier,
                 resync: resync
             ),
+            homeProfile: HomeProfile(
+                homeName: "Maple House",
+                account: Account(name: "Alex Morgan", role: .owner, pictureURL: nil)
+            ),
             mainContext: demoContext,
             restClient: DemoRESTClient(),
             errorNotifier: errorNotifier,
@@ -237,6 +241,7 @@ private extension SessionManager {
         }
 
         let resync: () async -> Void = { [weak self] in await self?.performResync() }
+        let homeProfile = HomeProfile()
 
         ServiceLocator.shared.session = Session(
             container: container,
@@ -250,6 +255,7 @@ private extension SessionManager {
                 errorNotifier: errorNotifier,
                 resync: resync
             ),
+            homeProfile: homeProfile,
             mainContext: container.mainContext,
             restClient: restClient,
             errorNotifier: errorNotifier,
@@ -259,6 +265,7 @@ private extension SessionManager {
 
         connectionManager.connect()
         syncService.start()
+        Task { await homeProfile.load(over: connectionManager.connection, baseURL: urlHolder.current) }
         Log.info("Session started — WebSocket connecting")
     }
 

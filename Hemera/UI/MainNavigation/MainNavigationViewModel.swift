@@ -15,6 +15,7 @@ final class MainNavigationViewModel {
     private(set) var showOfflineBanner = false
 
     let resolver: any FeedResolving
+    let homeProfile: HomeProfile
 
     /// Unknown and unresolvable IDs stay in here, so a sync gap or a downgrade never loses a pin.
     private(set) var feedRow: [FeedID]? {
@@ -40,6 +41,14 @@ final class MainNavigationViewModel {
         resolver.pinnableFeeds.filter { !row.contains($0) }.compactMap(pill(for:))
     }
 
+    /// Home Assistant's location name, or "Home" until it loads or when the server has none.
+    var title: String {
+        guard let name = homeProfile.homeName, !name.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return Localization.defaultTitle
+        }
+        return name
+    }
+
     var isConnected: Bool {
         connectionStatusProvider?.isConnected ?? true
     }
@@ -47,11 +56,13 @@ final class MainNavigationViewModel {
     init(
         resolver: any FeedResolving,
         store: any SettingsStoring,
+        homeProfile: HomeProfile,
         connectionStatusProvider: (any ConnectionStatusProviding)?,
         offlineBannerDelay: Duration = .seconds(3)
     ) {
         self.resolver = resolver
         self.store = store
+        self.homeProfile = homeProfile
 
         // Built-ins added since the last launch go last, once; one the user removed stays removed.
         var settings = store.settings
@@ -102,5 +113,11 @@ final class MainNavigationViewModel {
 private extension MainNavigationViewModel {
     func pill(for id: FeedID) -> Pill? {
         resolver.summary(for: id).map { Pill(id: id, summary: $0) }
+    }
+}
+
+private extension MainNavigationViewModel {
+    enum Localization {
+        static let defaultTitle = String(localized: "Home", comment: "Large title above the feeds on the main screen")
     }
 }

@@ -20,6 +20,7 @@ struct MainNavigationView: View {
         _viewModel = State(initialValue: MainNavigationViewModel(
             resolver: session.feedResolver,
             store: ServiceLocator.shared.settingsStore,
+            homeProfile: session.homeProfile,
             connectionStatusProvider: session.connectionStatusProvider
         ))
     }
@@ -68,7 +69,7 @@ struct MainNavigationView: View {
         .overlay(alignment: .top) {
             HeaderOffset(scroll: headerScroll) {
                 FeedHeader(
-                    title: Localization.title,
+                    title: viewModel.title,
                     actions: isFeedEditing ? [] : viewModel.resolver.actions(for: viewModel.selectedFeed),
                     pills: viewModel.pills,
                     unpinnedFeeds: viewModel.unpinnedFeeds,
@@ -83,7 +84,7 @@ struct MainNavigationView: View {
         }
         .overlay(alignment: .topTrailing) {
             if !isFeedEditing {
-                AccountButton { showSettings = true }
+                AccountButton(account: viewModel.homeProfile.account) { showSettings = true }
                     .padding(.trailing, Mortar.Spacing.s)
             }
         }
@@ -130,23 +131,18 @@ private struct HeaderOffset<Content: View>: View {
 // MARK: - Account Button
 
 private struct AccountButton: View {
+    let account: Account?
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "person.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: Constants.avatarSize, height: Constants.avatarSize)
-                .background(
-                    LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: .circle
-                )
+            AccountAvatar(account: account, size: Constants.avatarSize)
                 .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Localization.accountAndSettings)
+        .accessibilityValue(account?.name ?? "")
     }
 
     private enum Constants {
@@ -167,12 +163,6 @@ private struct OfflineBanner: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, Mortar.Spacing.xs)
         .background(.ultraThinMaterial)
-    }
-}
-
-private extension MainNavigationView {
-    enum Localization {
-        static let title = String(localized: "Home", comment: "Large title above the feeds on the main screen")
     }
 }
 
