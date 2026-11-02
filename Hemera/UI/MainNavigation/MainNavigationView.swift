@@ -11,6 +11,7 @@ struct MainNavigationView: View {
     @State private var showSettings = false
     @State private var settingsInitialRoute: SettingsViewModel.Route?
     @State private var headerScroll = FeedHeaderScroll()
+    @State private var toolbarActions: [FeedAction] = []
 
     @Environment(ScreenManager.self) private var screenManager
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
@@ -96,13 +97,17 @@ struct MainNavigationView: View {
         .onChange(of: safeAreaInsets.top + headerHeight, initial: true) { headerScroll.hideRange = $1 }
         .onChange(of: headerCanHide, initial: true) { headerScroll.canHide = headerCanHide }
         .onChange(of: viewModel.selectedFeed) { headerScroll.reset() }
+        // Copied in an animated transaction so the bar's group morphs; selection changes aren't animated.
+        .onChange(of: viewModel.resolver.actions(for: viewModel.selectedFeed), initial: true) { _, actions in
+            withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) { toolbarActions = actions }
+        }
         .onChange(of: viewModel.pills.map(\.id)) { viewModel.reselectHomeIfSelectionIsHidden() }
         // Always shown, so its inset never changes; one group makes the actions and avatar share one glass.
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             if !isFeedEditing {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    ForEach(viewModel.resolver.actions(for: viewModel.selectedFeed)) { action in
+                    ForEach(toolbarActions) { action in
                         FeedActionButton(action: action) { item in
                             viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform(action.id, item: item)
                         }
