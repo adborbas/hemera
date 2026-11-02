@@ -11,10 +11,10 @@ struct UpdateNudgeTests {
     private let lookup = StubAppStoreLookup()
     private let clock = TestClock(now: UpdateNudgeTests.start)
     private let store = InMemorySettingsStore()
+    private let defaults = UserDefaults(suiteName: "com.hemera.tests.\(UUID().uuidString)")!
     private let screenManager: ScreenManager
 
     init() {
-        UserDefaults.standard.removeObject(forKey: UpdateNudge.fakeUpdateKey)
         screenManager = ScreenManager(store: store)
         screenManager.stayAwake = true
     }
@@ -22,7 +22,7 @@ struct UpdateNudgeTests {
     private func makeNudge(installed: String = "1.0", os: String = "18.0") -> UpdateNudge {
         UpdateNudge(
             lookup: lookup,
-            store: store,
+            defaults: defaults,
             screenManager: screenManager,
             now: { [clock] in clock.now },
             installedVersion: installed,
