@@ -61,7 +61,7 @@ struct AreaDetailView: View {
                             Label(Localization.openInHomeAssistant, systemImage: "globe")
                         }
                     } label: {
-                        Label(Localization.moreOptions, systemImage: "ellipsis.circle")
+                        Label(Localization.moreOptions, systemImage: "ellipsis")
                             .labelStyle(.iconOnly)
                     }
                 }
