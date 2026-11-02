@@ -43,32 +43,89 @@ private struct PillRow: View {
     let onUnpin: (FeedID) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var highlight
+    @State private var pillFrames: [FeedID: CGRect] = [:]
+    @State private var highlightX: CGFloat = 0
+    @State private var highlightWidth: CGFloat = 0
+    @State private var highlightMove = 0
+    @State private var highlightedFeed: FeedID?
+    @State private var isHighlightMoving = false
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: Mortar.Spacing.s) {
                     ForEach(pills) { pill in
-                        PillButton(pill: pill, isSelected: pill.id == selection, highlight: highlight) {
+                        PillButton(pill: pill, isSelected: pill.id == selection) {
                             onSelect(pill.id)
+                        }
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: {
+                            pillFrames[pill.id] = $0
                         }
                         .modifier(UnpinActions(isPinned: pill.isPinned) { onUnpin(pill.id) })
                         .id(pill.id)
                     }
                     PinMenu(unpinnedFeeds: unpinnedFeeds, onPin: onPin)
                 }
-                // Selection changes from swipes aren't animated, so the highlight animates itself.
-                .animation(reduceMotion ? nil : Mortar.Motion.springElastic, value: selection)
+                .coordinateSpace(.named(Self.space))
+                // Drawn behind the pills rather than in each one, so the highlight can travel between them.
+                .background {
+                    // Indexed, not by feed ID: `scrollTo` would otherwise find these full-width layers.
+                    ForEach(Array(pills.enumerated()), id: \.offset) { _, pill in
+                        if let frame = pillFrames[pill.id] {
+                            Capsule().fill(.regularMaterial)
+                                .frame(width: frame.width, height: frame.height)
+                                .position(x: frame.midX, y: frame.midY)
+                        }
+                    }
+                    if let frame = pillFrames[selection] {
+                        Capsule().fill(Color.accentColor)
+                            .frame(width: highlightWidth, height: frame.height)
+                            .position(x: highlightX, y: frame.midY)
+                    }
+                }
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.vertical, Mortar.Spacing.xs)
             }
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
             .onChange(of: selection) {
+                moveHighlight()
                 withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) {
                     proxy.scrollTo(selection, anchor: .center)
                 }
+            }
+            // Keyed to the pill it sits on, so a selection change can't snap it before it starts moving.
+            .onChange(of: pillFrames[highlightedFeed ?? selection], initial: true) { _, frame in
+                guard let frame, !isHighlightMoving else { return }
+                highlightX = frame.midX
+                highlightWidth = frame.width
+            }
+        }
+    }
+
+    private static let space = "pillRow"
+
+    /// Like the system tab bar: the highlight balls up into a circle, travels, then spreads over the new pill.
+    private func moveHighlight() {
+        guard let target = pillFrames[selection] else { return }
+        highlightedFeed = selection
+        guard !reduceMotion, highlightWidth > 0 else {
+            highlightX = target.midX
+            highlightWidth = target.width
+            return
+        }
+        highlightMove += 1
+        let move = highlightMove
+        isHighlightMoving = true
+        withAnimation(Mortar.Motion.springSnappy) { highlightX = target.midX }
+        withAnimation(.easeOut(duration: Mortar.Motion.fast)) {
+            highlightWidth = target.height
+        } completion: {
+            guard move == highlightMove else { return }
+            withAnimation(Mortar.Motion.springBouncy) {
+                highlightWidth = target.width
+            } completion: {
+                if move == highlightMove { isHighlightMoving = false }
             }
         }
     }
@@ -77,7 +134,6 @@ private struct PillRow: View {
 private struct PillButton: View {
     let pill: MainNavigationViewModel.Pill
     let isSelected: Bool
-    let highlight: Namespace.ID
     let action: () -> Void
 
     @ScaledMetric(relativeTo: .subheadline) private var iconSize = Mortar.IconSize.xs
@@ -97,13 +153,7 @@ private struct PillButton: View {
             .padding(.horizontal, Mortar.Spacing.l)
             .frame(minHeight: Mortar.TapTarget.minimum)
             .foregroundStyle(isSelected ? Color.white : Color.primary)
-            .background {
-                Capsule().fill(.regularMaterial)
-                if isSelected {
-                    // One capsule matched across pills, so the highlight slides to the new selection.
-                    Capsule().fill(Color.accentColor).matchedGeometryEffect(id: "highlight", in: highlight)
-                }
-            }
+            .animation(.easeInOut(duration: Mortar.Motion.normal), value: isSelected)
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
