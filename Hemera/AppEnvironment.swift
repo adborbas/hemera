@@ -44,12 +44,15 @@ final class AppEnvironment {
         self.settingsStore = UserDefaultsSettingsStore()
         self.screenManager = ScreenManager(store: settingsStore)
         self.updateNudge = UpdateNudge(
-            lookup: NoAppStoreRelease(),
+            lookup: AppStoreClient(),
             store: settingsStore,
             screenManager: screenManager,
             installedVersion: Bundle.main.appVersion,
             osVersion: UIDevice.current.systemVersion,
-            buildMayCheck: false
+            mayCheck: {
+                guard !ServiceLocator.shared.demoCoordinator.isActive else { return false }
+                return await AppStoreClient.isProductionBuild()
+            }
         )
     }
 }
