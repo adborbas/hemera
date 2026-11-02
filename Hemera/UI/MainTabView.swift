@@ -19,7 +19,7 @@ struct MainTabView: View {
             preconditionFailure("MainTabView requires AppCoordinator to have built tab VMs")
         }
         self.tabViewModels = vms
-        Self.colorBadgesAsWarnings()
+        _ = Self.colorBadgesAsWarnings
     }
 
     var body: some View {
@@ -99,8 +99,15 @@ private extension OfflineBanner {
 
 private extension MainTabView {
     // SwiftUI ignores `UITabBarItem.badgeColor`; only the bar appearance recolours badges.
-    static func colorBadgesAsWarnings() {
-        let appearance = UITabBarAppearance()
+    static let colorBadgesAsWarnings: Void = {
+        UITabBar.appearance().standardAppearance = warningBadges(UITabBarAppearance())
+        let scrollEdge = UITabBarAppearance()
+        // Keeps the system's see-through bar at the scroll edge.
+        scrollEdge.configureWithTransparentBackground()
+        UITabBar.appearance().scrollEdgeAppearance = warningBadges(scrollEdge)
+    }()
+
+    static func warningBadges(_ appearance: UITabBarAppearance) -> UITabBarAppearance {
         let layouts = [
             appearance.stackedLayoutAppearance,
             appearance.inlineLayoutAppearance,
@@ -110,8 +117,7 @@ private extension MainTabView {
             layout.normal.badgeBackgroundColor = UIColor(Color.warning)
             layout.selected.badgeBackgroundColor = UIColor(Color.warning)
         }
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+        return appearance
     }
 
     enum Tab: Hashable {
