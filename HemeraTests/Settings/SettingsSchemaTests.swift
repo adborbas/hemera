@@ -90,7 +90,7 @@ struct SettingsSchemaTests {
     @Test func currentEncoding_matchesV1FeedRow() {
         let store = UserDefaultsSettingsStore(defaults: defaults)
         store.settings.stayAwake = true
-        store.settings.feedRow = [.home, .area("kitchen"), FeedID(rawValue: "custom:1234")]
+        store.settings.feedRow = [.home, FeedID(rawValue: "area:kitchen"), FeedID(rawValue: "custom:1234")]
 
         let written = defaults.string(forKey: UserDefaultsSettingsStore.storageKey)
 

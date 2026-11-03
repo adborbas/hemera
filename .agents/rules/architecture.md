@@ -140,8 +140,9 @@ Provides type-erased rendering for heterogeneous entity collections:
 ## Feeds
 
 The main screen has no tab bar: pills switch between **feeds** paged under a floating header
-(ADR-0002). Each feed is identified by a `FeedID` (`home`, `areas`, later `domain:<domain>`,
-`area:<id>`), and `MainNavigationView` only ever holds feed IDs.
+(ADR-0002). Each feed is identified by a `FeedID` (`home`, `areas`, `domain:<domain>`), and
+`MainNavigationView` only ever holds feed IDs. The pill row is stored as feed IDs; IDs this build doesn't
+resolve (such as `area:<id>` pins from earlier builds) are kept and their pills hidden.
 
 - `FeedResolver` (`Feeds/FeedResolver.swift`) is session-scoped, lives in `Session` and is built by
   `SessionManager` (demo gets its own). It turns an ID into a pill `FeedSummary` (`nil` hides the

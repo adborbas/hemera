@@ -80,11 +80,8 @@ struct MainNavigationView: View {
                     FeedHeader(
                         title: viewModel.title,
                         pills: viewModel.pills,
-                        unpinnedFeeds: viewModel.unpinnedFeeds,
                         selection: viewModel.selectedFeed,
                         onSelect: select,
-                        onPin: viewModel.pin,
-                        onUnpin: viewModel.unpin,
                         scroll: headerScroll,
                         buttonsWidth: buttonsWidth,
                         onCollapseDistanceChange: { collapseDistance = $0 }

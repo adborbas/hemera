@@ -34,7 +34,7 @@ struct FeedResolverTests {
             authManager: authManager,
             store: store
         )
-        let areaList = AreaList(context: context)
+        let floors = FloorPresence(context: context)
 
         resolver = FeedResolver()
         resolver.registerBuiltInFeeds(
@@ -45,9 +45,8 @@ struct FeedResolverTests {
                 demoCoordinator: demoCoordinator
             ),
             areas: areas,
-            areaList: areaList
+            floors: floors
         )
-        resolver.registerAreaFeeds(areaList: areaList, areas: areas)
         resolver.registerEntityFeeds(
             context: context,
             viewModelFactory: factory,
@@ -104,53 +103,6 @@ struct FeedResolverTests {
 
     // MARK: - Area feeds
 
-    @Test func summary_area_showsAreaNameAndIcon() throws {
-        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen", icon: "mdi:stove"))
-        try context.save()
-
-        #expect(resolver.summary(for: .area("kitchen")) == FeedSummary(title: "Kitchen", icon: "mdi:stove"))
-    }
-
-    @Test func summary_area_followsRename() throws {
-        // Renaming a room in Home Assistant must rename its pill too.
-        let area = AreaEntity(areaId: "kitchen", name: "Kitchen")
-        context.insert(area)
-        try context.save()
-
-        area.name = "Cooking"
-
-        #expect(resolver.summary(for: .area("kitchen"))?.title == "Cooking")
-    }
-
-    @Test func summary_missingArea_isNil() {
-        // A deleted or not-yet-synced area hides its pill; the pin itself is kept elsewhere.
-        #expect(resolver.summary(for: .area("gone")) == nil)
-    }
-
-    @Test func summary_area_hidesWhenDeletedAndReturnsWhenSynced() throws {
-        let area = AreaEntity(areaId: "kitchen", name: "Kitchen")
-        context.insert(area)
-        try context.save()
-
-        context.delete(area)
-        try context.save()
-        #expect(resolver.summary(for: .area("kitchen")) == nil)
-
-        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen"))
-        try context.save()
-        #expect(resolver.summary(for: .area("kitchen"))?.title == "Kitchen")
-    }
-
-    @Test func pinnableFeeds_areAreasInHomeAssistantOrder() throws {
-        // The + menu lists areas in the same order as the Areas feed.
-        context.insert(AreaEntity(areaId: "bedroom", name: "Bedroom", sortOrder: 2))
-        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen", sortOrder: 0))
-        context.insert(AreaEntity(areaId: "hall", name: "Hall", sortOrder: 1))
-        try context.save()
-
-        #expect(resolver.pinnableFeeds == [.area("kitchen"), .area("hall"), .area("bedroom")])
-    }
-
     // MARK: - Header actions
 
     @Test func actions_areasWithFloors_offerGroupingMenuCheckingTheCurrentSetting() throws {
@@ -191,18 +143,6 @@ struct FeedResolverTests {
         #expect(resolver.actions(for: .home).isEmpty)
         #expect(resolver.actions(for: .domain("light")).isEmpty)
         #expect(resolver.actions(for: FeedID(rawValue: "custom:1234")).isEmpty)
-    }
-
-    @Test func perform_pinnedAreaOpenInHomeAssistant_opensTheAreaPage() throws {
-        // A pinned area page has no navigation bar, so its "…" menu must live in the header instead.
-        context.insert(AreaEntity(areaId: "kitchen", name: "Kitchen"))
-        try context.save()
-        let action = try #require(resolver.actions(for: .area("kitchen")).first)
-        let item = try #require(action.menu?.first)
-
-        resolver.actionHandler(for: .area("kitchen"))?.perform(action.id, item: item.id)
-
-        #expect(areas.haWebViewPresenter.url?.absoluteString == "http://192.168.1.100:8123/config/areas/area/kitchen")
     }
 
     // MARK: - Unknown feeds

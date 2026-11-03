@@ -18,8 +18,6 @@ protocol FeedResolving {
     /// Shown in the header's top row while the feed is selected.
     func actions(for id: FeedID) -> [FeedAction]
     func actionHandler(for id: FeedID) -> (any FeedActionHandling)?
-    /// Feeds the user can add to the pill row, in the order to offer them.
-    var pinnableFeeds: [FeedID] { get }
     /// Pages come and go as the pager moves, so feeds register destinations on the stack root here.
     func registerNavigationDestinations(on root: AnyView) -> AnyView
 }
@@ -33,7 +31,6 @@ final class FeedResolver: FeedResolving {
         let summary: @MainActor (FeedID) -> FeedSummary?
         let view: @MainActor (FeedID) -> AnyView
         var navigationDestinations: @MainActor (AnyView) -> AnyView = { $0 }
-        var pinnableFeeds: @MainActor () -> [FeedID] = { [] }
         var actions: @MainActor (FeedID) -> [FeedAction] = { _ in [] }
         var actionHandler: @MainActor (FeedID) -> (any FeedActionHandling)? = { _ in nil }
     }
@@ -44,7 +41,7 @@ final class FeedResolver: FeedResolving {
         providers[provider.namespace] = provider
     }
 
-    func registerBuiltInFeeds(home: CuratedHomeViewModel, areas: AreasViewModel, areaList: AreaList) {
+    func registerBuiltInFeeds(home: CuratedHomeViewModel, areas: AreasViewModel, floors: FloorPresence) {
         register(Provider(
             namespace: FeedID.home.namespace,
             summary: { _ in FeedSummary(title: Localization.home, icon: "house") },
@@ -60,26 +57,8 @@ final class FeedResolver: FeedResolving {
                 })
             },
             // Grouping does nothing without floors, so the menu is hidden then.
-            actions: { _ in areaList.hasFloors ? areas.feedActions : [] },
+            actions: { _ in floors.hasFloors ? areas.feedActions : [] },
             actionHandler: { _ in areas }
-        ))
-    }
-
-    func registerAreaFeeds(areaList: AreaList, areas: AreasViewModel) {
-        func detailViewModel(_ id: FeedID) -> AreaDetailViewModel? {
-            areaList.area(withId: id.value).map { areas.makeDetailViewModel(destination: .area($0)) }
-        }
-        register(Provider(
-            namespace: FeedID.area("").namespace,
-            summary: { id in
-                areaList.area(withId: id.value).map { FeedSummary(title: $0.name, icon: $0.icon ?? "mdi:texture-box") }
-            },
-            view: { id in
-                detailViewModel(id).map { AnyView(AreaDetailView(viewModel: $0, isFeed: true)) } ?? AnyView(EmptyView())
-            },
-            pinnableFeeds: { areaList.areas.map { FeedID.area($0.areaId) } },
-            actions: { id in detailViewModel(id)?.feedActions ?? [] },
-            actionHandler: { id in detailViewModel(id) }
         ))
     }
 
@@ -136,10 +115,6 @@ final class FeedResolver: FeedResolving {
 
     func actionHandler(for id: FeedID) -> (any FeedActionHandling)? {
         providers[id.namespace]?.actionHandler(id)
-    }
-
-    var pinnableFeeds: [FeedID] {
-        providers.keys.sorted().flatMap { providers[$0]?.pinnableFeeds() ?? [] }
     }
 
     func registerNavigationDestinations(on root: AnyView) -> AnyView {

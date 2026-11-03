@@ -5,13 +5,9 @@ import TileGridEngine
 
 struct AreaDetailView: View {
     let viewModel: AreaDetailViewModel
-    /// Shown as a page under the feed header rather than pushed, so it leaves the bar's title alone.
-    var isFeed = false
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.isSelectedFeed) private var isSelectedFeed
     @Namespace private var overlayTransition
-    @State private var showClimateSubtitle = true
     @State private var overlayItem: OverlayItem?
     @State private var hideMode = AreaHideMode()
 
@@ -23,8 +19,6 @@ struct AreaDetailView: View {
                     area: area,
                     viewModel: viewModel,
                     overlayItem: $overlayItem,
-                    showClimateSubtitle: $showClimateSubtitle,
-                    showsClimateInContent: isFeed,
                     overlayTransition: overlayTransition,
                     horizontalSizeClass: horizontalSizeClass,
                     isHideMode: hideMode.isActive,
@@ -43,19 +37,17 @@ struct AreaDetailView: View {
                 )
             }
         }
-        .navigationTitle(isFeed ? "" : viewModel.areaName)
+        .navigationTitle(viewModel.areaName)
         .navigationBarTitleDisplayMode(.inline)
         .modifier(AreaHeader(
-            isEnabled: !isFeed,
             isEditing: hideMode.isActive,
             title: viewModel.areaName,
             area: area,
             actions: viewModel.feedActions,
             perform: viewModel.perform
         ))
-        .feedIsEditing(hideMode.isActive)
         .toolbar {
-            if hideMode.isActive, isSelectedFeed {
+            if hideMode.isActive {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Localization.done) {
                         setHideMode(false)
@@ -96,9 +88,6 @@ private struct AreaContentView: View {
     @Bindable var area: AreaEntity
     let viewModel: AreaDetailViewModel
     @Binding var overlayItem: OverlayItem?
-    @Binding var showClimateSubtitle: Bool
-    /// Pushed areas carry the readings in their header instead.
-    let showsClimateInContent: Bool
     let overlayTransition: Namespace.ID
     let horizontalSizeClass: UserInterfaceSizeClass?
     let isHideMode: Bool
@@ -114,16 +103,6 @@ private struct AreaContentView: View {
             let sections = viewModel.sections(for: area, includingHidden: isHideMode)
 
             ScrollView {
-                if showsClimateInContent {
-                    AreaClimateReadings(area: area)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, TileGridConstants.padding)
-                        .opacity(showClimateSubtitle ? 1 : 0)
-                        .onScrollVisibilityChange(threshold: 0.5) { isVisible in
-                            showClimateSubtitle = isVisible
-                        }
-                }
-
                 if sections.isEmpty, !isHideMode, viewModel.hasHiddenEntities(for: area) {
                     AllHiddenPlaceholder(action: onEnterHideMode)
                         .frame(maxWidth: .infinity, minHeight: proxy.size.height * 0.7, alignment: .center)
@@ -293,7 +272,7 @@ private struct AreaDetailSection: View {
 
 // MARK: - FeedActionHandling
 
-/// The toolbar's "…" menu for an area shown as a page, where the header's actions replace the toolbar.
+/// The area header's "…" menu.
 extension AreaDetailViewModel: FeedActionHandling {
 
     var feedActions: [FeedAction] {

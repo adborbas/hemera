@@ -5,11 +5,8 @@ import Mortar
 struct FeedHeader: View {
     let title: String
     let pills: [MainNavigationViewModel.Pill]
-    let unpinnedFeeds: [MainNavigationViewModel.Pill]
     let selection: FeedID
     let onSelect: (FeedID) -> Void
-    let onPin: (FeedID) -> Void
-    let onUnpin: (FeedID) -> Void
     let scroll: FeedHeaderScroll
     /// Width of the floating buttons, which the pill row makes room for as it rises into their row.
     let buttonsWidth: CGFloat
@@ -34,11 +31,8 @@ struct FeedHeader: View {
                 .modifier(TitleFade(scroll: scroll, titleHeight: titleHeight))
             PillRow(
                 pills: pills,
-                unpinnedFeeds: unpinnedFeeds,
                 selection: selection,
-                onSelect: onSelect,
-                onPin: onPin,
-                onUnpin: onUnpin
+                onSelect: onSelect
             )
             // Only the centre: the row's width changes every frame as it makes room for the buttons.
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named(coordinateSpace)).midY } action: { pillRowMidY = $0 }
@@ -79,11 +73,8 @@ private struct ButtonsReserve: ViewModifier {
 
 private struct PillRow: View {
     let pills: [MainNavigationViewModel.Pill]
-    let unpinnedFeeds: [MainNavigationViewModel.Pill]
     let selection: FeedID
     let onSelect: (FeedID) -> Void
-    let onPin: (FeedID) -> Void
-    let onUnpin: (FeedID) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -95,10 +86,8 @@ private struct PillRow: View {
                         PillButton(pill: pill, isSelected: pill.id == selection) {
                             onSelect(pill.id)
                         }
-                        .modifier(UnpinActions(isPinned: pill.isPinned) { onUnpin(pill.id) })
                         .id(pill.id)
                     }
-                    PinMenu(unpinnedFeeds: unpinnedFeeds, onPin: onPin)
                 }
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.vertical, Mortar.Spacing.xs)
@@ -190,78 +179,5 @@ struct FeedActionButton: View {
                     .contentShape(.rect)
             }
         }
-    }
-}
-
-private struct HeaderIconLabel: View {
-    let title: String
-    let systemImage: String
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        Label(title, systemImage: systemImage)
-            .labelStyle(.iconOnly)
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(Color.primary)
-            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-            .background(PillFill.unselected(colorScheme), in: .circle)
-            .contentShape(.circle)
-    }
-}
-
-/// Long-press menu and VoiceOver action, only on pills the user pinned.
-private struct UnpinActions: ViewModifier {
-    let isPinned: Bool
-    let unpin: () -> Void
-
-    func body(content: Content) -> some View {
-        if isPinned {
-            content
-                .contextMenu {
-                    Button(Localization.unpin, systemImage: "pin.slash", role: .destructive, action: unpin)
-                }
-                .accessibilityAction(named: Localization.unpin, unpin)
-        } else {
-            content
-        }
-    }
-}
-
-/// The + at the end of the row, offering feeds not yet pinned.
-private struct PinMenu: View {
-    let unpinnedFeeds: [MainNavigationViewModel.Pill]
-    let onPin: (FeedID) -> Void
-
-    var body: some View {
-        Menu {
-            if unpinnedFeeds.isEmpty {
-                Button(Localization.allAreasPinned) {}
-                    .disabled(true)
-            } else {
-                ForEach(unpinnedFeeds) { feed in
-                    Button(feed.summary.title) { onPin(feed.id) }
-                }
-            }
-        } label: {
-            HeaderIconLabel(title: Localization.pinArea, systemImage: "plus")
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private extension UnpinActions {
-    enum Localization {
-        static let unpin = String(localized: "Unpin", comment: "Removes a pinned area's pill from the main screen's pill row")
-    }
-}
-
-private extension PinMenu {
-    enum Localization {
-        static let pinArea = String(localized: "Pin Area", comment: "Accessibility label for the + button that pins an area to the pill row")
-        static let allAreasPinned = String(
-            localized: "All areas pinned",
-            comment: "Disabled item in the + menu of the pill row when every area is already pinned"
-        )
     }
 }

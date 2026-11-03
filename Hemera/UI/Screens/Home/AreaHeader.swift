@@ -3,7 +3,6 @@ import Mortar
 
 /// A pushed area's own collapsing header: the large title morphs into the centre of the button row.
 struct AreaHeader: ViewModifier {
-    let isEnabled: Bool
     /// Show/Hide mode brings up the system bar for its toolbar, so the header steps aside.
     let isEditing: Bool
     let title: String
@@ -19,31 +18,27 @@ struct AreaHeader: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     func body(content: Content) -> some View {
-        if isEnabled {
-            content
-                .environment(\.feedHeaderScroll, isEditing ? nil : scroll)
-                .contentMargins(.top, isEditing ? 0 : expandedHeight, for: .scrollContent)
-                .toolbar(isEditing ? .visible : .hidden, for: .navigationBar)
-                .background { SwipeBackRestorer() }
-                .overlay(alignment: .top) {
-                    if !isEditing {
-                        AreaHeaderBar(
-                            scroll: scroll,
-                            title: title,
-                            area: area,
-                            actions: actions,
-                            perform: perform,
-                            onTitleBlockHeightChange: { titleBlockHeight = $0 }
-                        )
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
+        content
+            .environment(\.feedHeaderScroll, isEditing ? nil : scroll)
+            .contentMargins(.top, isEditing ? 0 : expandedHeight, for: .scrollContent)
+            .toolbar(isEditing ? .visible : .hidden, for: .navigationBar)
+            .background { SwipeBackRestorer() }
+            .overlay(alignment: .top) {
+                if !isEditing {
+                    AreaHeaderBar(
+                        scroll: scroll,
+                        title: title,
+                        area: area,
+                        actions: actions,
+                        perform: perform,
+                        onTitleBlockHeightChange: { titleBlockHeight = $0 }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                .animation(reduceMotion ? nil : Mortar.Motion.springNormal, value: isEditing)
-                .onChange(of: titleBlockHeight, initial: true) { scroll.hideRange = $1 }
-                .onChange(of: canCollapse, initial: true) { scroll.canHide = $1 }
-        } else {
-            content
-        }
+            }
+            .animation(reduceMotion ? nil : Mortar.Motion.springNormal, value: isEditing)
+            .onChange(of: titleBlockHeight, initial: true) { scroll.hideRange = $1 }
+            .onChange(of: canCollapse, initial: true) { scroll.canHide = $1 }
     }
 
     /// The button row, the title block and the header's bottom paddings.
