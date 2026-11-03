@@ -290,7 +290,7 @@ private extension SessionManager {
     ) -> FeedResolver {
         let sl = ServiceLocator.shared
         let resolver = FeedResolver()
-        let floors = FloorPresence(context: context)
+        let floors = FloorsAndAreas(context: context)
         let areas = AreasViewModel(
             homeTileRepository: homeTileRepository,
             viewModelFactory: viewModelFactory,

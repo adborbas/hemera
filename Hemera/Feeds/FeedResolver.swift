@@ -2,11 +2,13 @@ import SwiftData
 import SwiftUI
 import TileGridEngine
 
-/// What a pill shows for a feed.
+/// What a pill and a drawer row show for a feed.
 struct FeedSummary: Equatable {
     let title: String
     /// SF Symbol name, or an `mdi:` name.
     let icon: String
+    /// Drawer only, such as how many lights are on.
+    var subtitle: String?
 }
 
 /// Turns feed IDs into what the navigation screen shows, without it knowing what kind of feed it is.
@@ -41,15 +43,21 @@ final class FeedResolver: FeedResolving {
         providers[provider.namespace] = provider
     }
 
-    func registerBuiltInFeeds(home: CuratedHomeViewModel, areas: AreasViewModel, floors: FloorPresence) {
+    func registerBuiltInFeeds(home: CuratedHomeViewModel, areas: AreasViewModel, floors: FloorsAndAreas) {
         register(Provider(
             namespace: FeedID.home.namespace,
-            summary: { _ in FeedSummary(title: Localization.home, icon: "house") },
+            summary: { _ in FeedSummary(title: Localization.home, icon: "house", subtitle: Localization.homeSubtitle) },
             view: { _ in AnyView(CuratedHomeView(viewModel: home)) }
         ))
         register(Provider(
             namespace: FeedID.areas.namespace,
-            summary: { _ in FeedSummary(title: Localization.areas, icon: "square.grid.2x2") },
+            summary: { _ in
+                FeedSummary(
+                    title: Localization.areas,
+                    icon: "square.grid.2x2",
+                    subtitle: Localization.rooms(areas.displayedAreas(from: floors.areas).count)
+                )
+            },
             view: { _ in AnyView(AreasView(viewModel: areas)) },
             navigationDestinations: { root in
                 AnyView(root.navigationDestination(for: AreaDestination.self) { destination in
@@ -73,11 +81,13 @@ final class FeedResolver: FeedResolving {
             _ type: Entity.Type,
             _ title: String,
             _ icon: String,
-            _ tileSize: TileSize
+            _ tileSize: TileSize,
+            subtitle: @escaping ([Entity]) -> String? = { _ in nil }
         ) -> (String, EntityFeedViewModel) {
             (Entity.domain, EntityFeedViewModel(
                 type,
                 summary: FeedSummary(title: title, icon: icon),
+                subtitle: subtitle,
                 tileSize: tileSize,
                 context: context,
                 viewModelFactory: viewModelFactory,
@@ -87,8 +97,12 @@ final class FeedResolver: FeedResolving {
             ))
         }
         let feeds = Dictionary(uniqueKeysWithValues: [
-            feed(LightEntity.self, Localization.lights, "lightbulb", .small),
-            feed(CoverEntity.self, Localization.covers, "blinds.horizontal.closed", .small),
+            feed(LightEntity.self, Localization.lights, "lightbulb", .small) { lights in
+                Localization.lightsOn(lights.count(where: \.isOn), of: lights.count)
+            },
+            feed(CoverEntity.self, Localization.covers, "blinds.horizontal.closed", .small) { covers in
+                Localization.coversOpen(covers.count(where: \.isOpen), of: covers.count)
+            },
             feed(ClimateEntity.self, Localization.climate, "thermometer.medium", .medium),
             feed(SceneEntity.self, Localization.scenes, "sparkles", .small)
         ])
@@ -130,5 +144,31 @@ private extension FeedResolver {
         static let covers = String(localized: "Covers", comment: "Pill label for the feed showing every cover such as blinds, grouped by area")
         static let climate = String(localized: "Climate", comment: "Pill label for the feed showing every thermostat and AC, grouped by area")
         static let scenes = String(localized: "Scenes", comment: "Pill label for the feed showing every scene, grouped by area")
+        static let homeSubtitle = String(
+            localized: "Your curated home",
+            comment: "Subtitle under Home in the side menu, the feed of entities the user pinned"
+        )
+
+        static func rooms(_ count: Int) -> String {
+            // Only the attributed initializer applies the inflection that pluralises "room".
+            String(AttributedString(
+                localized: "^[\(count) room](inflect: true)",
+                comment: "Subtitle under Areas in the side menu: how many rooms the Areas feed shows"
+            ).characters)
+        }
+
+        static func lightsOn(_ on: Int, of total: Int) -> String {
+            String(
+                localized: "\(on)/\(total) on",
+                comment: "Subtitle under Lights in the side menu: lights that are on out of all lights, e.g. 3/12 on"
+            )
+        }
+
+        static func coversOpen(_ open: Int, of total: Int) -> String {
+            String(
+                localized: "\(open)/\(total) open",
+                comment: "Subtitle under Covers in the side menu: covers not fully closed out of all covers, e.g. 2/5 open"
+            )
+        }
     }
 }

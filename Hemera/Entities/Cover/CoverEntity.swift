@@ -20,6 +20,8 @@ final class CoverEntity: StoredEntity {
     var isHiddenInHA: Bool = false
     var area: AreaEntity?
     var preferredControlMode: String?
+    /// Partly open counts; an unknown or unavailable cover isn't known to be open.
+    var isOpen: Bool { [.open, .opening, .closing].contains(state) }
 
     var supportedFeatures: Features {
         get { Features(rawValue: supportedFeaturesRaw) }

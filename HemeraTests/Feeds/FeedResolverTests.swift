@@ -34,7 +34,7 @@ struct FeedResolverTests {
             authManager: authManager,
             store: store
         )
-        let floors = FloorPresence(context: context)
+        let floors = FloorsAndAreas(context: context)
 
         resolver = FeedResolver()
         resolver.registerBuiltInFeeds(
@@ -60,11 +60,27 @@ struct FeedResolverTests {
 
     @Test func summary_home_alwaysResolves() {
         // Home is the launch feed, so even an empty store must not hide its pill.
-        #expect(resolver.summary(for: .home) == FeedSummary(title: "Home", icon: "house"))
+        #expect(resolver.summary(for: .home) == FeedSummary(title: "Home", icon: "house", subtitle: "Your curated home"))
     }
 
     @Test func summary_areas_alwaysResolves() {
-        #expect(resolver.summary(for: .areas) == FeedSummary(title: "Areas", icon: "square.grid.2x2"))
+        #expect(resolver.summary(for: .areas) == FeedSummary(title: "Areas", icon: "square.grid.2x2", subtitle: "0 rooms"))
+    }
+
+    @Test func summary_areas_countsOnlyAreasTheFeedShows() throws {
+        let kitchen = AreaEntity(areaId: "kitchen", name: "Kitchen")
+        let attic = AreaEntity(areaId: "attic", name: "Attic")
+        let lamp = LightEntity(entityId: "light.lamp", name: "Lamp", state: .on)
+        let fan = LightEntity(entityId: "light.attic", name: "Attic", state: .on)
+        fan.isHiddenInHA = true
+        [kitchen, attic].forEach(context.insert)
+        [lamp, fan].forEach(context.insert)
+        lamp.area = kitchen
+        fan.area = attic
+        try context.save()
+
+        // A count that includes rooms the Areas feed drops would promise rooms the user can't find there.
+        #expect(resolver.summary(for: .areas)?.subtitle == "1 room")
     }
 
     // MARK: - Entity feeds
@@ -90,6 +106,54 @@ struct FeedResolverTests {
         try context.save()
 
         #expect(resolver.summary(for: .domain("scene")) == nil)
+    }
+
+    @Test func subtitle_lights_excludesHiddenAndCountsUnavailableOnlyInTotal() throws {
+        let hidden = LightEntity(entityId: "light.hidden", name: "Hidden", state: .on)
+        hidden.isHiddenInHA = true
+        context.insert(hidden)
+        context.insert(LightEntity(entityId: "light.desk", name: "Desk", state: .on))
+        context.insert(LightEntity(entityId: "light.hall", name: "Hall", state: .off))
+        context.insert(LightEntity(entityId: "light.porch", name: "Porch", state: .unavailable))
+        try context.save()
+
+        /**
+         Hidden lights aren't in the feed, so they mustn't be counted. An unreachable light still exists,
+         but claiming it's on would send the user looking for a lamp left burning.
+        */
+        #expect(resolver.summary(for: .domain("light"))?.subtitle == "1/3 on")
+    }
+
+    @Test func subtitle_lights_followsStateChangesWithoutASave() throws {
+        let desk = LightEntity(entityId: "light.desk", name: "Desk", state: .off)
+        context.insert(desk)
+        try context.save()
+
+        desk.state = .on
+
+        // Live state changes land on the model without inserts, and the menu must still show them.
+        #expect(resolver.summary(for: .domain("light"))?.subtitle == "1/1 on")
+    }
+
+    @Test func subtitle_covers_countsAnyCoverNotFullyClosedAsOpen() throws {
+        context.insert(CoverEntity(entityId: "cover.blind", name: "Blind", state: .open, currentPosition: 30))
+        context.insert(CoverEntity(entityId: "cover.garage", name: "Garage", state: .closing, currentPosition: 60))
+        context.insert(CoverEntity(entityId: "cover.shade", name: "Shade", state: .closed, currentPosition: 0))
+        context.insert(CoverEntity(entityId: "cover.gate", name: "Gate", state: .unavailable))
+        try context.save()
+
+        // A blind left at 30% still lets light and eyes in, so it reads as open, not closed.
+        #expect(resolver.summary(for: .domain("cover"))?.subtitle == "2/4 open")
+    }
+
+    @Test func subtitle_climateAndScenes_isNil() throws {
+        context.insert(ClimateEntity(entityId: "climate.hall", name: "Hall", state: .heat))
+        context.insert(SceneEntity(entityId: "scene.movie", name: "Movie"))
+        try context.save()
+
+        // No single count says anything useful about thermostats or scenes, so their rows stay quiet.
+        #expect(resolver.summary(for: .domain("climate"))?.subtitle == nil)
+        #expect(resolver.summary(for: .domain("scene"))?.subtitle == nil)
     }
 
     @Test func summary_lights_ignoresOtherDomains() throws {

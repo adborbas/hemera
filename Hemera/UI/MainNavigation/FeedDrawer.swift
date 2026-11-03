@@ -60,7 +60,12 @@ struct FeedDrawer: View {
             ScrollView {
                 VStack(spacing: Mortar.Spacing.xs) {
                     ForEach(feeds) { feed in
-                        DrawerRow(title: feed.summary.title, icon: feed.summary.icon, isSelected: feed.id == selection) {
+                        DrawerRow(
+                            title: feed.summary.title,
+                            subtitle: feed.summary.subtitle,
+                            icon: feed.summary.icon,
+                            isSelected: feed.id == selection
+                        ) {
                             onSelect(feed.id)
                         }
                     }
@@ -104,6 +109,7 @@ struct FeedDrawer: View {
 
 private struct DrawerRow: View {
     let title: String
+    var subtitle: String?
     /// SF Symbol name, or an `mdi:` name.
     let icon: String
     let isSelected: Bool
@@ -125,8 +131,15 @@ private struct DrawerRow: View {
                 .background(Color(.tertiarySystemFill), in: .circle)
                 .accessibilityHidden(true)
 
-                Text(title)
-                    .font(.body.weight(.semibold))
+                VStack(alignment: .leading) {
+                    Text(title)
+                        .font(.body.weight(.semibold))
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer(minLength: 0)
             }
             .foregroundStyle(.primary)
@@ -135,6 +148,8 @@ private struct DrawerRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(subtitle ?? "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

@@ -83,12 +83,7 @@ final class CoverCardViewModel: Identifiable {
         state == .opening || state == .closing
     }
 
-    var isOpen: Bool {
-        switch state {
-        case .open, .opening, .closing: true
-        case .closed, .unknown, .unavailable: false
-        }
-    }
+    var isOpen: Bool { cover.isOpen }
 
     var iconName: String? {
         iconResolver.iconName(

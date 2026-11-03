@@ -14,6 +14,7 @@ final class EntityFeedViewModel {
     private(set) var entities: [any StoredEntity] = []
 
     private let pillSummary: FeedSummary
+    private let subtitle: ([any StoredEntity]) -> String?
     private let tileSize: TileSize
     private let homeTileRepository: any HomeTileRepository
     private let fetchEntities: () -> [any StoredEntity]
@@ -22,6 +23,7 @@ final class EntityFeedViewModel {
     init<Entity: StoredEntity>(
         _ entityType: Entity.Type,
         summary: FeedSummary,
+        subtitle: @escaping ([Entity]) -> String? = { _ in nil },
         tileSize: TileSize,
         context: ModelContext,
         viewModelFactory: ViewModelFactory,
@@ -30,6 +32,7 @@ final class EntityFeedViewModel {
         isDemoMode: Bool
     ) {
         self.pillSummary = summary
+        self.subtitle = { subtitle($0.compactMap { $0 as? Entity }) }
         self.tileSize = tileSize
         self.viewModelFactory = viewModelFactory
         self.homeTileRepository = homeTileRepository
@@ -61,11 +64,15 @@ final class EntityFeedViewModel {
 
     /// `nil` while nothing is visible, which hides the feed's pill.
     var summary: FeedSummary? {
-        entities.contains { !$0.isHiddenInHA } ? pillSummary : nil
+        let visible = visibleEntities
+        guard !visible.isEmpty else { return nil }
+        var summary = pillSummary
+        summary.subtitle = subtitle(visible)
+        return summary
     }
 
     var sections: [TileSection] {
-        let groups = Dictionary(grouping: entities.filter { !$0.isHiddenInHA }) { $0.area?.areaId }
+        let groups = Dictionary(grouping: visibleEntities) { $0.area?.areaId }
         let orderedGroups = groups.values.sorted { lhs, rhs in
             switch (lhs[0].area, rhs[0].area) {
             case let (left?, right?): (left.sortOrder, left.name) < (right.sortOrder, right.name)
@@ -96,6 +103,10 @@ final class EntityFeedViewModel {
 
     func openEntityInHA(entityId: String, deviceId: String?) {
         haWebViewPresenter.openEntity(entityId, deviceId: deviceId)
+    }
+
+    private var visibleEntities: [any StoredEntity] {
+        entities.filter { !$0.isHiddenInHA }
     }
 
     private func reload() {

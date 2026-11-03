@@ -1,12 +1,14 @@
 import Foundation
 import SwiftData
 
-/// Whether Home Assistant has any floors, which decides if Areas offers its floor-grouping menu.
+/// Home Assistant's floors and areas, refetched when any are added or removed.
 @Observable
 @MainActor
-final class FloorPresence {
+final class FloorsAndAreas {
 
+    /// Decides if Areas offers its floor-grouping menu.
     private(set) var hasFloors = false
+    private(set) var areas: [AreaEntity] = []
 
     private let context: ModelContext
     @ObservationIgnored private nonisolated(unsafe) var saveObserver: (any NSObjectProtocol)?
@@ -15,7 +17,7 @@ final class FloorPresence {
         self.context = context
         reload()
 
-        // Only inserts and deletes can change whether floors exist.
+        // Only inserts and deletes can change which floors and areas exist.
         saveObserver = NotificationCenter.default.addObserver(
             forName: ModelContext.didSave,
             object: context,
@@ -38,5 +40,6 @@ final class FloorPresence {
 
     private func reload() {
         hasFloors = ((try? context.fetchCount(FetchDescriptor<FloorEntity>())) ?? 0) > 0
+        areas = (try? context.fetch(FetchDescriptor<AreaEntity>())) ?? []
     }
 }
