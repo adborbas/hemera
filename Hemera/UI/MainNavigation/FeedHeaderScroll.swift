@@ -9,8 +9,13 @@ final class FeedHeaderScroll {
     // MARK: - Properties
 
     private(set) var hiddenAmount: CGFloat = 0
-    /// Header height plus the status bar it extends under.
+    /// How far the header moves up when fully collapsed.
     @ObservationIgnored var hideRange: CGFloat = 0
+    /// 0 expanded, 1 collapsed; reads `hiddenAmount` first so views drawn before the range still track it.
+    var progress: CGFloat {
+        let hidden = hiddenAmount
+        return hideRange > 0 ? min(1, hidden / hideRange) : 0
+    }
     @ObservationIgnored var canHide = true {
         didSet { if !canHide { reset() } }
     }

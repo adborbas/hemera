@@ -12,10 +12,13 @@ struct MainNavigationView: View {
     @State private var settingsInitialRoute: SettingsViewModel.Route?
     @State private var headerScroll = FeedHeaderScroll()
     @State private var toolbarActions: [FeedAction] = []
+    @State private var buttonsWidth: CGFloat = 0
+    @State private var collapseDistance: CGFloat = 0
 
     @Environment(ScreenManager.self) private var screenManager
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(session: Session) {
         _viewModel = State(initialValue: MainNavigationViewModel(
@@ -55,7 +58,7 @@ struct MainNavigationView: View {
             feeds: viewModel.pills.map(\.id),
             selection: $viewModel.selectedFeed,
             contentMargins: EdgeInsets(
-                top: safeAreaInsets.top + headerHeight,
+                top: safeAreaInsets.top + (isFeedEditing ? 0 : headerHeight),
                 leading: 0,
                 bottom: safeAreaInsets.bottom,
                 trailing: 0
@@ -71,17 +74,38 @@ struct MainNavigationView: View {
         .ignoresSafeArea()
         .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeAreaInsets = $0 }
         .overlay(alignment: .top) {
-            HeaderOffset(scroll: headerScroll) {
-                FeedHeader(
-                    title: viewModel.title,
-                    pills: viewModel.pills,
-                    unpinnedFeeds: viewModel.unpinnedFeeds,
-                    selection: viewModel.selectedFeed,
-                    onSelect: select,
-                    onPin: viewModel.pin,
-                    onUnpin: viewModel.unpin
+            // Editing brings up the system bar for the feed's toolbar, so the header steps aside.
+            if !isFeedEditing {
+                HeaderOffset(scroll: headerScroll) {
+                    FeedHeader(
+                        title: viewModel.title,
+                        pills: viewModel.pills,
+                        unpinnedFeeds: viewModel.unpinnedFeeds,
+                        selection: viewModel.selectedFeed,
+                        onSelect: select,
+                        onPin: viewModel.pin,
+                        onUnpin: viewModel.unpin,
+                        scroll: headerScroll,
+                        buttonsWidth: buttonsWidth,
+                        onCollapseDistanceChange: { collapseDistance = $0 }
+                    )
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        // Ours, not the system bar's: that bar takes every touch in its row, collapsed pills included.
+        .overlay(alignment: .topTrailing) {
+            if !isFeedEditing {
+                HeaderButtons(
+                    actions: toolbarActions,
+                    account: viewModel.homeProfile.account,
+                    perform: { viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform($0, item: $1) },
+                    openSettings: { showSettings = true }
                 )
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+                .padding(.trailing, Mortar.Spacing.l)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { buttonsWidth = $0 }
+                .transition(.opacity)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -94,34 +118,25 @@ struct MainNavigationView: View {
         .onChange(of: viewModel.isConnected, initial: true) {
             viewModel.updateBannerVisibility()
         }
-        .onPreferenceChange(FeedIsEditingKey.self) { isFeedEditing = $0 }
-        .onChange(of: safeAreaInsets.top + headerHeight, initial: true) { headerScroll.hideRange = $1 }
+        // Animated here, so the header, buttons, bar and margins move in one transaction.
+        .onPreferenceChange(FeedIsEditingKey.self) { editing in
+            withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) { isFeedEditing = editing }
+        }
+        .onChange(of: collapseDistance, initial: true) { headerScroll.hideRange = $1 }
         .onChange(of: headerCanHide, initial: true) { headerScroll.canHide = headerCanHide }
         .onChange(of: viewModel.selectedFeed) { headerScroll.reset() }
-        // Copied in an animated transaction so the bar's group morphs; selection changes aren't animated.
+        // Copied in an animated transaction so the glass morphs; selection changes aren't animated.
         .onChange(of: viewModel.resolver.actions(for: viewModel.selectedFeed), initial: true) { _, actions in
             withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) { toolbarActions = actions }
         }
         .onChange(of: viewModel.pills.map(\.id)) { viewModel.reselectHomeIfSelectionIsHidden() }
-        // Always shown, so its inset never changes; one group makes the actions and avatar share one glass.
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            if !isFeedEditing {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    ForEach(toolbarActions) { action in
-                        FeedActionButton(action: action) { item in
-                            viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform(action.id, item: item)
-                        }
-                    }
-                    AccountButton(account: viewModel.homeProfile.account) { showSettings = true }
-                }
-            }
-        }
+        .toolbar(isFeedEditing ? .visible : .hidden, for: .navigationBar)
         .environment(\.openFeed, select)
     }
 
+    /// Wide layouts have room to spare, so the header stays expanded there.
     private var headerCanHide: Bool {
-        !voiceOverEnabled && !reduceMotion && !isFeedEditing
+        horizontalSizeClass == .compact && !voiceOverEnabled && !reduceMotion && !isFeedEditing
     }
 
     private func select(_ id: FeedID) {
@@ -141,6 +156,32 @@ private struct HeaderOffset<Content: View>: View {
     }
 }
 
+// MARK: - Header Buttons
+
+/// The feed's actions and the account button, sharing one glass capsule only while there are actions.
+private struct HeaderButtons: View {
+    let actions: [FeedAction]
+    let account: Account?
+    let perform: (_ actionID: String, _ item: String?) -> Void
+    let openSettings: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            if !actions.isEmpty {
+                HStack(spacing: 0) {
+                    ForEach(actions) { action in
+                        FeedActionButton(action: action) { perform(action.id, $0) }
+                    }
+                }
+                .tint(.primary)
+                .padding(.horizontal, Mortar.Spacing.xxs)
+            }
+            AccountButton(account: account, action: openSettings)
+        }
+        .modifier(GlassCapsule(isActive: !actions.isEmpty))
+    }
+}
+
 // MARK: - Account Button
 
 private struct AccountButton: View {
@@ -150,7 +191,10 @@ private struct AccountButton: View {
     var body: some View {
         Button(action: action) {
             AccountAvatar(account: account, size: Constants.avatarSize)
+                .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
+                .contentShape(.circle)
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(Localization.accountAndSettings)
         .accessibilityValue(account?.name ?? "")
     }

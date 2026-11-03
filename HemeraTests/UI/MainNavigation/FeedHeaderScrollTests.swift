@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Synchronization
 import Testing
 @testable import Hemera
 
@@ -121,6 +122,21 @@ struct FeedHeaderScrollTests {
         drag(to: [700])
 
         #expect(scroll.hiddenAmount == 0)
+    }
+
+    // MARK: - Progress
+
+    @Test func progress_readBeforeRangeIsKnown_stillTracksHiding() {
+        // The header draws before it's measured; if that read skipped the offset it would never redraw.
+        scroll.hideRange = 0
+        let changed = Mutex(false)
+        withObservationTracking { _ = scroll.progress } onChange: { changed.withLock { $0 = true } }
+
+        scroll.hideRange = 100
+        drag(to: [0, 500, 550])
+
+        #expect(changed.withLock { $0 })
+        #expect(scroll.progress == 0.5)
     }
 
     @Test func canHideFalse_showsHeaderAndIgnoresScrolling() {

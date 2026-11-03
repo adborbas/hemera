@@ -153,14 +153,28 @@ The main screen has no tab bar: pills switch between **feeds** paged under a flo
   page and its neighbours. Each page gets fixed top and bottom content margins for the header and the
   home indicator; feed views must not add their own top inset for the header.
 
+### Header
+
+- The root screen hides the system navigation bar: in its row the bar takes every touch, so the
+  header draws its own buttons there (the feed's actions and the avatar, sharing one glass capsule
+  only while there are actions).
+- Scrolling collapses the header rather than hiding it: it moves up until the pill row sits centred
+  in that button row, with the title fading out. `FeedHeaderScroll.progress` is the collapse amount;
+  read it rather than dividing `hiddenAmount` yourself, since it stays observed before the range is known.
+- It collapses only in compact width, and never with VoiceOver, Reduce Motion or while a feed edits.
+- Pushed area screens (`AreaHeader`) get the same treatment: their own glass header with a back button,
+  a large title that morphs into the centre of the button row, and the climate readings as pills that
+  turn into a display-only subtitle. Hiding the bar disables the edge swipe back, so the header restores
+  it. In Show/Hide mode the header steps aside for the system bar.
+
 ### Feed contract (`Feeds/FeedEnvironment.swift`)
 
 A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll
 view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase through the
 environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
-may omit it. Optional channels: `.feedIsEditing(_:)` swaps the navigation bar's items for the feed's
-own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since neighbour pages stay
-alive and share the bar), and `\.openFeed` selects another feed in place.
+may omit it. Optional channels: `.feedIsEditing(_:)` removes the header and shows the system navigation
+bar for the feed's own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since
+neighbour pages stay alive and share the bar), and `\.openFeed` selects another feed in place.
 
 ## Concurrency Model
 
@@ -188,8 +202,8 @@ Demo mode is a first-class feature, not an afterthought:
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.
 - `.authenticated` shows `MainNavigationView`: one `NavigationStack` whose root is the feed pager, with
-  the header as an overlay (see Feeds). The selected feed's actions and the account button share one
-  trailing group in an always-visible, transparent navigation bar. Settings opens from the account button as a sheet.
+  the header as an overlay and no system navigation bar (see Feeds › Header). Settings opens from the
+  account button as a sheet.
 
 ## Data Flow
 

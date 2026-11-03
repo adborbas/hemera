@@ -24,6 +24,7 @@ struct AreaDetailView: View {
                     viewModel: viewModel,
                     overlayItem: $overlayItem,
                     showClimateSubtitle: $showClimateSubtitle,
+                    showsClimateInContent: isFeed,
                     overlayTransition: overlayTransition,
                     horizontalSizeClass: horizontalSizeClass,
                     isHideMode: hideMode.isActive,
@@ -43,26 +44,21 @@ struct AreaDetailView: View {
             }
         }
         .navigationTitle(isFeed ? "" : viewModel.areaName)
-        .navigationBarTitleDisplayMode(isFeed ? .inline : .large)
+        .navigationBarTitleDisplayMode(.inline)
+        .modifier(AreaHeader(
+            isEnabled: !isFeed,
+            isEditing: hideMode.isActive,
+            title: viewModel.areaName,
+            area: area,
+            actions: viewModel.feedActions,
+            perform: viewModel.perform
+        ))
         .feedIsEditing(hideMode.isActive)
         .toolbar {
             if hideMode.isActive, isSelectedFeed {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Localization.done) {
                         setHideMode(false)
-                    }
-                }
-            } else if !isFeed, !viewModel.isDemoMode, !viewModel.isVirtualArea {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            viewModel.openAreaInHA()
-                        } label: {
-                            Label(Localization.openInHomeAssistant, systemImage: "globe")
-                        }
-                    } label: {
-                        Label(Localization.moreOptions, systemImage: "ellipsis")
-                            .labelStyle(.iconOnly)
                     }
                 }
             }
@@ -75,6 +71,10 @@ struct AreaDetailView: View {
         }
         .haWebViewCover(presenter: viewModel.haWebViewPresenter)
         .onDisappear { hideMode.endAnimationWindow() }
+    }
+
+    private var area: AreaEntity? {
+        if case .area(let area) = viewModel.destination { area } else { nil }
     }
 
     private func setHideMode(_ on: Bool) {
@@ -97,14 +97,13 @@ private struct AreaContentView: View {
     let viewModel: AreaDetailViewModel
     @Binding var overlayItem: OverlayItem?
     @Binding var showClimateSubtitle: Bool
+    /// Pushed areas carry the readings in their header instead.
+    let showsClimateInContent: Bool
     let overlayTransition: Namespace.ID
     let horizontalSizeClass: UserInterfaceSizeClass?
     let isHideMode: Bool
     let animatesTileChanges: Bool
     let onEnterHideMode: () -> Void
-
-    /// Held in state so a re-render cannot swap in a fresh, unloaded view model.
-    @State private var climateHistoryTarget: ClimateHistoryTarget?
 
     var body: some View {
         GeometryReader { proxy in
@@ -115,7 +114,15 @@ private struct AreaContentView: View {
             let sections = viewModel.sections(for: area, includingHidden: isHideMode)
 
             ScrollView {
-                climateSummaryRow
+                if showsClimateInContent {
+                    AreaClimateReadings(area: area)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, TileGridConstants.padding)
+                        .opacity(showClimateSubtitle ? 1 : 0)
+                        .onScrollVisibilityChange(threshold: 0.5) { isVisible in
+                            showClimateSubtitle = isVisible
+                        }
+                }
 
                 if sections.isEmpty, !isHideMode, viewModel.hasHiddenEntities(for: area) {
                     AllHiddenPlaceholder(action: onEnterHideMode)
@@ -143,99 +150,6 @@ private struct AreaContentView: View {
             }
             .reportsFeedScroll()
         }
-    }
-
-    // MARK: - Climate history sheet
-
-    /// An area's temperature and humidity, each a tappable link to its own history.
-    @ViewBuilder
-    private var climateSummaryRow: some View {
-        let (temperatureText, humidityText) = AreaDisplayHelpers.climateSummary(for: area)
-        let representatives = AreaDisplayHelpers.representativeSensors(for: area)
-
-        if temperatureText != nil || humidityText != nil {
-            HStack(spacing: Mortar.Spacing.s) {
-                if let temperatureText, let temperature = representatives.temperature {
-                    climateHistoryButton(
-                        text: temperatureText,
-                        sensor: temperature,
-                        fallbackUnit: "°",
-                        icon: "mdi:thermometer"
-                    )
-                }
-
-                if let humidityText, let humidity = representatives.humidity {
-                    climateHistoryButton(
-                        text: humidityText,
-                        sensor: humidity,
-                        fallbackUnit: "%",
-                        icon: "mdi:water-percent"
-                    )
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, TileGridConstants.padding)
-            .opacity(showClimateSubtitle ? 1 : 0)
-            .onScrollVisibilityChange(threshold: 0.5) { isVisible in
-                showClimateSubtitle = isVisible
-            }
-            .sheet(item: $climateHistoryTarget) { target in
-                AreaClimateHistoryView(
-                    viewModel: target.viewModel,
-                    areaName: area.name
-                )
-                .presentationDetents([.large])
-            }
-        }
-    }
-
-    /// 17pt matches the subheadline text; the smallest Mortar.IconSize (19pt) sits above cap height.
-    private let readingIconSize: CGFloat = 17
-
-    /// The grid's own shape, so a reading reads as the same material as the cards under it.
-    private let readingShape = RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
-
-    /// The pill is shorter than this; the hit area is padded out to the HIG minimum around it.
-    private let readingTapTarget: CGFloat = 44
-
-    /// A tappable reading that opens its own sensor's history sheet.
-    private func climateHistoryButton(
-        text: String,
-        sensor: SensorEntity,
-        fallbackUnit: String,
-        icon: String
-    ) -> some View {
-        Button {
-            guard let session = ServiceLocator.shared.session else { return }
-            climateHistoryTarget = ClimateHistoryTarget(
-                viewModel: AreaClimateHistoryViewModel(
-                    sensor: sensor,
-                    fallbackUnit: fallbackUnit,
-                    provider: session.sensorHistoryProvider
-                )
-            )
-        } label: {
-            HStack(spacing: Mortar.Spacing.xs) {
-                // Tinted so the glyph reads as its own thing rather than competing with the value.
-                MDIIcon(name: icon, size: readingIconSize)
-                    .foregroundStyle(Color.cool)
-                Text(text)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-            .padding(.horizontal, Mortar.Spacing.m)
-            .padding(.vertical, Mortar.Spacing.s)
-            .background(PlatformColor.secondarySystemBackground, in: readingShape)
-            .frame(minHeight: readingTapTarget)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Identified by its view model, so a tap is one target for `.sheet(item:)`.
-    private struct ClimateHistoryTarget: Identifiable {
-        let viewModel: AreaClimateHistoryViewModel
-        var id: ObjectIdentifier { ObjectIdentifier(viewModel) }
     }
 }
 
