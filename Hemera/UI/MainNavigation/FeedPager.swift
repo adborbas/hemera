@@ -10,6 +10,8 @@ struct FeedPager: View {
 
     @State private var visibleFeed: FeedID?
     @State private var jump: FeedPagerJump?
+    /// From the finger going down until the page settles.
+    @State private var isSwiping = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var selectedIndex: Int {
@@ -48,14 +50,20 @@ struct FeedPager: View {
             .scrollTargetBehavior(.paging)
             .scrollIndicators(.hidden)
             // One-shot scrolls: a `scrollPosition` binding is re-asserted mid-swipe and stalls it.
-            .onScrollGeometryChange(for: Int.self) { geometry in
-                guard geometry.containerSize.width > 0 else { return 0 }
-                return Int((geometry.contentOffset.x / geometry.containerSize.width).rounded())
-            } action: { _, index in
+            .onScrollGeometryChange(for: PagePosition.self) { geometry in
+                let width = geometry.containerSize.width
+                guard width > 0 else { return PagePosition() }
+                return PagePosition(index: Int((geometry.contentOffset.x / width).rounded()), width: width)
+            } action: { old, new in
                 // A jump slides through a borrowed slot whose index isn't the feed it shows.
-                guard jump == nil, feeds.indices.contains(index) else { return }
-                visibleFeed = feeds[index]
-                selection = feeds[index]
+                guard jump == nil, feeds.indices.contains(new.index) else { return }
+                // Resizes and relayouts move the offset too; only a swipe may change the selection.
+                guard old.width == new.width, isSwiping || feeds[new.index] == selection else {
+                    proxy.scrollTo(selection, anchor: .leading)
+                    return
+                }
+                visibleFeed = feeds[new.index]
+                selection = feeds[new.index]
             }
             .onChange(of: selection) {
                 guard visibleFeed != selection, jump == nil else { return }
@@ -63,6 +71,7 @@ struct FeedPager: View {
             }
             // A programmatic scroll isn't a state animation, so its end comes from the scroll view going idle.
             .onScrollPhaseChange { _, phase in
+                if phase == .interacting { isSwiping = true } else if phase == .idle { isSwiping = false }
                 guard phase == .idle, let jump else { return }
                 finish(jump, with: proxy)
             }
@@ -101,6 +110,11 @@ struct FeedPager: View {
         visibleFeed = feeds[jump.to]
         proxy.scrollTo(feeds[jump.to], anchor: .leading)
     }
+}
+
+private struct PagePosition: Equatable {
+    var index = 0
+    var width: CGFloat = 0
 }
 
 /// A pill jump of more than one page, shown in the slot next to where it starts.
