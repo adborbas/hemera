@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension EnvironmentValues {
-    /// Receives the selected feed's scrolling; set by the navigation screen, `nil` elsewhere.
+    /// Receives the screen's scrolling; set by the collapsing screen header, `nil` elsewhere.
     @Entry var feedHeaderScroll: FeedHeaderScroll?
     /// False on neighbour pages kept alive by the pager; their toolbar items would land in the shared bar.
     @Entry var isSelectedFeed = true

@@ -35,6 +35,29 @@ struct MainNavigationViewModelTests {
         #expect(viewModel.selectedFeed == .areas)
     }
 
+    @Test func select_withPushedScreen_popsToTheFeed() {
+        // Picking a feed means "show me that feed", not the screen left open over the previous one.
+        let viewModel = makeViewModel()
+        viewModel.path.append(AreaDestination.unassigned(hasRealAreas: true))
+
+        viewModel.select(.domain("light"))
+
+        #expect(viewModel.selectedFeed == .domain("light"))
+        #expect(viewModel.path.isEmpty)
+    }
+
+    @Test func reselectHome_whenSelectedFeedStillResolves_keepsPushedScreen() {
+        // The pills re-resolve on every data change; an open area screen must not close under the user.
+        let viewModel = makeViewModel()
+        viewModel.selectedFeed = .areas
+        viewModel.path.append(AreaDestination.unassigned(hasRealAreas: true))
+
+        viewModel.reselectHomeIfSelectionIsHidden()
+
+        #expect(viewModel.selectedFeed == .areas)
+        #expect(viewModel.path.count == 1)
+    }
+
     // MARK: - Pills
 
     @Test func pills_withNothingStored_followDefaultRow() {

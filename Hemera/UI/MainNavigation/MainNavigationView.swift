@@ -1,7 +1,10 @@
 import SwiftUI
 import Mortar
 
-/// The authenticated root: feeds paged under a floating header, switched by pills.
+/**
+ The authenticated root: one feed under the screen header in compact width, paged feeds under pills
+ in regular width. Both are roots of one stack, so a size-class change keeps the pushed screens.
+*/
 struct MainNavigationView: View {
 
     @State private var viewModel: MainNavigationViewModel
@@ -10,13 +13,9 @@ struct MainNavigationView: View {
     @State private var isFeedEditing = false
     @State private var showSettings = false
     @State private var settingsInitialRoute: SettingsViewModel.Route?
-    @State private var headerScroll = FeedHeaderScroll()
     @State private var toolbarActions: [FeedAction] = []
-    @State private var buttonsWidth: CGFloat = 0
-    @State private var collapseDistance: CGFloat = 0
 
     @Environment(ScreenManager.self) private var screenManager
-    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -30,8 +29,8 @@ struct MainNavigationView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            viewModel.resolver.registerNavigationDestinations(on: AnyView(feeds))
+        NavigationStack(path: $viewModel.path) {
+            viewModel.resolver.registerNavigationDestinations(on: AnyView(root))
         }
         .sheet(isPresented: $showSettings, onDismiss: {
             settingsInitialRoute = nil
@@ -53,58 +52,12 @@ struct MainNavigationView: View {
         }
     }
 
-    private var feeds: some View {
-        FeedPager(
-            feeds: viewModel.pills.map(\.id),
-            selection: $viewModel.selectedFeed,
-            contentMargins: EdgeInsets(
-                top: safeAreaInsets.top + (isFeedEditing ? 0 : headerHeight),
-                leading: 0,
-                bottom: safeAreaInsets.bottom,
-                trailing: 0
-            ),
-            page: { id in
-                AnyView(viewModel.resolver.view(for: id)
-                    .environment(\.feedHeaderScroll, id == viewModel.selectedFeed ? headerScroll : nil)
-                    .environment(\.isSelectedFeed, id == viewModel.selectedFeed)
-                    // Neighbour pages stay alive; only the page on screen may switch to its editing bar.
-                    .transformPreference(FeedIsEditingKey.self) { if id != viewModel.selectedFeed { $0 = false } })
-            }
-        )
-        .ignoresSafeArea()
-        .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeAreaInsets = $0 }
-        .overlay(alignment: .top) {
-            // Editing brings up the system bar for the feed's toolbar, so the header steps aside.
-            if !isFeedEditing {
-                HeaderOffset(scroll: headerScroll) {
-                    FeedHeader(
-                        title: viewModel.title,
-                        pills: viewModel.pills,
-                        selection: viewModel.selectedFeed,
-                        onSelect: select,
-                        scroll: headerScroll,
-                        buttonsWidth: buttonsWidth,
-                        onCollapseDistanceChange: { collapseDistance = $0 }
-                    )
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        // Ours, not the system bar's: that bar takes every touch in its row, collapsed pills included.
-        .overlay(alignment: .topTrailing) {
-            if !isFeedEditing {
-                HeaderButtons(
-                    actions: toolbarActions,
-                    account: viewModel.homeProfile.account,
-                    perform: { viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform($0, item: $1) },
-                    openSettings: { showSettings = true }
-                )
-                .padding(.trailing, Mortar.Spacing.l)
-                // Regular width has no button row; the never-collapsing header's pill row hosts them.
-                .offset(y: horizontalSizeClass == .compact ? 0 : collapseDistance)
-                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { buttonsWidth = $0 }
-                .transition(.opacity)
+    private var root: some View {
+        Group {
+            if horizontalSizeClass == .compact {
+                feed
+            } else {
+                feeds
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -121,37 +74,78 @@ struct MainNavigationView: View {
         .onPreferenceChange(FeedIsEditingKey.self) { editing in
             withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) { isFeedEditing = editing }
         }
-        .onChange(of: collapseDistance, initial: true) { headerScroll.hideRange = $1 }
-        .onChange(of: headerCanHide, initial: true) { headerScroll.canHide = headerCanHide }
-        .onChange(of: viewModel.selectedFeed) { headerScroll.reset() }
         // Copied in an animated transaction so the glass morphs; selection changes aren't animated.
         .onChange(of: viewModel.resolver.actions(for: viewModel.selectedFeed), initial: true) { _, actions in
             withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) { toolbarActions = actions }
         }
         .onChange(of: viewModel.pills.map(\.id)) { viewModel.reselectHomeIfSelectionIsHidden() }
+        .environment(\.openFeed, viewModel.select)
+    }
+
+    /// Compact width: the selected feed alone, its name as the title and the avatar where back would be.
+    private var feed: some View {
+        viewModel.resolver.view(for: viewModel.selectedFeed)
+            .pushedScreenHeader(
+                viewModel.resolver.summary(for: viewModel.selectedFeed)?.title ?? viewModel.title,
+                leading: .account(viewModel.homeProfile.account, action: openDrawer),
+                isEditing: isFeedEditing,
+                actions: toolbarActions,
+                perform: perform
+            )
+            // A fresh header per feed, so a new feed starts expanded.
+            .id(viewModel.selectedFeed)
+    }
+
+    /// Regular width: feeds paged under the pill header, which never collapses there.
+    private var feeds: some View {
+        FeedPager(
+            feeds: viewModel.pills.map(\.id),
+            selection: $viewModel.selectedFeed,
+            contentMargins: EdgeInsets(
+                top: safeAreaInsets.top + (isFeedEditing ? 0 : headerHeight),
+                leading: 0,
+                bottom: safeAreaInsets.bottom,
+                trailing: 0
+            ),
+            page: { id in
+                AnyView(viewModel.resolver.view(for: id)
+                    .environment(\.isSelectedFeed, id == viewModel.selectedFeed)
+                    // Neighbour pages stay alive; only the page on screen may switch to its editing bar.
+                    .transformPreference(FeedIsEditingKey.self) { if id != viewModel.selectedFeed { $0 = false } })
+            }
+        )
+        .ignoresSafeArea()
+        .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeAreaInsets = $0 }
+        .overlay(alignment: .top) {
+            // Editing brings up the system bar for the feed's toolbar, so the header steps aside.
+            if !isFeedEditing {
+                FeedHeader(
+                    title: viewModel.title,
+                    pills: viewModel.pills,
+                    selection: viewModel.selectedFeed,
+                    onSelect: viewModel.select
+                ) {
+                    HeaderButtons(
+                        actions: toolbarActions,
+                        account: viewModel.homeProfile.account,
+                        perform: perform,
+                        openSettings: { showSettings = true }
+                    )
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
         .toolbar(isFeedEditing ? .visible : .hidden, for: .navigationBar)
-        .environment(\.openFeed, select)
     }
 
-    /// Wide layouts have room to spare, so the header stays expanded there.
-    private var headerCanHide: Bool {
-        horizontalSizeClass == .compact && !voiceOverEnabled && !reduceMotion && !isFeedEditing
+    private func perform(_ actionID: String, _ item: String?) {
+        viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform(actionID, item: item)
     }
 
-    private func select(_ id: FeedID) {
-        viewModel.selectedFeed = id
-    }
-}
-
-// MARK: - Header Offset
-
-/// Reads the per-frame offset itself so scrolling redraws only the header.
-private struct HeaderOffset<Content: View>: View {
-    let scroll: FeedHeaderScroll
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        content.offset(y: -scroll.hiddenAmount)
+    // shortcut: opens Settings, the avatar's only destination until compact width gets its drawer.
+    private func openDrawer() {
+        showSettings = true
     }
 }
 
@@ -183,7 +177,7 @@ private struct HeaderButtons: View {
 
 // MARK: - Account Button
 
-private struct AccountButton: View {
+struct AccountButton: View {
     let account: Account?
     let action: () -> Void
 

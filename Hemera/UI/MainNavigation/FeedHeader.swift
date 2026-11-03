@@ -1,33 +1,16 @@
 import SwiftUI
 import Mortar
 
-/**
- The title and pill row floating over the feeds; collapsing moves the pills up into the button row.
- Regular width has no button row: the buttons sit at the end of the pill row instead.
-*/
-struct FeedHeader: View {
+/// Regular width's header: the home name, then the pills with the buttons at the row's end.
+struct FeedHeader<Buttons: View>: View {
     let title: String
     let pills: [MainNavigationViewModel.Pill]
     let selection: FeedID
     let onSelect: (FeedID) -> Void
-    let scroll: FeedHeaderScroll
-    /// Width of the floating buttons, which the pill row makes room for as it rises into their row.
-    let buttonsWidth: CGFloat
-    let onCollapseDistanceChange: (CGFloat) -> Void
-
-    @State private var titleHeight: CGFloat = 0
-    @State private var pillRowMidY: CGFloat = 0
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
-    private let coordinateSpace = "FeedHeader"
+    @ViewBuilder let buttons: Buttons
 
     var body: some View {
-        let hasButtonRow = horizontalSizeClass == .compact
         VStack(alignment: .leading, spacing: 0) {
-            if hasButtonRow {
-                // The row the floating buttons sit in.
-                Color.clear.frame(height: Mortar.TapTarget.minimum)
-            }
             Text(title)
                 .font(.largeTitle.bold())
                 .lineLimit(1)
@@ -35,49 +18,15 @@ struct FeedHeader: View {
                 .accessibilityAddTraits(.isHeader)
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.top, HeaderLayout.titleSpacing)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { titleHeight = $0 }
-                .modifier(TitleFade(scroll: scroll, titleHeight: titleHeight))
-            PillRow(
-                pills: pills,
-                selection: selection,
-                onSelect: onSelect
-            )
-            // Only the centre: the row's width changes every frame as it makes room for the buttons.
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named(coordinateSpace)).midY } action: { pillRowMidY = $0 }
-            .modifier(ButtonsReserve(scroll: scroll, width: buttonsWidth + Mortar.Spacing.l, isFixed: !hasButtonRow))
+            HStack(spacing: 0) {
+                PillRow(pills: pills, selection: selection, onSelect: onSelect)
+                buttons
+            }
+            .padding(.trailing, Mortar.Spacing.l)
         }
-        .coordinateSpace(.named(coordinateSpace))
         .padding(.bottom, Mortar.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(HeaderBackground())
-        .onChange(of: collapseDistance, initial: true) { onCollapseDistanceChange($1) }
-    }
-
-    private var collapseDistance: CGFloat {
-        HeaderLayout.collapseDistance(pillRowMidY: pillRowMidY, buttonRowHeight: Mortar.TapTarget.minimum)
-    }
-}
-
-// MARK: - Scroll Readers
-
-/// Per-frame readers live in modifiers, so scrolling redraws them and not the views they wrap.
-private struct TitleFade: ViewModifier {
-    let scroll: FeedHeaderScroll
-    let titleHeight: CGFloat
-
-    func body(content: Content) -> some View {
-        content.opacity(HeaderLayout.titleOpacity(hiddenAmount: scroll.hiddenAmount, titleHeight: titleHeight))
-    }
-}
-
-private struct ButtonsReserve: ViewModifier {
-    let scroll: FeedHeaderScroll
-    let width: CGFloat
-    /// Without a button row the buttons always share the pill row.
-    let isFixed: Bool
-
-    func body(content: Content) -> some View {
-        content.padding(.trailing, isFixed ? width : width * scroll.progress)
     }
 }
 

@@ -139,10 +139,20 @@ Provides type-erased rendering for heterogeneous entity collections:
 
 ## Feeds
 
-The main screen has no tab bar: pills switch between **feeds** paged under a floating header
-(ADR-0002). Each feed is identified by a `FeedID` (`home`, `areas`, `domain:<domain>`), and
-`MainNavigationView` only ever holds feed IDs. The pill row is stored as feed IDs; IDs this build doesn't
-resolve (such as `area:<id>` pins from earlier builds) are kept and their pills hidden.
+The main screen has no tab bar (ADR-0002). Each **feed** is identified by a `FeedID` (`home`, `areas`,
+`domain:<domain>`), and `MainNavigationView` only ever holds feed IDs. The pill row is stored as feed IDs;
+IDs this build doesn't resolve (such as `area:<id>` pins from earlier builds) are kept and their pills
+hidden. `horizontalSizeClass` picks the layout:
+
+- **Compact** (iPhone, narrow iPad windows): one feed at a time, no pager. It uses the pushed screens'
+  header (`.pushedScreenHeader(_:leading: .account(...))`): the bare avatar top-leading, the feed's
+  actions top-trailing, the feed name as the collapsing title. The avatar opens Settings for now.
+- **Regular**: feeds paged under a static pill header (`FeedHeader`): the home name, then the pills with
+  the feed's actions and the avatar at the row's end. It never collapses.
+
+Both layouts are roots of one `NavigationStack`. `MainNavigationViewModel` owns the selected feed and the
+stack's `path`, so a size-class change keeps both, pushed screens included. `select(_:)` shows a feed
+and pops anything pushed.
 
 - `FeedResolver` (`Feeds/FeedResolver.swift`) is session-scoped, lives in `Session` and is built by
   `SessionManager` (demo gets its own). It turns an ID into a pill `FeedSummary` (`nil` hides the
@@ -150,28 +160,28 @@ resolve (such as `area:<id>` pins from earlier builds) are kept and their pills 
   A new kind of feed is a new provider; the header and pager don't change.
 - Providers that push screens register their `navigationDestination`s through the provider, because
   the pager's pages are not a valid place for them. Pushed screens bring their own header (see Header).
-- `FeedPager` pages horizontally, bound to the selected feed both ways, and only builds the selected
-  page and its neighbours. Each page gets fixed top and bottom content margins for the header and the
-  home indicator; feed views must not add their own top inset for the header.
+- `FeedPager` (regular width) pages horizontally and only builds the selected page and its neighbours.
+  Only a swipe changes the selection; any other offset change (a resizing window, a relayout) scrolls
+  back to it. Each page gets fixed top and bottom content margins for the header and the home indicator;
+  feed views must not add their own top inset for the header.
 
 ### Header
 
-- The root screen hides the system navigation bar: in its row the bar takes every touch, so the
-  header draws its own buttons there (the feed's actions and the avatar, sharing one glass capsule
-  only while there are actions).
-- Scrolling collapses the header rather than hiding it: it moves up until the pill row sits centred
-  in that button row, with the title fading out. `FeedHeaderScroll.progress` is the collapse amount;
-  read it rather than dividing `hiddenAmount` yourself, since it stays observed before the range is known.
-- It collapses only in compact width, and never with VoiceOver, Reduce Motion or while a feed edits.
-  Regular width has no button row: the buttons sit at the end of the pill row.
+- Screens hide the system navigation bar and draw their own buttons (the bar takes every touch in its
+  row). In regular width the feed's actions and the avatar share one glass capsule only while there are
+  actions.
+- `.pushedScreenHeader(...)` is the one collapsing header: the compact feed root, and pushed screens with
+  a large title (areas, Connect to Server). Its leading slot is a back button, or the avatar at a feed's
+  root. The large title morphs into the centre of the button row.
+  `FeedHeaderScroll.progress` is the collapse amount; read it rather than dividing `hiddenAmount`
+  yourself, since it stays observed before the range is known.
+- It collapses only in compact width, and never with VoiceOver, Reduce Motion or while a screen edits.
 - A drag that would leave the header part-way collapsed near the top scrolls the content to fully
   expanded or fully collapsed instead, as system large titles do.
-- Pushed screens with a large title (areas, Connect to Server) use `.pushedScreenHeader(...)` instead
-  of the system bar: a back button, the screen's actions, and a large title that morphs into the centre
-  of the button row. An optional accessory (an area's climate readings) turns into a subtitle. A header
-  with only a title shows its glass plate once content scrolls under it. Regular width puts everything
-  in one row. Hiding the bar disables the edge swipe back, so the header restores it. An editing mode
-  (Show/Hide) passes `isEditing`, and the header steps aside for the system bar.
+- An optional accessory (an area's climate readings) turns into a subtitle. A header with only a title
+  shows its glass plate once content scrolls under it. Regular width puts everything in one row. Hiding
+  the bar disables the edge swipe back, so the header restores it on pushed screens. An editing mode
+  (Home's layout, an area's Show/Hide) passes `isEditing`, and the header steps aside for the system bar.
 
 ### Section spacing
 
@@ -182,8 +192,8 @@ the same rhythm: header to first content, title to cards, and twice that between
 ### Feed contract (`Feeds/FeedEnvironment.swift`)
 
 A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll
-view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase through the
-environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
+view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase to the
+collapsing header through the environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
 may omit it. Optional channels: `.feedIsEditing(_:)` removes the header and shows the system navigation
 bar for the feed's own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since
 neighbour pages stay alive and share the bar), and `\.openFeed` selects another feed in place.
@@ -213,9 +223,9 @@ Demo mode is a first-class feature, not an afterthought:
 - `AppRouter` reacts to `AuthManager` state changes automatically.
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.
-- `.authenticated` shows `MainNavigationView`: one `NavigationStack` whose root is the feed pager, with
-  the header as an overlay and no system navigation bar (see Feeds › Header). Settings opens from the
-  account button as a sheet.
+- `.authenticated` shows `MainNavigationView`: one `NavigationStack` whose root is the compact feed or
+  the regular-width pager, with no system navigation bar (see Feeds). Settings opens from the avatar as
+  a sheet.
 
 ## Data Flow
 

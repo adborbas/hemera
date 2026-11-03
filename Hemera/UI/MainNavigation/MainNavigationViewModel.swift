@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 @Observable
 @MainActor
@@ -9,7 +9,9 @@ final class MainNavigationViewModel {
         let summary: FeedSummary
     }
 
+    /// Owned here, not by either layout, so a size-class change keeps the feed and any pushed screen.
     var selectedFeed: FeedID = .home
+    var path = NavigationPath()
     private(set) var showOfflineBanner = false
 
     let resolver: any FeedResolving
@@ -54,6 +56,12 @@ final class MainNavigationViewModel {
         self.row = settings.feedRow ?? FeedID.builtIns
         self.connectionStatusProvider = connectionStatusProvider
         self.offlineBannerDelay = offlineBannerDelay
+    }
+
+    /// Shows a feed at the root, leaving any pushed screen.
+    func select(_ id: FeedID) {
+        selectedFeed = id
+        path = NavigationPath()
     }
 
     /// Call when the pills change: a selected feed that stopped resolving has no page left to show.

@@ -3,11 +3,12 @@ import Mortar
 
 extension View {
     /**
-     Replaces the system bar with a back button, the screen's actions and a large title. In compact
-     width the title morphs into the button row as content scrolls, and the accessory into a subtitle.
+     Replaces the system bar with a back button or avatar, the screen's actions and a large title. In
+     compact width the title morphs into the button row on scroll, and the accessory into a subtitle.
     */
     func pushedScreenHeader<Accessory: View>(
         _ title: String,
+        leading: HeaderLeading = .back,
         isEditing: Bool = false,
         actions: [FeedAction] = [],
         perform: @escaping (_ actionID: String, _ item: String?) -> Void = { _, _ in },
@@ -15,6 +16,7 @@ extension View {
     ) -> some View {
         modifier(PushedScreenHeader(
             title: title,
+            leading: leading,
             isEditing: isEditing,
             actions: actions,
             perform: perform,
@@ -23,8 +25,16 @@ extension View {
     }
 }
 
+/// What sits at the header's leading end.
+enum HeaderLeading {
+    case back
+    /// A feed's root has nothing to go back to; the bare avatar takes the back button's place.
+    case account(Account?, action: () -> Void)
+}
+
 private struct PushedScreenHeader<Accessory: View>: ViewModifier {
     let title: String
+    let leading: HeaderLeading
     /// An editing toolbar brings up the system bar, so the header steps aside.
     let isEditing: Bool
     let actions: [FeedAction]
@@ -53,13 +63,14 @@ private struct PushedScreenHeader<Accessory: View>: ViewModifier {
                             CollapsingBar(
                                 scroll: scroll,
                                 title: title,
+                                leading: leading,
                                 actions: actions,
                                 perform: perform,
                                 accessory: accessory,
                                 onCollapseRangeChange: { collapseRange = $0 }
                             )
                         } else {
-                            RegularBar(scroll: scroll, title: title, actions: actions, perform: perform, accessory: accessory)
+                            RegularBar(scroll: scroll, title: title, leading: leading, actions: actions, perform: perform, accessory: accessory)
                                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { regularHeight = $0 }
                         }
                     }
@@ -93,6 +104,7 @@ private func isPlateVisible(accessoryHeight: CGFloat, scroll: FeedHeaderScroll) 
 private struct RegularBar<Accessory: View>: View {
     let scroll: FeedHeaderScroll
     let title: String
+    let leading: HeaderLeading
     let actions: [FeedAction]
     let perform: (_ actionID: String, _ item: String?) -> Void
     let accessory: (_ collapse: CGFloat) -> Accessory
@@ -101,7 +113,7 @@ private struct RegularBar<Accessory: View>: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: Mortar.Spacing.m) {
-            BackButton()
+            LeadingButton(leading: leading)
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.largeTitle.bold())
@@ -123,6 +135,7 @@ private struct RegularBar<Accessory: View>: View {
 private struct CollapsingBar<Accessory: View>: View {
     let scroll: FeedHeaderScroll
     let title: String
+    let leading: HeaderLeading
     let actions: [FeedAction]
     let perform: (_ actionID: String, _ item: String?) -> Void
     let accessory: (_ collapse: CGFloat) -> Accessory
@@ -147,7 +160,7 @@ private struct CollapsingBar<Accessory: View>: View {
             )
             .padding(.bottom, Mortar.Spacing.xs)
             HStack {
-                BackButton()
+                LeadingButton(leading: leading)
                 Spacer()
                 ActionsCapsule(actions: actions, perform: perform)
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trailingWidth = $0 }
@@ -165,6 +178,17 @@ private struct CollapsingBar<Accessory: View>: View {
         .modifier(HeaderBackground(
             isPlateVisible: isPlateVisible(accessoryHeight: expandedAccessorySize.height, scroll: scroll)
         ))
+    }
+}
+
+private struct LeadingButton: View {
+    let leading: HeaderLeading
+
+    var body: some View {
+        switch leading {
+        case .back: BackButton()
+        case .account(let account, let action): AccountButton(account: account, action: action)
+        }
     }
 }
 

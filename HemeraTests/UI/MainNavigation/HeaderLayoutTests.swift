@@ -5,36 +5,6 @@ import Testing
 @MainActor
 struct HeaderLayoutTests {
 
-    // MARK: - Collapse Distance
-
-    @Test func collapseDistance_centresPillRowOnButtonRow() {
-        // Button row 44, title 41, pill row 52; the header's 12pt bottom padding lies below the pills.
-        let pillRowMidY: CGFloat = 44 + 41 + 52 / 2
-
-        let distance = HeaderLayout.collapseDistance(pillRowMidY: pillRowMidY, buttonRowHeight: 44)
-
-        // Counting the header's bottom padding as pill row put the pills 6pt below the avatar's centre.
-        #expect(distance == 89)
-        #expect(pillRowMidY - distance == 22)
-    }
-
-    @Test func collapseDistance_beforeLayout_isZero() {
-        // Unmeasured, the pill row reports zero; the header must not move down.
-        #expect(HeaderLayout.collapseDistance(pillRowMidY: 0, buttonRowHeight: 44) == 0)
-    }
-
-    // MARK: - Title Opacity
-
-    @Test func titleOpacity_hiddenHalfTheTitle_isGone() {
-        // Faded out before it reaches the button row, where it would collide with the buttons.
-        #expect(HeaderLayout.titleOpacity(hiddenAmount: 20, titleHeight: 40) == 0)
-        #expect(HeaderLayout.titleOpacity(hiddenAmount: 10, titleHeight: 40) == 0.5)
-    }
-
-    @Test func titleOpacity_unmeasuredTitle_isVisible() {
-        #expect(HeaderLayout.titleOpacity(hiddenAmount: 30, titleHeight: 0) == 1)
-    }
-
     // MARK: - Collapsed Title
 
     @Test func collapsedTitle_clearingBothSides_isCentredOnScreen() {
