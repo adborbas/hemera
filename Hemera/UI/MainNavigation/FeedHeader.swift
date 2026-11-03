@@ -1,7 +1,10 @@
 import SwiftUI
 import Mortar
 
-/// The title and pill row floating over the feeds; collapsing moves the pills up into the button row.
+/**
+ The title and pill row floating over the feeds; collapsing moves the pills up into the button row.
+ Regular width has no button row: the buttons sit at the end of the pill row instead.
+*/
 struct FeedHeader: View {
     let title: String
     let pills: [MainNavigationViewModel.Pill]
@@ -14,19 +17,24 @@ struct FeedHeader: View {
 
     @State private var titleHeight: CGFloat = 0
     @State private var pillRowMidY: CGFloat = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private let coordinateSpace = "FeedHeader"
 
     var body: some View {
+        let hasButtonRow = horizontalSizeClass == .compact
         VStack(alignment: .leading, spacing: 0) {
-            // The row the floating buttons sit in.
-            Color.clear.frame(height: Mortar.TapTarget.minimum)
+            if hasButtonRow {
+                // The row the floating buttons sit in.
+                Color.clear.frame(height: Mortar.TapTarget.minimum)
+            }
             Text(title)
                 .font(.largeTitle.bold())
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .accessibilityAddTraits(.isHeader)
                 .padding(.horizontal, Mortar.Spacing.l)
+                .padding(.top, HeaderLayout.titleSpacing)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { titleHeight = $0 }
                 .modifier(TitleFade(scroll: scroll, titleHeight: titleHeight))
             PillRow(
@@ -36,7 +44,7 @@ struct FeedHeader: View {
             )
             // Only the centre: the row's width changes every frame as it makes room for the buttons.
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named(coordinateSpace)).midY } action: { pillRowMidY = $0 }
-            .modifier(ButtonsReserve(scroll: scroll, width: buttonsWidth + Mortar.Spacing.l + Mortar.Spacing.s))
+            .modifier(ButtonsReserve(scroll: scroll, width: buttonsWidth + Mortar.Spacing.l, isFixed: !hasButtonRow))
         }
         .coordinateSpace(.named(coordinateSpace))
         .padding(.bottom, Mortar.Spacing.xs)
@@ -65,9 +73,11 @@ private struct TitleFade: ViewModifier {
 private struct ButtonsReserve: ViewModifier {
     let scroll: FeedHeaderScroll
     let width: CGFloat
+    /// Without a button row the buttons always share the pill row.
+    let isFixed: Bool
 
     func body(content: Content) -> some View {
-        content.padding(.trailing, width * scroll.progress)
+        content.padding(.trailing, isFixed ? width : width * scroll.progress)
     }
 }
 
@@ -77,6 +87,7 @@ private struct PillRow: View {
     let onSelect: (FeedID) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var fades = HeaderLayout.EdgeFades()
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -94,15 +105,26 @@ private struct PillRow: View {
             }
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
-            // Pills fade out at both ends instead of being cut off.
+            .onScrollGeometryChange(for: HeaderLayout.EdgeFades.self) { geometry in
+                HeaderLayout.edgeFades(
+                    offset: geometry.contentOffset.x,
+                    contentWidth: geometry.contentSize.width,
+                    containerWidth: geometry.containerSize.width,
+                    padding: Mortar.Spacing.l,
+                    clipInset: Mortar.Spacing.s
+                )
+            } action: { _, fades in
+                self.fades = fades
+            }
+            // Clipped a little inside the edges, fading only at an end with pills scrolled past it.
             .mask {
                 HStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
-                        .frame(width: Mortar.Spacing.l)
+                    EdgeFade(edge: .leading, isActive: fades.leading)
                     Color.black
-                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
-                        .frame(width: Mortar.Spacing.l)
+                    EdgeFade(edge: .trailing, isActive: fades.trailing)
                 }
+                .padding(.horizontal, Mortar.Spacing.s)
+                .animation(.easeInOut(duration: Mortar.Motion.fast), value: fades)
             }
             .onChange(of: selection) {
                 withAnimation(reduceMotion ? nil : Mortar.Motion.springNormal) {
@@ -110,6 +132,22 @@ private struct PillRow: View {
                 }
             }
         }
+    }
+}
+
+/// One end of the pill row's mask: a gradient while pills run past it, solid otherwise.
+private struct EdgeFade: View {
+    let edge: HorizontalEdge
+    let isActive: Bool
+
+    var body: some View {
+        LinearGradient(
+            colors: [.clear, .black],
+            startPoint: edge == .leading ? .leading : .trailing,
+            endPoint: edge == .leading ? .trailing : .leading
+        )
+        .overlay { Color.black.opacity(isActive ? 0 : 1) }
+        .frame(width: Mortar.Spacing.l)
     }
 }
 

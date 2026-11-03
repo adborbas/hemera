@@ -39,13 +39,17 @@ struct AreaDetailView: View {
         }
         .navigationTitle(viewModel.areaName)
         .navigationBarTitleDisplayMode(.inline)
-        .modifier(AreaHeader(
+        .pushedScreenHeader(
+            viewModel.areaName,
             isEditing: hideMode.isActive,
-            title: viewModel.areaName,
-            area: area,
             actions: viewModel.feedActions,
             perform: viewModel.perform
-        ))
+        ) { collapse in
+            if let area {
+                // Tappable only while they still read as pills.
+                AreaClimateReadings(area: area, morph: collapse, isInteractive: collapse < 0.5)
+            }
+        }
         .toolbar {
             if hideMode.isActive {
                 ToolbarItem(placement: .confirmationAction) {

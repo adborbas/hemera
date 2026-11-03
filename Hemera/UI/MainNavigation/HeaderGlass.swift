@@ -3,6 +3,8 @@ import Mortar
 
 /// The header's glass plate with rounded bottom corners.
 struct HeaderBackground: ViewModifier {
+    var isPlateVisible = true
+
     func body(content: Content) -> some View {
         content
             .padding(.bottom, Mortar.Spacing.s)
@@ -13,11 +15,12 @@ struct HeaderBackground: ViewModifier {
                 )
                 Group {
                     if #available(iOS 26, *) {
-                        Color.clear.glassEffect(.regular, in: shape)
+                        Color.clear.glassEffect(isPlateVisible ? .regular : .identity, in: shape)
                     } else {
-                        shape.fill(.bar)
+                        shape.fill(.bar).opacity(isPlateVisible ? 1 : 0)
                     }
                 }
+                .animation(.easeInOut(duration: Mortar.Motion.normal), value: isPlateVisible)
                 // Reaches past the top of the screen, so only the bottom edge shows the glass's rim.
                 .padding(.top, -Mortar.Spacing.xxl * 4)
                 .ignoresSafeArea(edges: .top)

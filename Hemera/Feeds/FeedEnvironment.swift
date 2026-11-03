@@ -34,6 +34,7 @@ private struct FeedScrollReporter: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .scrollTargetBehavior(HeaderSnap(collapseRange: headerScroll?.snapRange ?? 0))
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 // Bottom bounce clamped; top overscroll kept so a pull-down at the top reads as upward.
                 let top = geometry.contentInsets.top
@@ -43,8 +44,24 @@ private struct FeedScrollReporter: ViewModifier {
             } action: { _, offset in
                 headerScroll?.scrolled(to: offset)
             }
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 0
+            } action: { _, isScrolled in
+                headerScroll?.isScrolled = isScrolled
+            }
             .onScrollPhaseChange { _, phase in
                 headerScroll?.phaseChanged(to: phase)
             }
+    }
+}
+
+/// Moves a drag's resting point out of the header's collapse range, so the header never rests part-way.
+private struct HeaderSnap: ScrollTargetBehavior {
+    let collapseRange: CGFloat
+
+    /// Targets already count from the content's resting top, past the header's content margin.
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        guard let snapped = HeaderLayout.snappedOffset(restingAt: target.rect.minY, collapseRange: collapseRange) else { return }
+        target.rect.origin.y = snapped
     }
 }

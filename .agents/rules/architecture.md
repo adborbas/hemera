@@ -149,7 +149,7 @@ resolve (such as `area:<id>` pins from earlier builds) are kept and their pills 
   pill) and an `AnyView`, delegating to the `FeedResolver.Provider` registered for the ID's namespace.
   A new kind of feed is a new provider; the header and pager don't change.
 - Providers that push screens register their `navigationDestination`s through the provider, because
-  the pager's pages are not a valid place for them. Pushed screens use the system navigation bar.
+  the pager's pages are not a valid place for them. Pushed screens bring their own header (see Header).
 - `FeedPager` pages horizontally, bound to the selected feed both ways, and only builds the selected
   page and its neighbours. Each page gets fixed top and bottom content margins for the header and the
   home indicator; feed views must not add their own top inset for the header.
@@ -163,10 +163,15 @@ resolve (such as `area:<id>` pins from earlier builds) are kept and their pills 
   in that button row, with the title fading out. `FeedHeaderScroll.progress` is the collapse amount;
   read it rather than dividing `hiddenAmount` yourself, since it stays observed before the range is known.
 - It collapses only in compact width, and never with VoiceOver, Reduce Motion or while a feed edits.
-- Pushed area screens (`AreaHeader`) get the same treatment: their own glass header with a back button,
-  a large title that morphs into the centre of the button row, and the climate readings as pills that
-  turn into a display-only subtitle. Hiding the bar disables the edge swipe back, so the header restores
-  it. In Show/Hide mode the header steps aside for the system bar.
+  Regular width has no button row: the buttons sit at the end of the pill row.
+- A drag that would leave the header part-way collapsed near the top scrolls the content to fully
+  expanded or fully collapsed instead, as system large titles do.
+- Pushed screens with a large title (areas, Connect to Server) use `.pushedScreenHeader(...)` instead
+  of the system bar: a back button, the screen's actions, and a large title that morphs into the centre
+  of the button row. An optional accessory (an area's climate readings) turns into a subtitle. A header
+  with only a title shows its glass plate once content scrolls under it. Regular width puts everything
+  in one row. Hiding the bar disables the edge swipe back, so the header restores it. An editing mode
+  (Show/Hide) passes `isEditing`, and the header steps aside for the system bar.
 
 ### Section spacing
 

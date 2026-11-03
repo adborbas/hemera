@@ -101,6 +101,8 @@ struct MainNavigationView: View {
                     openSettings: { showSettings = true }
                 )
                 .padding(.trailing, Mortar.Spacing.l)
+                // Regular width has no button row; the never-collapsing header's pill row hosts them.
+                .offset(y: horizontalSizeClass == .compact ? 0 : collapseDistance)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { buttonsWidth = $0 }
                 .transition(.opacity)
             }

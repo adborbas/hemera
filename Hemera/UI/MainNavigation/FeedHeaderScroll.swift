@@ -9,15 +9,21 @@ final class FeedHeaderScroll {
     // MARK: - Properties
 
     private(set) var hiddenAmount: CGFloat = 0
+    /// Whether any content is under the header, a short screen's bounce included.
+    var isScrolled = false
     /// How far the header moves up when fully collapsed.
-    @ObservationIgnored var hideRange: CGFloat = 0
+    var hideRange: CGFloat = 0
     /// 0 expanded, 1 collapsed; reads `hiddenAmount` first so views drawn before the range still track it.
     var progress: CGFloat {
         let hidden = hiddenAmount
         return hideRange > 0 ? min(1, hidden / hideRange) : 0
     }
-    @ObservationIgnored var canHide = true {
+    var canHide = true {
         didSet { if !canHide { reset() } }
+    }
+    /// The offsets the content snaps out of when a drag would leave the header part-way collapsed.
+    var snapRange: CGFloat {
+        canHide ? hideRange : 0
     }
 
     @ObservationIgnored private let now: () -> Date

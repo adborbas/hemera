@@ -148,6 +148,17 @@ struct FeedHeaderScrollTests {
 
         #expect(scroll.hiddenAmount == 0)
     }
+
+    // MARK: - Snap Range
+
+    @Test func snapRange_headerThatCannotHide_isZero() {
+        // Snapping content to a collapse that never happens would only fight the user's scrolling.
+        #expect(scroll.snapRange == 100)
+
+        scroll.canHide = false
+
+        #expect(scroll.snapRange == 0)
+    }
 }
 
 // MARK: - Helpers

@@ -1,7 +1,11 @@
 import CoreGraphics
+import Mortar
 
 /// Geometry shared by the collapsing headers, kept out of the views so it can be tested.
 enum HeaderLayout {
+
+    /// Between the button row and the large title.
+    static let titleSpacing = Mortar.Spacing.m
 
     /// How far the header moves up for the pill row to sit centred in the button row at its top.
     static func collapseDistance(pillRowMidY: CGFloat, buttonRowHeight: CGFloat) -> CGFloat {
@@ -29,5 +33,30 @@ enum HeaderLayout {
             return ((rowWidth - width) / 2, width)
         }
         return (leadingReserve + (gap - width) / 2, width)
+    }
+
+    /// Where a drag resting part-way through the collapse ends instead, like system large titles.
+    static func snappedOffset(restingAt offset: CGFloat, collapseRange: CGFloat) -> CGFloat? {
+        guard offset > 0, offset < collapseRange else { return nil }
+        return offset < collapseRange / 2 ? 0 : collapseRange
+    }
+
+    /// Which ends of a padded scrolling row have content cut off by a clip `clipInset` inside its edges.
+    static func edgeFades(
+        offset: CGFloat,
+        contentWidth: CGFloat,
+        containerWidth: CGFloat,
+        padding: CGFloat,
+        clipInset: CGFloat
+    ) -> EdgeFades {
+        EdgeFades(
+            leading: offset > padding - clipInset,
+            trailing: contentWidth - padding - offset > containerWidth - clipInset
+        )
+    }
+
+    struct EdgeFades: Equatable {
+        var leading = false
+        var trailing = false
     }
 }
