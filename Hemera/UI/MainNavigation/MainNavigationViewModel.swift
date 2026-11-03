@@ -12,6 +12,8 @@ final class MainNavigationViewModel {
     /// Owned here, not by either layout, so a size-class change keeps the feed and any pushed screen.
     var selectedFeed: FeedID = .home
     var path = NavigationPath()
+    /// Compact width's feed list.
+    var isDrawerOpen = false
     private(set) var showOfflineBanner = false
 
     let resolver: any FeedResolving
@@ -58,10 +60,11 @@ final class MainNavigationViewModel {
         self.offlineBannerDelay = offlineBannerDelay
     }
 
-    /// Shows a feed at the root, leaving any pushed screen.
+    /// Shows a feed at the root, leaving any pushed screen and the drawer it was picked from.
     func select(_ id: FeedID) {
         selectedFeed = id
         path = NavigationPath()
+        isDrawerOpen = false
     }
 
     /// Call when the pills change: a selected feed that stopped resolving has no page left to show.

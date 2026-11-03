@@ -9,9 +9,9 @@ final class ScreenshotTests: XCTestCase {
         app = XCUIApplication.screenshotApp()
         app.launch()
 
-        // Wait for the dashboard to appear
-        let homeTab = app.buttons["Home"]
-        XCTAssertTrue(homeTab.waitForExistence(timeout: 10))
+        // Wait for the Home feed's content to appear
+        let ceilingLight = app.staticTexts["light.living_room_ceiling"].firstMatch
+        XCTAssertTrue(ceilingLight.waitForExistence(timeout: 10))
     }
 
     // MARK: - Home Tab
@@ -33,7 +33,7 @@ final class ScreenshotTests: XCTestCase {
 
     func testScreenshot_02_AreasTab_Portrait() throws {
         XCUIDevice.shared.orientation = .portrait
-        app.buttons["Areas"].firstMatch.tap()
+        navigateToAreasTab()
         sleep(1)
         takeScreenshot(named: "02_Areas_Portrait")
     }
@@ -41,7 +41,7 @@ final class ScreenshotTests: XCTestCase {
     func testScreenshot_02_AreasTab_Landscape() throws {
         try skipUnlessIPad()
         XCUIDevice.shared.orientation = .landscapeLeft
-        app.buttons["Areas"].firstMatch.tap()
+        navigateToAreasTab()
         sleep(1)
         takeScreenshot(named: "02_Areas_Landscape")
     }
@@ -93,7 +93,7 @@ final class ScreenshotTests: XCTestCase {
     func testScreenshot_05_SwitchControlPanel_Portrait() throws {
         XCUIDevice.shared.orientation = .portrait
         navigateToAreasTab()
-        let kitchen = app.staticTexts["Kitchen"].firstMatch
+        let kitchen = app.buttons["Kitchen"].firstMatch
         XCTAssertTrue(kitchen.waitForExistence(timeout: 5))
         kitchen.tap()
         let coffeeMachine = app.staticTexts["switch.kitchen_coffee_machine"].firstMatch
@@ -107,7 +107,7 @@ final class ScreenshotTests: XCTestCase {
         try skipUnlessIPad()
         XCUIDevice.shared.orientation = .landscapeLeft
         navigateToAreasTab()
-        let kitchen = app.staticTexts["Kitchen"].firstMatch
+        let kitchen = app.buttons["Kitchen"].firstMatch
         XCTAssertTrue(kitchen.waitForExistence(timeout: 5))
         kitchen.tap()
         let coffeeMachine = app.staticTexts["switch.kitchen_coffee_machine"].firstMatch
@@ -172,17 +172,16 @@ private extension ScreenshotTests {
         element.coordinate(withNormalizedOffset: CGVector(dx: 3.0, dy: 0.5)).tap()
     }
 
+    /// Compact width picks feeds from the side menu, regular width from the pills.
     func navigateToAreasTab() {
-        let areasButton = app.buttons["Areas"].firstMatch
-        let areasNav = app.navigationBars["Areas"]
-
-        areasButton.tap()
-
-        if !areasNav.waitForExistence(timeout: 3) {
-            areasButton.tap()
+        let menuButton = app.buttons["Menu"]
+        if menuButton.exists {
+            menuButton.tap()
         }
-
-        XCTAssertTrue(areasNav.waitForExistence(timeout: 5))
+        let areasButton = app.buttons["Areas"].firstMatch
+        XCTAssertTrue(areasButton.waitForExistence(timeout: 5))
+        areasButton.tap()
+        XCTAssertTrue(app.buttons["Kitchen"].firstMatch.waitForExistence(timeout: 5))
     }
 
     func skipUnlessIPad() throws {

@@ -32,6 +32,21 @@ struct MainNavigationView: View {
         NavigationStack(path: $viewModel.path) {
             viewModel.resolver.registerNavigationDestinations(on: AnyView(root))
         }
+        .accessibilityHidden(viewModel.isDrawerOpen)
+        .overlay {
+            if horizontalSizeClass == .compact {
+                FeedDrawer(
+                    title: viewModel.title,
+                    feeds: viewModel.pills,
+                    selection: viewModel.selectedFeed,
+                    isOpen: $viewModel.isDrawerOpen,
+                    canSwipeOpen: viewModel.path.isEmpty,
+                    onSelect: viewModel.select,
+                    openSettings: { showSettings = true }
+                )
+            }
+        }
+        .onChange(of: horizontalSizeClass) { viewModel.isDrawerOpen = false }
         .sheet(isPresented: $showSettings, onDismiss: {
             settingsInitialRoute = nil
             screenManager.acknowledgeSettingsDismissed()
@@ -143,9 +158,8 @@ struct MainNavigationView: View {
         viewModel.resolver.actionHandler(for: viewModel.selectedFeed)?.perform(actionID, item: item)
     }
 
-    // shortcut: opens Settings, the avatar's only destination until compact width gets its drawer.
     private func openDrawer() {
-        showSettings = true
+        viewModel.isDrawerOpen = true
     }
 }
 
@@ -180,6 +194,8 @@ private struct HeaderButtons: View {
 struct AccountButton: View {
     let account: Account?
     let action: () -> Void
+    /// Compact width's avatar opens the side menu instead of Settings.
+    var opensMenu = false
 
     var body: some View {
         Button(action: action) {
@@ -188,7 +204,7 @@ struct AccountButton: View {
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Localization.accountAndSettings)
+        .accessibilityLabel(opensMenu ? Localization.menu : Localization.accountAndSettings)
         .accessibilityValue(account?.name ?? "")
     }
 
@@ -218,6 +234,10 @@ private extension AccountButton {
         static let accountAndSettings = String(
             localized: "Account and Settings",
             comment: "Accessibility label for the avatar button that opens Settings"
+        )
+        static let menu = String(
+            localized: "Menu",
+            comment: "Accessibility label for the avatar button that opens the side menu of feeds and Settings"
         )
     }
 }

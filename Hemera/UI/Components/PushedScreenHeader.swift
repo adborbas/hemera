@@ -187,7 +187,7 @@ private struct LeadingButton: View {
     var body: some View {
         switch leading {
         case .back: BackButton()
-        case .account(let account, let action): AccountButton(account: account, action: action)
+        case .account(let account, let action): AccountButton(account: account, action: action, opensMenu: true)
         }
     }
 }

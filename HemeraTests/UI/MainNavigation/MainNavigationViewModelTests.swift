@@ -46,6 +46,17 @@ struct MainNavigationViewModelTests {
         #expect(viewModel.path.isEmpty)
     }
 
+    @Test func select_fromOpenDrawer_closesDrawer() {
+        // The drawer would otherwise cover the feed the user just asked to see.
+        let viewModel = makeViewModel()
+        viewModel.isDrawerOpen = true
+
+        viewModel.select(.areas)
+
+        #expect(viewModel.selectedFeed == .areas)
+        #expect(!viewModel.isDrawerOpen)
+    }
+
     @Test func reselectHome_whenSelectedFeedStillResolves_keepsPushedScreen() {
         // The pills re-resolve on every data change; an open area screen must not close under the user.
         let viewModel = makeViewModel()
