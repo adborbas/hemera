@@ -5,7 +5,7 @@ Hemera uses release branches to allow development to continue on `main` while a 
 ## The short version
 
 Trigger **Release Train** from the **Actions** tab, with no inputs. It cuts the release branch,
-advances `main`, uploads to TestFlight and prepares the App Store version with the build attached.
+bumps `main` to the next version, uploads to TestFlight and prepares the App Store version with the build attached.
 Then you do the one thing Apple requires a human for: press **Submit for Review**.
 
 Once Apple releases the version, the hourly **Auto-publish When Live** workflow tags it, creates the
@@ -54,12 +54,10 @@ The manual git/`gh` steps below are what each lane does under the hood, kept for
 
 ### Secrets
 
-`main` is a protected branch (changes must go through a PR, and a review plus the "Unit Tests" check are required). Publishing a release **admin-merges** the back-merge PR into `main`, which the default `GITHUB_TOKEN` cannot do (it is write-only and cannot bypass protection). **Complete Release** and **Auto-publish When Live** therefore use a `RELEASE_PAT` repository secret:
+`main` is a protected branch (changes must go through a PR, and a review plus the "Unit Tests" check are required). Publishing a release **admin-merges** the back-merge PR into `main`, which the default `GITHUB_TOKEN` cannot do (it is write-only and cannot bypass protection). Cutting a release admin-merges the PR that bumps `main` the same way. **Release Train**, **Cut Release**, **Complete Release** and **Auto-publish When Live** therefore use a `RELEASE_PAT` repository secret:
 
 - A personal access token owned by a repo admin, with **contents: write** and **pull requests: write** on this repo (a classic token with `repo` scope also works).
 - Admin bypass relies on the branch's `enforce_admins` being **off**, so the admin-merge skips the review and "Unit Tests" requirements for commits that have already shipped.
-
-Cutting a release needs no PAT: it only pushes a branch, which the checkout token can do.
 
 The `release` environment must have **no required reviewers**. The unattended workflows would
 otherwise stall on an approval that nobody is watching for — the scheduled publish indefinitely.
@@ -92,9 +90,11 @@ resolver reads those numbers.)
 
 `cut_release` derives the next version from the tags, so it needs no input:
 the highest `v*` tag is the last release, and the next one is a major higher.
-`main` is not bumped ahead of time — it picks the new version up through the
-back-merge when the release is published. Before the first counter release,
-`main` sat at `1.8.0`, a semver version that was never shipped; it is now `2.0`.
+`main` always carries the version it is building towards. Cutting `3.0` bumps
+`main` to `4.0` through an admin-merged PR. A hotfix cut leaves `main` alone,
+and so does re-running the train, because by then `main` no longer matches the
+version being cut. The back-merge keeps `main`'s `Config/Shared.xcconfig`, so
+publishing never moves `main` back to the shipped version.
 
 ## Cutting a release
 
@@ -104,10 +104,8 @@ back-merge when the release is published. Before the first counter release,
    git push origin release/3.0
    ```
 2. Set `MARKETING_VERSION` in `Config/Shared.xcconfig` to the new version and commit it on the branch.
-3. Submit the release branch to Apple for review.
-
-`main` needs no bump: publishing back-merges the release branch, which carries
-the version commit with it.
+3. Bump `MARKETING_VERSION` on `main` to the version after it (`4.0`), through a PR.
+4. Submit the release branch to Apple for review.
 
 ### Hotfixing a shipped release
 
@@ -147,9 +145,13 @@ Once Apple approves:
 
 ## Merging back to main
 
+Keep `main`'s `Config/Shared.xcconfig`, which is already on the next version:
+
 ```bash
 git checkout main
-git merge release/3.0 --no-ff -m "Merge release/3.0 back to main"
+git merge release/3.0 --no-ff --no-commit
+git checkout HEAD -- Config/Shared.xcconfig
+git commit -m "Merge release/3.0 back to main"
 ```
 
 Then delete the release branch:
