@@ -109,7 +109,7 @@ private struct AreaContentView: View {
                         .padding(.horizontal, TileGridConstants.padding)
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                        ForEach(sections, id: \.id) { section in
                             AreaDetailSection(
                                 section: section,
                                 viewModel: viewModel,
@@ -117,14 +117,12 @@ private struct AreaContentView: View {
                                 overlayTransition: overlayTransition,
                                 columns: columns,
                                 containerWidth: proxy.size.width,
-                                isFirst: index == 0,
                                 isHideMode: isHideMode,
                                 animatesTileChanges: animatesTileChanges,
                                 onEnterHideMode: onEnterHideMode
                             )
                         }
                     }
-                    .padding(.vertical, TileGridConstants.sectionPadding)
                 }
             }
             .reportsFeedScroll()
@@ -163,7 +161,7 @@ private struct UnassignedContentView: View {
                             .padding(.horizontal, TileGridConstants.padding)
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                            ForEach(sections, id: \.id) { section in
                                 AreaDetailSection(
                                     section: section,
                                     viewModel: viewModel,
@@ -171,14 +169,12 @@ private struct UnassignedContentView: View {
                                     overlayTransition: overlayTransition,
                                     columns: columns,
                                     containerWidth: proxy.size.width,
-                                    isFirst: index == 0,
                                     isHideMode: isHideMode,
                                     animatesTileChanges: animatesTileChanges,
                                     onEnterHideMode: onEnterHideMode
                                 )
                             }
                         }
-                        .padding(.vertical, TileGridConstants.sectionPadding)
                     }
                 }
                 .reportsFeedScroll()
@@ -196,7 +192,6 @@ private struct AreaDetailSection: View {
     let overlayTransition: Namespace.ID
     let columns: Int
     let containerWidth: CGFloat
-    let isFirst: Bool
     let isHideMode: Bool
     let animatesTileChanges: Bool
     let onEnterHideMode: () -> Void
@@ -204,7 +199,7 @@ private struct AreaDetailSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let title = section.title, !title.isEmpty {
-                SectionHeader(title, isFirst: isFirst)
+                SectionHeader(title)
                     .padding(.horizontal, TileGridConstants.padding)
             }
 

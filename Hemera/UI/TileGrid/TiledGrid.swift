@@ -15,9 +15,6 @@ enum TileGridConstants {
     /// Below this width 12 columns make a medium tile narrower than its fixed 168pt height.
     static let wideGridMinWidth: CGFloat = 1080
 
-    static let sectionSpacing: CGFloat = Mortar.Spacing.xxl
-    static let sectionPadding: CGFloat = Mortar.Spacing.s
-
     /// Columns for a grid of this size, keyed on real width so narrow regular displays stay readable.
     static func columns(for size: CGSize, isCompactWidth: Bool) -> Int {
         if isCompactWidth {
@@ -50,14 +47,13 @@ struct TiledGrid<Content: View>: View {
             let columns = Self.columns(for: size, horizontalSizeClass: horizontalSizeClass)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: TileGridConstants.sectionSpacing) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(sections.indices, id: \.self) { index in
                         let section = sections[index]
 
                         if let title = section.title, !title.isEmpty {
                             VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
-                                Text(title)
-                                    .font(.headline)
+                                SectionHeader(title)
                                 if let climate = section.climateLabel {
                                     Text(climate)
                                         .font(.subheadline)
@@ -82,7 +78,6 @@ struct TiledGrid<Content: View>: View {
                         )
                     }
                 }
-                .padding(.vertical, TileGridConstants.sectionPadding)
             }
             .reportsFeedScroll()
         }

@@ -168,6 +168,12 @@ resolve (such as `area:<id>` pins from earlier builds) are kept and their pills 
   turn into a display-only subtitle. Hiding the bar disables the edge swipe back, so the header restores
   it. In Show/Hide mode the header steps aside for the system bar.
 
+### Section spacing
+
+`SectionHeader` puts `Spacing.l` above a section title and nothing below; tile grids inset their tiles
+by `Spacing.l`. Scroll content adds no vertical padding of its own, so every feed and area screen has
+the same rhythm: header to first content, title to cards, and twice that between sections.
+
 ### Feed contract (`Feeds/FeedEnvironment.swift`)
 
 A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll

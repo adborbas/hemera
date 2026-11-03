@@ -80,7 +80,7 @@ private extension AreasView {
         GeometryReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                    ForEach(sections) { section in
                         let areasById = Dictionary(
                             section.areas.map { (UUID(stableForString: $0.areaId), $0) },
                             uniquingKeysWith: { first, _ in first }
@@ -88,7 +88,7 @@ private extension AreasView {
 
                         VStack(alignment: .leading, spacing: 0) {
                             if let title = section.title, !title.isEmpty {
-                                SectionHeader(title, isFirst: index == 0)
+                                SectionHeader(title)
                                     .padding(.horizontal, TileGridConstants.padding)
                             }
 
@@ -104,7 +104,6 @@ private extension AreasView {
                         }
                     }
                 }
-                .padding(.vertical, TileGridConstants.sectionPadding)
             }
             .reportsFeedScroll()
         }
