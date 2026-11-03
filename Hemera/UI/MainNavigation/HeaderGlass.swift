@@ -47,3 +47,14 @@ enum PillFill {
         scheme == .light ? AnyShapeStyle(Color(.secondarySystemFill)) : AnyShapeStyle(.regularMaterial)
     }
 }
+
+/// Moves top-leading content clear of the iPadOS window controls.
+struct WindowControlsOffset: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.containerCornerOffset(.leading)
+        } else {
+            content
+        }
+    }
+}

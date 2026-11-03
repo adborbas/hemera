@@ -56,6 +56,7 @@ struct FeedDrawer: View {
                 .font(.title2.bold())
                 .lineLimit(1)
                 .accessibilityAddTraits(.isHeader)
+                .modifier(WindowControlsOffset())
                 .padding(.horizontal, Mortar.Spacing.xxl)
                 .padding(.vertical, Mortar.Spacing.m)
 
