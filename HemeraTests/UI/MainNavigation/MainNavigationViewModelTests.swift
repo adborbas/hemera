@@ -242,6 +242,8 @@ private final class StubFeedResolver: FeedResolving {
         unresolvable.contains(id) ? nil : FeedSummary(title: id.rawValue, icon: "circle")
     }
 
+    func subtitle(for id: FeedID) -> String? { nil }
+
     func view(for id: FeedID) -> AnyView { AnyView(EmptyView()) }
 
     func actions(for id: FeedID) -> [FeedAction] { [] }

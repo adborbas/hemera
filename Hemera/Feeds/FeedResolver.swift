@@ -2,13 +2,11 @@ import SwiftData
 import SwiftUI
 import TileGridEngine
 
-/// What a pill and a drawer row show for a feed.
+/// What a pill shows for a feed.
 struct FeedSummary: Equatable {
     let title: String
     /// SF Symbol name, or an `mdi:` name.
     let icon: String
-    /// Drawer only, such as how many lights are on.
-    var subtitle: String?
 }
 
 /// Turns feed IDs into what the navigation screen shows, without it knowing what kind of feed it is.
@@ -16,6 +14,8 @@ struct FeedSummary: Equatable {
 protocol FeedResolving {
     /// `nil` when the feed can't be shown right now; its pill is hidden.
     func summary(for id: FeedID) -> FeedSummary?
+    /// The drawer row's second line. Kept out of the summary so state changes redraw only the drawer.
+    func subtitle(for id: FeedID) -> String?
     func view(for id: FeedID) -> AnyView
     /// Shown in the header's top row while the feed is selected.
     func actions(for id: FeedID) -> [FeedAction]
@@ -31,6 +31,7 @@ final class FeedResolver: FeedResolving {
     struct Provider {
         let namespace: String
         let summary: @MainActor (FeedID) -> FeedSummary?
+        var subtitle: @MainActor (FeedID) -> String? = { _ in nil }
         let view: @MainActor (FeedID) -> AnyView
         var navigationDestinations: @MainActor (AnyView) -> AnyView = { $0 }
         var actions: @MainActor (FeedID) -> [FeedAction] = { _ in [] }
@@ -46,18 +47,14 @@ final class FeedResolver: FeedResolving {
     func registerBuiltInFeeds(home: CuratedHomeViewModel, areas: AreasViewModel, floors: FloorsAndAreas) {
         register(Provider(
             namespace: FeedID.home.namespace,
-            summary: { _ in FeedSummary(title: Localization.home, icon: "house", subtitle: Localization.homeSubtitle) },
+            summary: { _ in FeedSummary(title: Localization.home, icon: "house") },
+            subtitle: { _ in Localization.homeSubtitle },
             view: { _ in AnyView(CuratedHomeView(viewModel: home)) }
         ))
         register(Provider(
             namespace: FeedID.areas.namespace,
-            summary: { _ in
-                FeedSummary(
-                    title: Localization.areas,
-                    icon: "square.grid.2x2",
-                    subtitle: Localization.rooms(areas.displayedAreas(from: floors.areas).count)
-                )
-            },
+            summary: { _ in FeedSummary(title: Localization.areas, icon: "square.grid.2x2") },
+            subtitle: { _ in Localization.rooms(areas.displayedAreas(from: floors.areas).count) },
             view: { _ in AnyView(AreasView(viewModel: areas)) },
             navigationDestinations: { root in
                 AnyView(root.navigationDestination(for: AreaDestination.self) { destination in
@@ -109,6 +106,7 @@ final class FeedResolver: FeedResolving {
         register(Provider(
             namespace: FeedID.domain("").namespace,
             summary: { id in feeds[id.value]?.summary },
+            subtitle: { id in feeds[id.value]?.subtitle },
             view: { id in feeds[id.value].map { AnyView(EntityFeedView(viewModel: $0)) } ?? AnyView(EmptyView()) }
         ))
     }
@@ -117,6 +115,10 @@ final class FeedResolver: FeedResolving {
 
     func summary(for id: FeedID) -> FeedSummary? {
         providers[id.namespace]?.summary(id)
+    }
+
+    func subtitle(for id: FeedID) -> String? {
+        providers[id.namespace]?.subtitle(id)
     }
 
     func view(for id: FeedID) -> AnyView {

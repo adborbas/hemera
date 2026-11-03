@@ -60,11 +60,13 @@ struct FeedResolverTests {
 
     @Test func summary_home_alwaysResolves() {
         // Home is the launch feed, so even an empty store must not hide its pill.
-        #expect(resolver.summary(for: .home) == FeedSummary(title: "Home", icon: "house", subtitle: "Your curated home"))
+        #expect(resolver.summary(for: .home) == FeedSummary(title: "Home", icon: "house"))
+        #expect(resolver.subtitle(for: .home) == "Your curated home")
     }
 
     @Test func summary_areas_alwaysResolves() {
-        #expect(resolver.summary(for: .areas) == FeedSummary(title: "Areas", icon: "square.grid.2x2", subtitle: "0 rooms"))
+        #expect(resolver.summary(for: .areas) == FeedSummary(title: "Areas", icon: "square.grid.2x2"))
+        #expect(resolver.subtitle(for: .areas) == "0 rooms")
     }
 
     @Test func summary_areas_countsOnlyAreasTheFeedShows() throws {
@@ -80,7 +82,7 @@ struct FeedResolverTests {
         try context.save()
 
         // A count that includes rooms the Areas feed drops would promise rooms the user can't find there.
-        #expect(resolver.summary(for: .areas)?.subtitle == "1 room")
+        #expect(resolver.subtitle(for: .areas) == "1 room")
     }
 
     // MARK: - Entity feeds
@@ -121,7 +123,7 @@ struct FeedResolverTests {
          Hidden lights aren't in the feed, so they mustn't be counted. An unreachable light still exists,
          but claiming it's on would send the user looking for a lamp left burning.
         */
-        #expect(resolver.summary(for: .domain("light"))?.subtitle == "1/3 on")
+        #expect(resolver.subtitle(for: .domain("light")) == "1/3 on")
     }
 
     @Test func subtitle_lights_followsStateChangesWithoutASave() throws {
@@ -132,7 +134,7 @@ struct FeedResolverTests {
         desk.state = .on
 
         // Live state changes land on the model without inserts, and the menu must still show them.
-        #expect(resolver.summary(for: .domain("light"))?.subtitle == "1/1 on")
+        #expect(resolver.subtitle(for: .domain("light")) == "1/1 on")
     }
 
     @Test func subtitle_covers_countsAnyCoverNotFullyClosedAsOpen() throws {
@@ -143,7 +145,7 @@ struct FeedResolverTests {
         try context.save()
 
         // A blind left at 30% still lets light and eyes in, so it reads as open, not closed.
-        #expect(resolver.summary(for: .domain("cover"))?.subtitle == "2/4 open")
+        #expect(resolver.subtitle(for: .domain("cover")) == "2/4 open")
     }
 
     @Test func subtitle_climateAndScenes_isNil() throws {
@@ -152,8 +154,8 @@ struct FeedResolverTests {
         try context.save()
 
         // No single count says anything useful about thermostats or scenes, so their rows stay quiet.
-        #expect(resolver.summary(for: .domain("climate"))?.subtitle == nil)
-        #expect(resolver.summary(for: .domain("scene"))?.subtitle == nil)
+        #expect(resolver.subtitle(for: .domain("climate")) == nil)
+        #expect(resolver.subtitle(for: .domain("scene")) == nil)
     }
 
     @Test func summary_lights_ignoresOtherDomains() throws {

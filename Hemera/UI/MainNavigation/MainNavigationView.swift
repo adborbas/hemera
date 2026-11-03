@@ -38,6 +38,7 @@ struct MainNavigationView: View {
                 FeedDrawer(
                     title: viewModel.title,
                     feeds: viewModel.pills,
+                    subtitle: viewModel.resolver.subtitle(for:),
                     selection: viewModel.selectedFeed,
                     isOpen: $viewModel.isDrawerOpen,
                     canSwipeOpen: viewModel.path.isEmpty,

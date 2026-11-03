@@ -5,6 +5,8 @@ import Mortar
 struct FeedDrawer: View {
     let title: String
     let feeds: [MainNavigationViewModel.Pill]
+    /// Read here, not by the parent, so entity state changes redraw only the drawer.
+    let subtitle: (FeedID) -> String?
     let selection: FeedID
     @Binding var isOpen: Bool
     /// Only at the root: on a pushed screen the same swipe goes back.
@@ -62,7 +64,7 @@ struct FeedDrawer: View {
                     ForEach(feeds) { feed in
                         DrawerRow(
                             title: feed.summary.title,
-                            subtitle: feed.summary.subtitle,
+                            subtitle: subtitle(feed.id),
                             icon: feed.summary.icon,
                             isSelected: feed.id == selection
                         ) {

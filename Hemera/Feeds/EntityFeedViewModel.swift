@@ -14,7 +14,7 @@ final class EntityFeedViewModel {
     private(set) var entities: [any StoredEntity] = []
 
     private let pillSummary: FeedSummary
-    private let subtitle: ([any StoredEntity]) -> String?
+    private let makeSubtitle: ([any StoredEntity]) -> String?
     private let tileSize: TileSize
     private let homeTileRepository: any HomeTileRepository
     private let fetchEntities: () -> [any StoredEntity]
@@ -32,7 +32,7 @@ final class EntityFeedViewModel {
         isDemoMode: Bool
     ) {
         self.pillSummary = summary
-        self.subtitle = { subtitle($0.compactMap { $0 as? Entity }) }
+        self.makeSubtitle = { subtitle($0.compactMap { $0 as? Entity }) }
         self.tileSize = tileSize
         self.viewModelFactory = viewModelFactory
         self.homeTileRepository = homeTileRepository
@@ -64,11 +64,11 @@ final class EntityFeedViewModel {
 
     /// `nil` while nothing is visible, which hides the feed's pill.
     var summary: FeedSummary? {
-        let visible = visibleEntities
-        guard !visible.isEmpty else { return nil }
-        var summary = pillSummary
-        summary.subtitle = subtitle(visible)
-        return summary
+        entities.contains { !$0.isHiddenInHA } ? pillSummary : nil
+    }
+
+    var subtitle: String? {
+        makeSubtitle(visibleEntities)
     }
 
     var sections: [TileSection] {
