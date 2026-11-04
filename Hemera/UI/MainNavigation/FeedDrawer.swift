@@ -9,7 +9,7 @@ struct FeedDrawer: View {
     let subtitle: (FeedID) -> String?
     let selection: FeedID
     @Binding var isOpen: Bool
-    /// Only at the root: on a pushed screen the same swipe goes back.
+    /// Only at the root and outside editing: on a pushed screen the same swipe goes back.
     let canSwipeOpen: Bool
     let onSelect: (FeedID) -> Void
     let openSettings: () -> Void
@@ -28,7 +28,8 @@ struct FeedDrawer: View {
                     .onTapGesture { isOpen = false }
                     .accessibilityHidden(true)
 
-                panel
+                // Counts only while visible, so a closed drawer doesn't redraw on every state change.
+                panel(showsCounts: progress > 0)
                     .frame(width: width)
                     .offset(x: reduceMotion ? 0 : -width * (1 - progress))
                     .opacity(reduceMotion ? progress : 1)
@@ -50,7 +51,7 @@ struct FeedDrawer: View {
         }
     }
 
-    private var panel: some View {
+    private func panel(showsCounts: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.title2.bold())
@@ -65,7 +66,7 @@ struct FeedDrawer: View {
                     ForEach(feeds) { feed in
                         DrawerRow(
                             title: feed.summary.title,
-                            subtitle: subtitle(feed.id),
+                            subtitle: showsCounts ? subtitle(feed.id) : nil,
                             icon: feed.summary.icon,
                             isSelected: feed.id == selection
                         ) {

@@ -41,7 +41,7 @@ struct MainNavigationView: View {
                     subtitle: viewModel.resolver.subtitle(for:),
                     selection: viewModel.selectedFeed,
                     isOpen: $viewModel.isDrawerOpen,
-                    canSwipeOpen: viewModel.path.isEmpty,
+                    canSwipeOpen: viewModel.path.isEmpty && !isFeedEditing,
                     onSelect: viewModel.select,
                     openSettings: { showSettings = true }
                 )
