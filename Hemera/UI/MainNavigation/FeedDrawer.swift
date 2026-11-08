@@ -15,6 +15,7 @@ struct FeedDrawer: View {
     let openSettings: () -> Void
 
     @State private var drag: CGFloat = 0
+    @Environment(UpdateNudge.self) private var updateNudge
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -78,7 +79,12 @@ struct FeedDrawer: View {
             }
 
             Divider()
-            DrawerRow(title: Localization.settings, icon: "gearshape", isSelected: false) {
+            DrawerRow(
+                title: Localization.settings,
+                update: updateNudge.availableUpdate?.label,
+                icon: "gearshape",
+                isSelected: false
+            ) {
                 isOpen = false
                 openSettings()
             }
@@ -118,6 +124,8 @@ struct FeedDrawer: View {
 private struct DrawerRow: View {
     let title: String
     var subtitle: String?
+    /// Shows the update dot on the icon, and is read out in its place.
+    var update: String?
     /// SF Symbol name, or an `mdi:` name.
     let icon: String
     let isSelected: Bool
@@ -130,6 +138,9 @@ private struct DrawerRow: View {
             HStack(spacing: Mortar.Spacing.m) {
                 IconImage(icon, size: iconSize)
                     .font(.title3)
+                    .overlay(alignment: .topTrailing) {
+                        if update != nil { UpdateDot() }
+                    }
                 // A fixed column, so every title starts at the same x whatever the glyph's width.
                 .frame(width: Mortar.IconSize.s, height: Mortar.TapTarget.minimum)
                 .accessibilityHidden(true)
@@ -152,7 +163,7 @@ private struct DrawerRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-        .accessibilityValue(subtitle ?? "")
+        .accessibilityValue(subtitle ?? update ?? "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

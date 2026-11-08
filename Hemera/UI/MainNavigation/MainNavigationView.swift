@@ -192,15 +192,20 @@ struct AccountButton: View {
     /// Compact width's avatar opens the side menu instead of Settings.
     var opensMenu = false
 
+    @Environment(UpdateNudge.self) private var updateNudge
+
     var body: some View {
         Button(action: action) {
             AccountAvatar(account: account, size: Mortar.AvatarSize.s)
+                .overlay(alignment: .topTrailing) {
+                    if updateNudge.availableUpdate != nil { UpdateDot() }
+                }
                 .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(opensMenu ? Localization.menu : Localization.accountAndSettings)
-        .accessibilityValue(account?.name ?? "")
+        .accessibilityValue([account?.name, updateNudge.availableUpdate?.label].compactMap(\.self).joined(separator: ", "))
     }
 }
 

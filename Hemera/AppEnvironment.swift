@@ -1,6 +1,7 @@
 import Foundation
 import HemeraLog
 import SwiftData
+import UIKit
 
 /// App-lifetime dependency container: SwiftData, entity registry, storage.
 ///
@@ -11,6 +12,7 @@ final class AppEnvironment {
     let container: ModelContainer
     let storage: Storage
     let screenManager: ScreenManager
+    let updateNudge: UpdateNudge
     let settingsStore: any SettingsStoring
 
     init() {
@@ -41,7 +43,16 @@ final class AppEnvironment {
         self.storage = SwiftDataStorage(context: container.mainContext)
         self.settingsStore = UserDefaultsSettingsStore()
         self.screenManager = ScreenManager(store: settingsStore)
-
+        self.updateNudge = UpdateNudge(
+            lookup: AppStoreClient(),
+            screenManager: screenManager,
+            installedVersion: Bundle.main.appVersion,
+            osVersion: UIDevice.current.systemVersion,
+            mayCheck: {
+                guard !ServiceLocator.shared.demoCoordinator.isActive else { return false }
+                return await AppStoreClient.isProductionBuild()
+            }
+        )
     }
 }
 
