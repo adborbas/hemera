@@ -5,7 +5,7 @@ import Mortar
 enum ServerAddressActionPlacement: Equatable {
     /// Full-width button at the bottom: the primary action of a first-run screen.
     case prominent
-    /// Trailing nav bar button: committing a value in a settings hierarchy.
+    /// Trailing header button: committing a value in a settings hierarchy.
     case toolbar
 }
 
@@ -26,6 +26,14 @@ struct ServerAddressView: View {
     @FocusState private var isAddressFieldFocused: Bool
 
     var body: some View {
+        if placement == .toolbar {
+            form.pushedScreenHeader(handler.mode.title, staysCollapsed: true, trailing: AnyView(saveButton))
+        } else {
+            form
+        }
+    }
+
+    private var form: some View {
         VStack(spacing: Mortar.Spacing.xl) {
             inputSection
 
@@ -44,20 +52,27 @@ struct ServerAddressView: View {
         .padding(Mortar.Spacing.xl)
         .navigationTitle(handler.mode.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if placement == .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    if handler.isBusy {
-                        ProgressView()
-                    } else {
-                        Button(handler.mode.actionTitle, action: submit)
-                            .disabled(!handler.canSubmit)
-                    }
-                }
-            }
-        }
         // Typing is the only reason this screen opens, so skip the extra tap.
         .onAppear { isAddressFieldFocused = true }
+    }
+
+    private var saveButton: some View {
+        Group {
+            if handler.isBusy {
+                ProgressView()
+                    .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
+            } else {
+                Button(action: submit) {
+                    Text(handler.mode.actionTitle)
+                        .padding(.horizontal, Mortar.Spacing.m)
+                        .frame(minHeight: Mortar.TapTarget.minimum)
+                        .contentShape(.capsule)
+                }
+                .tint(.primary)
+                .disabled(!handler.canSubmit)
+            }
+        }
+        .modifier(GlassCapsule())
     }
 
     private func submit() {

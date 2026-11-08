@@ -10,7 +10,9 @@ extension View {
         _ title: String,
         leading: HeaderLeading = .back,
         isEditing: Bool = false,
+        staysCollapsed: Bool = false,
         actions: [FeedAction] = [],
+        trailing: AnyView? = nil,
         perform: @escaping (_ actionID: String, _ item: String?) -> Void = { _, _ in },
         @ViewBuilder accessory: @escaping (_ collapse: CGFloat) -> Accessory = { _ in EmptyView() }
     ) -> some View {
@@ -18,7 +20,9 @@ extension View {
             title: title,
             leading: leading,
             isEditing: isEditing,
+            staysCollapsed: staysCollapsed,
             actions: actions,
+            trailing: trailing,
             perform: perform,
             accessory: accessory
         ))
@@ -28,6 +32,8 @@ extension View {
 /// What sits at the header's leading end.
 enum HeaderLeading {
     case back
+    /// The root of a sheet's stack, where the same dismissal closes the sheet.
+    case close(label: String)
     /// A feed's root has nothing to go back to; the bare avatar takes the back button's place.
     case account(Account?, action: () -> Void)
 }
@@ -37,23 +43,34 @@ private struct PushedScreenHeader<Accessory: View>: ViewModifier {
     let leading: HeaderLeading
     /// An editing toolbar brings up the system bar, so the header steps aside.
     let isEditing: Bool
+    /// The title sits in the button row from the start, at any width.
+    let staysCollapsed: Bool
     let actions: [FeedAction]
+    /// Sits after the actions, for what a `FeedAction` can't express: a text button, a busy state.
+    let trailing: AnyView?
     let perform: (_ actionID: String, _ item: String?) -> Void
     let accessory: (_ collapse: CGFloat) -> Accessory
 
     @State private var scroll = FeedHeaderScroll()
     @State private var collapseRange: CGFloat = 0
     @State private var regularHeight: CGFloat = 0
+    @State private var sheetTopPadding: CGFloat = 0
 
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     func body(content: Content) -> some View {
-        let isCompact = horizontalSizeClass == .compact
+        let isCompact = horizontalSizeClass == .compact || staysCollapsed
         content
             .environment(\.feedHeaderScroll, isEditing ? nil : scroll)
-            .contentMargins(.top, isEditing ? 0 : (isCompact ? compactHeight : regularHeight), for: .scrollContent)
+            .contentMargins(
+                .top,
+                isEditing || staysCollapsed ? 0 : (isCompact ? compactHeight : regularHeight),
+                for: .scrollContent
+            )
+            // Its height never changes, and it must also clear content that doesn't scroll.
+            .safeAreaPadding(.top, staysCollapsed ? compactHeight : 0)
             .toolbar(isEditing ? .visible : .hidden, for: .navigationBar)
             .background { SwipeBackRestorer() }
             .overlay(alignment: .top) {
@@ -64,18 +81,33 @@ private struct PushedScreenHeader<Accessory: View>: ViewModifier {
                                 scroll: scroll,
                                 title: title,
                                 leading: leading,
+                                staysCollapsed: staysCollapsed,
+                                topPadding: sheetTopPadding,
                                 actions: actions,
+                                trailing: trailing,
                                 perform: perform,
                                 accessory: accessory,
-                                onCollapseRangeChange: { collapseRange = $0 }
+                                onCollapseRangeChange: { collapseRange = staysCollapsed ? 0 : $0 }
                             )
                         } else {
-                            RegularBar(scroll: scroll, title: title, leading: leading, actions: actions, perform: perform, accessory: accessory)
+                            RegularBar(
+                                scroll: scroll,
+                                title: title,
+                                leading: leading,
+                                actions: actions,
+                                trailing: trailing,
+                                perform: perform,
+                                accessory: accessory
+                            )
                                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { regularHeight = $0 }
                         }
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
+            }
+            // A sheet has no top safe area, which would leave the buttons on its rounded edge.
+            .onGeometryChange(for: CGFloat.self) { staysCollapsed && $0.safeAreaInsets.top == 0 ? Mortar.Spacing.m : 0 } action: {
+                sheetTopPadding = $0
             }
             .animation(reduceMotion ? nil : Mortar.Motion.springNormal, value: isEditing)
             .onChange(of: collapseRange, initial: true) { scroll.hideRange = $1 }
@@ -84,12 +116,12 @@ private struct PushedScreenHeader<Accessory: View>: ViewModifier {
 
     /// The button row, the collapsing title block and the header's bottom paddings.
     private var compactHeight: CGFloat {
-        Mortar.TapTarget.minimum + collapseRange + Mortar.Spacing.xs + Mortar.Spacing.s
+        sheetTopPadding + Mortar.TapTarget.minimum + collapseRange + Mortar.Spacing.xs + Mortar.Spacing.s
     }
 
     /// Same rules as the main header.
     private var canCollapse: Bool {
-        horizontalSizeClass == .compact && !voiceOverEnabled && !reduceMotion && !isEditing
+        horizontalSizeClass == .compact && !voiceOverEnabled && !reduceMotion && !isEditing && !staysCollapsed
     }
 }
 
@@ -100,12 +132,13 @@ private func isPlateVisible(accessoryHeight: CGFloat, scroll: FeedHeaderScroll) 
     accessoryHeight > 0 || scroll.isScrolled
 }
 
-/// Wide layouts don't collapse, so everything shares one row: back, title over its accessory, actions.
+/// Wide layouts don't collapse, so everything shares one row: back, title, accessory, actions.
 private struct RegularBar<Accessory: View>: View {
     let scroll: FeedHeaderScroll
     let title: String
     let leading: HeaderLeading
     let actions: [FeedAction]
+    let trailing: AnyView?
     let perform: (_ actionID: String, _ item: String?) -> Void
     let accessory: (_ collapse: CGFloat) -> Accessory
 
@@ -114,21 +147,39 @@ private struct RegularBar<Accessory: View>: View {
     var body: some View {
         HStack(alignment: .top, spacing: Mortar.Spacing.m) {
             LeadingButton(leading: leading)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(title)
-                    .font(.largeTitle.bold())
-                    .lineLimit(1)
-                    .frame(minHeight: Mortar.TapTarget.minimum)
-                    .accessibilityAddTraits(.isHeader)
-                accessory(0)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { accessoryHeight = $0 }
+            // The accessory takes the title's row while both fit, else the row below the title.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Mortar.Spacing.m) {
+                    titleText
+                    Spacer(minLength: 0)
+                    measuredAccessory
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    titleText
+                    measuredAccessory
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer(minLength: 0)
             ActionsCapsule(actions: actions, perform: perform)
+            trailing
         }
+        .modifier(WindowControlsOffset(sizeToFit: true))
         .padding(.horizontal, Mortar.Spacing.l)
         .padding(.bottom, Mortar.Spacing.xs)
         .modifier(HeaderBackground(isPlateVisible: isPlateVisible(accessoryHeight: accessoryHeight, scroll: scroll)))
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(.largeTitle.bold())
+            .lineLimit(1)
+            .frame(minHeight: Mortar.TapTarget.minimum)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var measuredAccessory: some View {
+        accessory(0)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { accessoryHeight = $0 }
     }
 }
 
@@ -136,11 +187,15 @@ private struct CollapsingBar<Accessory: View>: View {
     let scroll: FeedHeaderScroll
     let title: String
     let leading: HeaderLeading
+    let staysCollapsed: Bool
+    let topPadding: CGFloat
     let actions: [FeedAction]
+    let trailing: AnyView?
     let perform: (_ actionID: String, _ item: String?) -> Void
     let accessory: (_ collapse: CGFloat) -> Accessory
     let onCollapseRangeChange: (CGFloat) -> Void
 
+    @State private var leadingEnd = Mortar.Spacing.l + Mortar.TapTarget.minimum
     @State private var trailingWidth: CGFloat = 0
     @State private var expandedAccessorySize: CGSize = .zero
     @State private var collapsedAccessorySize: CGSize = .zero
@@ -151,23 +206,34 @@ private struct CollapsingBar<Accessory: View>: View {
             MorphingTitle(
                 scroll: scroll,
                 title: title,
+                staysCollapsed: staysCollapsed,
                 accessory: accessory,
                 expandedAccessorySize: expandedAccessorySize,
                 collapsedAccessorySize: collapsedAccessorySize,
-                leadingReserve: Mortar.Spacing.l + row + Mortar.Spacing.s,
+                leadingReserve: leadingEnd + Mortar.Spacing.s,
                 trailingReserve: Mortar.Spacing.l + (trailingWidth > 0 ? trailingWidth + Mortar.Spacing.s : 0),
                 onCollapseRangeChange: onCollapseRangeChange
             )
             .padding(.bottom, Mortar.Spacing.xs)
             HStack {
                 LeadingButton(leading: leading)
+                    // Read inside the offset, which it still sees, so the title clears the moved button.
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .named(Self.barSpace)).maxX
+                    } action: { leadingEnd = $0 }
+                    .modifier(WindowControlsOffset())
                 Spacer()
-                ActionsCapsule(actions: actions, perform: perform)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trailingWidth = $0 }
+                HStack(spacing: Mortar.Spacing.s) {
+                    ActionsCapsule(actions: actions, perform: perform)
+                    trailing
+                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { trailingWidth = $0 }
             }
             .padding(.horizontal, Mortar.Spacing.l)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.top, topPadding)
+        .coordinateSpace(.named(Self.barSpace))
         // Static copies measure both ends, so the visible accessory resizes without moving the layout.
         .background {
             ZStack { accessory(0) }.fixedSize().hidden()
@@ -179,6 +245,8 @@ private struct CollapsingBar<Accessory: View>: View {
             isPlateVisible: isPlateVisible(accessoryHeight: expandedAccessorySize.height, scroll: scroll)
         ))
     }
+
+    private static var barSpace: String { "CollapsingBar" }
 }
 
 private struct LeadingButton: View {
@@ -186,20 +254,23 @@ private struct LeadingButton: View {
 
     var body: some View {
         switch leading {
-        case .back: BackButton()
+        case .back: DismissButton(label: Localization.back, icon: "chevron.left")
+        case .close(let label): DismissButton(label: label, icon: "xmark")
         case .account(let account, let action):
             AccountButton(account: account, action: action, opensMenu: true)
-                .modifier(WindowControlsOffset())
         }
     }
 }
 
-private struct BackButton: View {
+private struct DismissButton: View {
+    let label: String
+    let icon: String
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Button { dismiss() } label: {
-            Label(Localization.back, systemImage: "chevron.left")
+            Label(label, systemImage: icon)
                 .labelStyle(.iconOnly)
                 .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
                 .contentShape(.circle)
@@ -267,6 +338,7 @@ private struct SwipeBackRestorer: UIViewControllerRepresentable {
 private struct MorphingTitle<Accessory: View>: View {
     let scroll: FeedHeaderScroll
     let title: String
+    let staysCollapsed: Bool
     let accessory: (_ collapse: CGFloat) -> Accessory
     let expandedAccessorySize: CGSize
     let collapsedAccessorySize: CGSize
@@ -283,7 +355,7 @@ private struct MorphingTitle<Accessory: View>: View {
     private let row = Mortar.TapTarget.minimum
 
     var body: some View {
-        let progress = scroll.progress
+        let progress = staysCollapsed ? 1 : scroll.progress
         let collapsedScale = UIFont.preferredFont(forTextStyle: .headline).pointSize
             / UIFont.preferredFont(forTextStyle: .largeTitle).pointSize
         let scale = 1 - (1 - collapsedScale) * progress
@@ -339,7 +411,7 @@ private struct MorphingTitle<Accessory: View>: View {
 
 // MARK: - Localization
 
-private extension BackButton {
+private extension LeadingButton {
     enum Localization {
         static let back = String(localized: "Back", comment: "Accessibility label for the button that returns to the previous screen")
     }

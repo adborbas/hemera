@@ -28,6 +28,8 @@ struct KioskModeView: View {
             }
         }
         .navigationTitle(Localization.kioskMode)
+        .reportsFeedScroll()
+        .pushedScreenHeader(Localization.kioskMode, staysCollapsed: true)
         .animation(.default, value: screenManager.stayAwake)
     }
 }

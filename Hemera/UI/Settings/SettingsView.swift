@@ -45,14 +45,8 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle(Localization.settings)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Label(Localization.close, systemImage: "xmark")
-                            .labelStyle(.iconOnly)
-                    }
-                }
-            }
+            .reportsFeedScroll()
+            .pushedScreenHeader(Localization.settings, leading: .close(label: Localization.close), staysCollapsed: true)
             .overlay {
                 if viewModel.showConfetti {
                     ConfettiView {
@@ -158,6 +152,8 @@ struct SettingsView: View {
             logoutSection
         }
         .navigationTitle(Localization.account)
+        .reportsFeedScroll()
+        .pushedScreenHeader(Localization.account, staysCollapsed: true)
     }
 
     private var serverInfoSection: some View {
