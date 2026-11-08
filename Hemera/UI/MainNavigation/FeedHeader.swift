@@ -16,6 +16,7 @@ struct FeedHeader<Buttons: View>: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .accessibilityAddTraits(.isHeader)
+                .modifier(WindowControlsOffset())
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.top, HeaderLayout.titleSpacing)
             HStack(spacing: 0) {
@@ -106,28 +107,27 @@ private struct PillButton: View {
     let action: () -> Void
 
     @ScaledMetric(relativeTo: .subheadline) private var iconSize = Mortar.IconSize.xs
-    @Environment(\.colorScheme) private var colorScheme
 
+    /// Drawn like a side menu row, so iPad's pills and iPhone's menu read as one control.
     var body: some View {
         Button(action: action) {
-            Label {
-                Text(pill.summary.title)
-            } icon: {
-                if pill.summary.icon.hasPrefix("mdi:") {
-                    MDIIcon(name: pill.summary.icon, size: iconSize)
-                } else {
-                    Image(systemName: pill.summary.icon)
+            HStack(spacing: Mortar.Spacing.s) {
+                Group {
+                    if pill.summary.icon.hasPrefix("mdi:") {
+                        MDIIcon(name: pill.summary.icon, size: iconSize)
+                    } else {
+                        Image(systemName: pill.summary.icon)
+                    }
                 }
+                .accessibilityHidden(true)
+                Text(pill.summary.title)
             }
-            .font(.subheadline.weight(.medium))
-            .padding(.horizontal, Mortar.Spacing.l)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, Mortar.Spacing.m)
             .frame(minHeight: Mortar.TapTarget.minimum)
-            .foregroundStyle(isSelected ? Color.white : Color.primary)
-            .background(
-                isSelected ? AnyShapeStyle(Color.accentColor) : PillFill.unselected(colorScheme),
-                in: .capsule
-            )
-            .contentShape(.capsule)
+            .background(isSelected ? Color(.secondarySystemFill) : .clear, in: .rect(cornerRadius: Mortar.Radii.m))
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

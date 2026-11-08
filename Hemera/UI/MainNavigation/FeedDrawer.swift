@@ -86,7 +86,11 @@ struct FeedDrawer: View {
             .padding(.vertical, Mortar.Spacing.s)
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background {
+            UnevenRoundedRectangle(bottomTrailingRadius: Mortar.Radii.xl, topTrailingRadius: Mortar.Radii.xl)
+                .fill(Color(.secondarySystemBackground))
+                .ignoresSafeArea()
+        }
     }
 
     private func dragGesture(width: CGFloat) -> some Gesture {
@@ -131,8 +135,8 @@ private struct DrawerRow: View {
                         Image(systemName: icon).font(.title3)
                     }
                 }
-                .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                .background(Color(.tertiarySystemFill), in: .circle)
+                // A fixed column, so every title starts at the same x whatever the glyph's width.
+                .frame(width: Mortar.IconSize.s, height: Mortar.TapTarget.minimum)
                 .accessibilityHidden(true)
 
                 VStack(alignment: .leading) {
