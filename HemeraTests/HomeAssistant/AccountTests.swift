@@ -10,16 +10,18 @@ struct AccountTests {
 
     // MARK: - Initials
 
-    @Test func initials_twoWords_useFirstAndLast() {
-        #expect(account(named: "ada lovelace").initials == "AL")
+    // The avatar must show the same letters as Home Assistant's own badge for the same user.
+    @Test func initials_keepTheNamesCase() {
+        #expect(account(named: "dev").initials == "d")
+        #expect(account(named: "ada Lovelace").initials == "aL")
     }
 
-    @Test func initials_manyWords_capAtTwoSoTheyFitTheAvatar() {
-        #expect(account(named: "Mary Ann Evans").initials == "ME")
+    @Test func initials_manyWords_takeTheFirstThree() {
+        #expect(account(named: "Mary Ann Evans Cross").initials == "MAE")
     }
 
-    @Test func initials_singleWord_isOneLetter() {
-        #expect(account(named: "Adam").initials == "A")
+    @Test func initials_extraSpaces_areIgnored() {
+        #expect(account(named: "  Ada   Lovelace ").initials == "AL")
     }
 
     @Test func initials_blankName_isNilSoTheAvatarShowsAPersonIcon() {

@@ -24,12 +24,12 @@ struct AccountAvatar: View {
                 Image(systemName: "person.fill")
             }
         }
-        .font(.system(size: size * 0.4, weight: .semibold))
-        .foregroundStyle(.white)
+        // Three letters step down a size, as they do in Home Assistant.
+        .font(.system(size: size * ((account?.initials?.count ?? 0) > 2 ? 0.3 : 0.4)))
+        .foregroundStyle(badge.text.color)
         .frame(width: size, height: size)
-        .background(
-            LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: .circle
-        )
+        .background(badge.fill.color, in: .circle)
     }
+
+    private var badge: BadgeColors { account?.badge ?? .standard }
 }

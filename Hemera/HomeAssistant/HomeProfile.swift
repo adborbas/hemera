@@ -21,26 +21,26 @@ struct Account: Equatable {
     let name: String
     let role: Role
     let pictureURL: URL?
+    var badge = BadgeColors.standard
 
-    /// First letters of the first and last word, uppercased; nil when the name is blank.
+    /// As Home Assistant draws them: the first letter of up to three words, case kept; nil when blank.
     var initials: String? {
-        let words = name.split(whereSeparator: \.isWhitespace)
-        guard let first = words.first?.first else { return nil }
-        guard words.count > 1, let last = words.last?.first else { return String(first).uppercased() }
-        return (String(first) + String(last)).uppercased()
+        let letters = name.split(whereSeparator: \.isWhitespace).prefix(3).compactMap(\.first)
+        return letters.isEmpty ? nil : String(letters)
     }
 }
 
 extension Account {
     /// The picture is the `person` linked by `user_id`, resolved against the server.
-    init(user: HAResponseCurrentUser, persons: [HAEntity], baseURL: URL) {
+    init(user: HAResponseCurrentUser, persons: [HAEntity], baseURL: URL, primaryColor: String? = nil) {
         let picture = persons
             .first { $0.attributes["user_id"] as? String == user.id }?
             .attributes["entity_picture"] as? String
         self.init(
             name: user.name ?? "",
             role: user.isOwner ? .owner : user.isAdmin ? .admin : .user,
-            pictureURL: picture.flatMap { $0.isEmpty ? nil : URL(string: $0, relativeTo: baseURL)?.absoluteURL }
+            pictureURL: picture.flatMap { $0.isEmpty ? nil : URL(string: $0, relativeTo: baseURL)?.absoluteURL },
+            badge: BadgeColors(primaryColor: primaryColor)
         )
     }
 }
@@ -79,7 +79,13 @@ final class HomeProfile {
                 request: HARequest(type: .getStates, data: [:])
             ))
             let persons = (states ?? []).filter { $0.domain == "person" }
-            account = Account(user: user, persons: persons, baseURL: baseURL)
+            // The colours picked in the Home Assistant profile, which its avatar is drawn from.
+            let theme = try? await connection.send(HARequest(
+                type: .webSocket("frontend/get_user_data"), data: ["key": "theme"]
+            ))
+            let settings = theme.flatMap { try? $0.decode("value") as [String: Any] }
+            let primaryColor = settings?["primaryColor"] as? String
+            account = Account(user: user, persons: persons, baseURL: baseURL, primaryColor: primaryColor)
         } catch {
             Log.warning("Failed to fetch the current Home Assistant user", cause: error)
         }
