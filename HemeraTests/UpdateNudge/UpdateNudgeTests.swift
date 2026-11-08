@@ -19,7 +19,7 @@ struct UpdateNudgeTests {
         screenManager.stayAwake = true
     }
 
-    private func makeNudge(installed: String = "1.0", os: String = "18.0") -> UpdateNudge {
+    private func makeNudge(installed: String = "1.0", os: String = "18.0", mayCheck: Bool = true) -> UpdateNudge {
         UpdateNudge(
             lookup: lookup,
             defaults: defaults,
@@ -27,7 +27,7 @@ struct UpdateNudgeTests {
             now: { [clock] in clock.now },
             installedVersion: installed,
             osVersion: os,
-            mayCheck: { true }
+            mayCheck: { mayCheck }
         )
     }
 
@@ -64,10 +64,12 @@ struct UpdateNudgeTests {
         await nudge.check()
         #expect(nudge.availableUpdate == nil)
 
+        // A reboot in between must not restart the week.
+        let relaunched = makeNudge()
         clock.now += 3 * Self.day
         lookup.result = .success(release("1.3", daysOld: 1))
-        await nudge.check()
-        #expect(nudge.availableUpdate?.version == "1.3")
+        await relaunched.check()
+        #expect(relaunched.availableUpdate?.version == "1.3")
     }
 
     @Test func check_freshReleaseAndDeviceJustFellBehind_isNotDue() async {
@@ -185,12 +187,28 @@ struct UpdateNudgeTests {
 
     // MARK: - Failures
 
-    @Test func check_lookupFails_staysQuiet() async {
-        lookup.result = .failure(URLError(.notConnectedToInternet))
+    /// A flaky network must not make the dot blink on and off.
+    @Test func check_lookupFails_keepsLastResult() async {
+        lookup.result = .success(release("1.1", daysOld: 30))
         let nudge = makeNudge()
+        await nudge.check()
+
+        lookup.result = .failure(URLError(.notConnectedToInternet))
+        await nudge.check()
+
+        #expect(nudge.availableUpdate?.version == "1.1")
+    }
+
+    // MARK: - Gating
+
+    /// TestFlight, debug and demo builds must never ask Apple or nudge.
+    @Test func check_buildMayNotCheck_neverLooksUp() async {
+        lookup.result = .success(release("1.1", daysOld: 30))
+        let nudge = makeNudge(mayCheck: false)
 
         await nudge.check()
 
+        #expect(lookup.callCount == 0)
         #expect(nudge.availableUpdate == nil)
     }
 }

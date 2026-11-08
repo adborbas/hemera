@@ -7,8 +7,14 @@ struct AvailableUpdate: Equatable, Identifiable {
 
     var id: String { version }
 
-    var label: String {
-        String(localized: "\(version) available", comment: "Points to a newer App Store version, under the app version and on the Settings entry")
+    var label: String { Localization.available(version) }
+}
+
+private extension AvailableUpdate {
+    enum Localization {
+        static func available(_ version: String) -> String {
+            String(localized: "\(version) available", comment: "Points to a newer App Store version, under the app version and on the Settings entry")
+        }
     }
 }
 
@@ -36,7 +42,9 @@ final class UpdateNudge {
     #endif
 
     private var dueUpdate: AvailableUpdate?
-    private var behindSince: Date?
+    private var behindSince: Date? {
+        didSet { defaults.set(behindSince, forKey: Self.behindSinceKey) }
+    }
     private var skippedVersion: String? {
         didSet { defaults.set(skippedVersion, forKey: Self.skippedVersionKey) }
     }
@@ -51,6 +59,7 @@ final class UpdateNudge {
 
     private static let gracePeriod: TimeInterval = 7 * 24 * 60 * 60
     private static let skippedVersionKey = "updateNudge.skippedVersion"
+    private static let behindSinceKey = "updateNudge.behindSince"
 
     // MARK: - Init
 
@@ -71,6 +80,7 @@ final class UpdateNudge {
         self.osVersion = osVersion
         self.mayCheck = mayCheck
         self.skippedVersion = defaults.string(forKey: Self.skippedVersionKey)
+        self.behindSince = defaults.object(forKey: Self.behindSinceKey) as? Date
         #if DEBUG
         self.fakesAppStoreUpdate = defaults.bool(forKey: Self.fakeUpdateKey)
         #endif
@@ -82,14 +92,19 @@ final class UpdateNudge {
         var lookup = lookup
         var mayCheck = mayCheck
         #if DEBUG
-        if fakesAppStoreUpdate {
+        // Screenshot mode never nudges, so a fake left on can't reach App Store screenshots.
+        if fakesAppStoreUpdate, !CommandLine.arguments.contains("-screenshotMode") {
             lookup = FakeAppStoreLookup()
             mayCheck = { true }
         }
         #endif
-        let kioskModeOn = screenManager.stayAwake
-        guard kioskModeOn, await mayCheck() else {
-            Log.info("Update check skipped (Kiosk Mode \(kioskModeOn ? "on" : "off"))")
+        guard screenManager.stayAwake else {
+            Log.info("Update check skipped: Kiosk Mode is off")
+            dueUpdate = nil
+            return
+        }
+        guard await mayCheck() else {
+            Log.info("Update check skipped: not an App Store build, or demo mode")
             dueUpdate = nil
             return
         }
