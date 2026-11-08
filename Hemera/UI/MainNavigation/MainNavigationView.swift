@@ -198,7 +198,7 @@ struct AccountButton: View {
         Button(action: action) {
             AccountAvatar(account: account, size: Mortar.AvatarSize.s)
                 .overlay(alignment: .topTrailing) {
-                    if updateNudge.availableUpdate != nil { updateDot }
+                    if updateNudge.availableUpdate != nil { UpdateDot() }
                 }
                 .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
                 .contentShape(.circle)
@@ -206,13 +206,6 @@ struct AccountButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel(opensMenu ? Localization.menu : Localization.accountAndSettings)
         .accessibilityValue([account?.name, updateNudge.availableUpdate?.label].compactMap(\.self).joined(separator: ", "))
-    }
-
-    private var updateDot: some View {
-        Circle()
-            .fill(Color.warning)
-            .frame(width: Mortar.Spacing.m, height: Mortar.Spacing.m)
-            .overlay(Circle().stroke(PlatformColor.systemBackground, lineWidth: Mortar.strokeWidth))
     }
 }
 
