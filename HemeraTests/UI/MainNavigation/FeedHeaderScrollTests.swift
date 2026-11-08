@@ -104,6 +104,21 @@ struct FeedHeaderScrollTests {
         #expect(scroll.hiddenAmount == 70)
     }
 
+    // MARK: - Short Screens
+
+    @Test func shortScreen_forceScroll_collapsesFullyThenExpandsOnRelease() {
+        // Max offset 30 of a 100 range: the header follows the finger fully, then never rests part-way.
+        let offsets: [CGFloat] = [0, 20, 30, 45, 60, 70]
+        drag(to: offsets.map { HeaderLayout.headerOffset(contentOffset: $0, maxOffset: 30, collapseRange: 100) })
+        #expect(scroll.hiddenAmount == 100)
+
+        scroll.phaseChanged(to: .decelerating)
+        drag(to: [50, 30, 10, 0].map { HeaderLayout.headerOffset(contentOffset: $0, maxOffset: 30, collapseRange: 100) }, phase: nil)
+        scroll.phaseChanged(to: .idle)
+
+        #expect(scroll.hiddenAmount == 0)
+    }
+
     // MARK: - Reset
 
     @Test func reset_showsHeaderFully() {

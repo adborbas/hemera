@@ -25,9 +25,36 @@ enum HeaderLayout {
         return (leadingReserve + (gap - width) / 2, width)
     }
 
-    /// Where a drag resting part-way through the collapse ends instead, like system large titles.
-    static func snappedOffset(restingAt offset: CGFloat, collapseRange: CGFloat) -> CGFloat? {
-        guard offset > 0, offset < collapseRange else { return nil }
+    /// Enough that a firm drag on a short screen reaches full collapse despite the bounce's resistance.
+    static let shortScreenOverscrollGain: CGFloat = 2
+
+    /**
+     The offset the collapsing header follows. The bottom bounce is ignored, except on a screen too short
+     to scroll a full collapse: there it carries the header the rest of the way.
+    */
+    static func headerOffset(contentOffset: CGFloat, maxOffset: CGFloat, collapseRange: CGFloat) -> CGFloat {
+        let maxOffset = max(0, maxOffset)
+        guard contentOffset > maxOffset else { return contentOffset }
+        guard maxOffset < collapseRange else { return maxOffset }
+        return maxOffset + (contentOffset - maxOffset) * shortScreenOverscrollGain
+    }
+
+    /**
+     A screen slightly too tall to fit scrolls far enough to collapse, as collapsing makes it fit. Whole
+     points, so pixel rounding can't leave it just short of the snap.
+    */
+    static func extraScrollRoom(overflow: CGFloat, collapseRange: CGFloat) -> CGFloat {
+        overflow > 0 && overflow < collapseRange ? (collapseRange - overflow).rounded(.up) : 0
+    }
+
+    /**
+     Where a drag resting part-way through the collapse ends instead, like system large titles. A screen
+     too short to reach full collapse has one resting place: the top.
+    */
+    static func snappedOffset(restingAt offset: CGFloat, collapseRange: CGFloat, maxOffset: CGFloat = .infinity) -> CGFloat? {
+        guard offset > 0, collapseRange > 0 else { return nil }
+        if maxOffset < collapseRange { return 0 }
+        guard offset < collapseRange else { return nil }
         return offset < collapseRange / 2 ? 0 : collapseRange
     }
 

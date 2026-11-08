@@ -146,7 +146,7 @@ hidden. `horizontalSizeClass` picks the layout:
 
 - **Compact** (iPhone, narrow iPad windows): one feed at a time, no pager. It uses the pushed screens'
   header (`.pushedScreenHeader(_:leading: .account(...))`): the bare avatar top-leading, the feed's
-  actions top-trailing, the feed name as the collapsing title. The avatar opens Settings for now.
+  actions top-trailing, the feed name as the collapsing title. The avatar opens the side drawer.
 - **Regular**: feeds paged under a static pill header (`FeedHeader`): the home name, then the pills with
   the feed's actions and the avatar at the row's end. It never collapses.
 
@@ -172,15 +172,19 @@ and pops anything pushed.
   actions.
 - `.pushedScreenHeader(...)` is the one collapsing header: the compact feed root, and pushed screens with
   a large title (areas, Connect to Server). Its leading slot is a back button, or the avatar at a feed's
-  root. The large title morphs into the centre of the button row.
+  root. The large title morphs into the centre of the button row. With `staysCollapsed` (Settings and its
+  sub-screens, at any width) it sits there from the start, and the leading slot can be a close button.
   `FeedHeaderScroll.progress` is the collapse amount; read it rather than dividing `hiddenAmount`
   yourself, since it stays observed before the range is known.
 - It collapses only in compact width, and never with VoiceOver, Reduce Motion or while a screen edits.
+- Content that fits still collapses the header while the finger is down: the bottom bounce drives it,
+  amplified, and on release the header expands. Content slightly too tall to fit gets extra scroll room,
+  so it rests fully collapsed with nothing cut off, as system large titles do.
 - A drag that would leave the header part-way collapsed near the top scrolls the content to fully
   expanded or fully collapsed instead, as system large titles do.
 - An optional accessory (an area's climate readings) turns into a subtitle. A header with only a title
-  shows its glass plate once content scrolls under it. Regular width puts everything in one row. Hiding
-  the bar disables the edge swipe back, so the header restores it on pushed screens. An editing mode
+  shows its glass plate once content scrolls under it. Regular width puts everything in one row, the
+  accessory beside the actions when it fits, else under the title. Hiding the bar disables the edge swipe back, so the header restores it on pushed screens. An editing mode
   (Home's layout, an area's Show/Hide) passes `isEditing`, and the header steps aside for the system bar.
 
 ### Section spacing
@@ -192,7 +196,7 @@ the same rhythm: header to first content, title to cards, and twice that between
 ### Feed contract (`Feeds/FeedEnvironment.swift`)
 
 A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll
-view. It reports the offset (bottom bounce clamped, top overscroll kept) and scroll phase to the
+view. It reports the offset (bottom bounce clamped except on short screens, top overscroll kept) and scroll phase to the
 collapsing header through the environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
 may omit it. Optional channels: `.feedIsEditing(_:)` removes the header and shows the system navigation
 bar for the feed's own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since

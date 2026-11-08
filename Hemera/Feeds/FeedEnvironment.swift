@@ -31,16 +31,24 @@ struct FeedIsEditingKey: PreferenceKey {
 
 private struct FeedScrollReporter: ViewModifier {
     @Environment(\.feedHeaderScroll) private var headerScroll
+    /// How far the content alone overflows, without the room added here.
+    @State private var overflow: CGFloat = 0
+
+    private var extraRoom: CGFloat {
+        HeaderLayout.extraScrollRoom(overflow: overflow, collapseRange: headerScroll?.snapRange ?? 0)
+    }
 
     func body(content: Content) -> some View {
         content
+            .safeAreaPadding(.bottom, extraRoom)
             .scrollTargetBehavior(HeaderSnap(collapseRange: headerScroll?.snapRange ?? 0))
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                // Bottom bounce clamped; top overscroll kept so a pull-down at the top reads as upward.
-                let top = geometry.contentInsets.top
-                let maxOffset = geometry.contentSize.height + top + geometry.contentInsets.bottom
-                    - geometry.containerSize.height
-                return min(geometry.contentOffset.y + top, max(0, maxOffset))
+                // Top overscroll kept so a pull-down at the top reads as upward.
+                HeaderLayout.headerOffset(
+                    contentOffset: geometry.contentOffset.y + geometry.contentInsets.top,
+                    maxOffset: geometry.maxRestingOffset,
+                    collapseRange: headerScroll?.snapRange ?? 0
+                )
             } action: { _, offset in
                 headerScroll?.scrolled(to: offset)
             }
@@ -49,7 +57,9 @@ private struct FeedScrollReporter: ViewModifier {
             } action: { _, isScrolled in
                 headerScroll?.isScrolled = isScrolled
             }
-            .onScrollPhaseChange { _, phase in
+            .onScrollPhaseChange { old, phase, context in
+                // Read as a drag starts: geometry-change actions can drop during a push transition.
+                if old == .idle { overflow = context.geometry.maxRestingOffset - extraRoom }
                 headerScroll?.phaseChanged(to: phase)
             }
     }
@@ -61,7 +71,18 @@ private struct HeaderSnap: ScrollTargetBehavior {
 
     /// Targets already count from the content's resting top, past the header's content margin.
     func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
-        guard let snapped = HeaderLayout.snappedOffset(restingAt: target.rect.minY, collapseRange: collapseRange) else { return }
+        guard let snapped = HeaderLayout.snappedOffset(
+            restingAt: target.rect.minY,
+            collapseRange: collapseRange,
+            maxOffset: context.contentSize.height - context.containerSize.height
+        ) else { return }
         target.rect.origin.y = snapped
+    }
+}
+
+private extension ScrollGeometry {
+    /// Uses `visibleRect`, the only size that spans the insets; `containerSize` excludes them.
+    var maxRestingOffset: CGFloat {
+        contentSize.height + contentInsets.top + contentInsets.bottom - visibleRect.height
     }
 }
