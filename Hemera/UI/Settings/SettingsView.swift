@@ -274,7 +274,7 @@ private extension SettingsView {
         screenManager: sl.screenManager,
         restClient: nil,
         homeProfile: HomeProfile(
-            homeName: "Maple House",
+            homeName: "Hemera Home",
             account: Account(name: "Alex Morgan", role: .admin, pictureURL: nil)
         ),
         initialRoute: .account

@@ -144,10 +144,7 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
                 errorNotifier: errorNotifier,
                 resync: resync
             ),
-            homeProfile: HomeProfile(
-                homeName: "Maple House",
-                account: Account(name: "Alex Morgan", role: .owner, pictureURL: nil)
-            ),
+            homeProfile: HomeProfile(homeName: "Hemera Home"),
             mainContext: demoContext,
             restClient: DemoRESTClient(),
             errorNotifier: errorNotifier,

@@ -113,12 +113,12 @@ struct SettingsViewModelTests {
         // Demo data has a fake owner; the row must not pretend a real account is signed in.
         demoCoordinator.enter()
         let vm = makeViewModel(homeProfile: HomeProfile(
-            homeName: "Maple House",
+            homeName: "Hemera Home",
             account: Account(name: "Alex Morgan", role: .owner, pictureURL: nil)
         ))
 
         #expect(vm.accountName == "Demo")
-        #expect(vm.accountSubtitle == "Maple House")
+        #expect(vm.accountSubtitle == "Hemera Home")
         #expect(vm.isAccountPageAvailable == false)
     }
 
