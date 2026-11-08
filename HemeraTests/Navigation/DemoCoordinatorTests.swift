@@ -42,33 +42,11 @@ struct DemoCoordinatorTests {
     }
 
     @Test
-    func exit_notifiesDelegateWithConnectToServerFalse() {
+    func exit_notifiesDelegate() {
         coordinator.enter()
 
         coordinator.exit()
 
-        #expect(delegate.didExitCalls.count == 1)
-        #expect(delegate.didExitCalls.first?.connectToServer == false)
-    }
-
-    // MARK: - Connect to Server
-
-    @Test
-    func connectToServer_setsIsActiveToFalse() {
-        coordinator.enter()
-
-        coordinator.connectToServer()
-
-        #expect(coordinator.isActive == false)
-    }
-
-    @Test
-    func connectToServer_notifiesDelegateWithConnectToServerTrue() {
-        coordinator.enter()
-
-        coordinator.connectToServer()
-
-        #expect(delegate.didExitCalls.count == 1)
-        #expect(delegate.didExitCalls.first?.connectToServer == true)
+        #expect(delegate.didExitCallCount == 1)
     }
 }

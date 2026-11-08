@@ -19,8 +19,6 @@ struct SettingsView: View {
         NavigationStack(path: $viewModel.path) {
             List {
                 accountSection
-                demoModeHeader
-                    .renderIf(viewModel.isShowingDemoModeHeader)
                 kioskModeSection
                 aboutSection
             }
@@ -85,20 +83,16 @@ struct SettingsView: View {
                 Text(Localization.logOutMessage)
             }
         }
-        .alert(Localization.exitDemoQuestion, isPresented: Bindable(viewModel.bannerViewModel).showExitDemoConfirmation) {
+        .alert(Localization.exitDemoQuestion, isPresented: $viewModel.showExitDemoConfirmation) {
             Button(Localization.exitDemo, role: .destructive) {
                 dismiss()
-                viewModel.bannerViewModel.confirmExitDemo()
+                viewModel.confirmExitDemo()
             }
             Button(Localization.cancel, role: .cancel) {}
         } message: {
             Text(Localization.exitDemoMessage)
         }
         .interactiveDismissDisabled()
-    }
-
-    private var demoModeHeader: some View {
-        DemoModeBanner(viewModel: viewModel.bannerViewModel)
     }
 
     private var accountSection: some View {
@@ -112,7 +106,7 @@ struct SettingsView: View {
                     accountRow
                     Spacer()
                     Button(Localization.exitDemo) {
-                        viewModel.bannerViewModel.exitDemoTapped()
+                        viewModel.exitDemoTapped()
                     }
                     .buttonStyle(.mortarDestructive())
                 }

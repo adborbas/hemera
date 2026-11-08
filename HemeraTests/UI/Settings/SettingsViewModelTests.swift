@@ -53,6 +53,23 @@ struct SettingsViewModelTests {
         #expect(vm.isDemoMode == true)
     }
 
+    @Test
+    func exitDemoTapped_asksForConfirmationBeforeExiting() {
+        viewModel.exitDemoTapped()
+
+        #expect(viewModel.showExitDemoConfirmation == true)
+        #expect(demoCoordinator.exitCallCount == 0)
+    }
+
+    @Test
+    func confirmExitDemo_exitsDemo() {
+        demoCoordinator.enter()
+        viewModel.confirmExitDemo()
+
+        #expect(demoCoordinator.exitCallCount == 1)
+        #expect(demoCoordinator.isActive == false)
+    }
+
     // MARK: - Account Row
 
     @Test

@@ -223,7 +223,7 @@ Demo mode is a first-class feature, not an afterthought:
 
 ## Navigation
 
-- `AppRouter.Destination` enum drives root-level navigation: `.onboarding`, `.connectToServer`, `.connecting`, `.authenticated`.
+- `AppRouter.Destination` enum drives root-level navigation: `.onboarding`, `.connecting`, `.authenticated`.
 - `AppRouter` reacts to `AuthManager` state changes automatically.
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.

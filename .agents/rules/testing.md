@@ -38,7 +38,7 @@ Pattern: `func <methodUnderTest>_<scenario>_<expectedBehavior>()`
 @Test func iconName_restart()
 @Test func iconColor_restart_isOrange()
 @Test func loadTiles_withHomeTiles_populatesSectionsAndContent()
-@Test func demoDidExit_withConnectToServerTrue_navigatesToConnectToServer()
+@Test func demoDidExit_navigatesToOnboarding()
 @Test func removeFromHome_delegatesToRepository()
 ```
 

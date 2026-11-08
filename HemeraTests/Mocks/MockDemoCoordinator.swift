@@ -6,7 +6,6 @@ final class MockDemoCoordinator: DemoCoordinating {
     private(set) var isActive = false
     var enterCallCount = 0
     var exitCallCount = 0
-    var connectToServerCallCount = 0
 
     func enter() {
         isActive = true
@@ -16,10 +15,5 @@ final class MockDemoCoordinator: DemoCoordinating {
     func exit() {
         isActive = false
         exitCallCount += 1
-    }
-
-    func connectToServer() {
-        isActive = false
-        connectToServerCallCount += 1
     }
 }

@@ -17,8 +17,8 @@ final class AppCoordinator: DemoCoordinatorDelegate {
         router.navigate(to: .authenticated)
     }
 
-    func demoDidExit(connectToServer: Bool) {
+    func demoDidExit() {
         sessionManager.tearDownDemoSession()
-        router.navigate(to: connectToServer ? .connectToServer : .onboarding)
+        router.navigate(to: .onboarding)
     }
 }

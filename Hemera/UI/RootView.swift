@@ -13,7 +13,7 @@ struct RootView: View {
     var body: some View {
         Group {
             switch router.destination {
-            case .onboarding, .connectToServer:
+            case .onboarding:
                 OnboardingFlow(
                     sessionExpiredMessage: router.sessionExpiredMessage,
                     onTryDemo: {
