@@ -19,6 +19,13 @@ final class SensorHistoryService: SensorHistoryProviding {
     }
 
     func history(forEntityId entityId: String, range: TimeRange) async throws -> [ClimateSample] {
+        /**
+         HAKit queues a request until the socket answers and never fails it, so asking while
+         disconnected would hold the chart under a spinner with no error and no way to retry.
+        */
+        // shortcut: a connected server that answers nothing still waits indefinitely.
+        guard connectionManager.isConnected else { throw SensorHistoryError.disconnected }
+
         let request = Self.request(entityId: entityId, range: range)
         let response = try await connection.send(request)
         do {

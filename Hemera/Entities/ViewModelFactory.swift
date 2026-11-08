@@ -97,13 +97,11 @@ final class ViewModelFactory {
             if entityExists(entityId) { return cached }
             cache[entityId] = nil
         }
-        for registration in registrations {
-            if let vm = registration.makeViewModelForEntityId(entityId, context) {
-                cache[entityId] = vm
-                return vm
-            }
-        }
-        return nil
+        guard let registration = registrationsByDomain[Self.domain(of: entityId)],
+              let vm = registration.makeViewModelForEntityId(entityId, context)
+        else { return nil }
+        cache[entityId] = vm
+        return vm
     }
 
     /// For callers that hold the live model, so a cache hit skips the existence fetch.
@@ -115,9 +113,13 @@ final class ViewModelFactory {
     /// single registration owning the id's domain (HA ids are `"<domain>.<object>"`)
     /// so the probe is one cheap fetch, not a fan-out across every domain.
     private func entityExists(_ entityId: String) -> Bool {
-        let domain = String(entityId.prefix { $0 != "." })
-        guard let registration = registrationsByDomain[domain] else { return false }
+        guard let registration = registrationsByDomain[Self.domain(of: entityId)] else { return false }
         return registration.entityExists(entityId, context)
+    }
+
+    /// HA ids are `"<domain>.<object>"`.
+    private static func domain(of entityId: String) -> String {
+        String(entityId.prefix { $0 != "." })
     }
 
     /// If a VM for this entityId is already cached, return the cached instance;

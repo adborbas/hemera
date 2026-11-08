@@ -110,4 +110,14 @@ struct UserDefaultsSettingsStoreTests {
 
         #expect(defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == stored)
     }
+    @Test func isReadOnly_withNewerSchemaVersion_isTrue() {
+        seed(#"{"schemaVersion":99,"stayAwake":true}"#)
+
+        #expect(UserDefaultsSettingsStore(defaults: defaults).isReadOnly)
+    }
+
+    @Test func isReadOnly_withNothingStored_isFalse() {
+        #expect(!UserDefaultsSettingsStore(defaults: defaults).isReadOnly)
+    }
+
 }

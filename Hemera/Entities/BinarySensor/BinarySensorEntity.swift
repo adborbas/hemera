@@ -64,10 +64,6 @@ extension BinarySensorEntity {
     static func entityIdPredicate(_ id: String) -> Predicate<BinarySensorEntity> {
         #Predicate { $0.entityId == id }
     }
-
-    static var unassignedPredicate: Predicate<BinarySensorEntity> {
-        #Predicate { $0.area == nil && $0.isAvailable == true }
-    }
 }
 
 // MARK: - Types

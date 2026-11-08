@@ -22,6 +22,7 @@ jobs:
   cut:
     name: Cut Release Branch
     runs-on: macos-15
+    environment: release
     if: github.actor == 'adborbas'
     outputs:
       version: ${{ steps.cut.outputs.version }}
@@ -40,10 +41,10 @@ jobs:
         with:
           bundler-cache: true
 
-      # Only pushes a branch, so the checkout token is enough — no PAT, and no
-      # PR to merge past branch protection.
       - name: Cut release
         id: cut
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: bundle exec fastlane cut_release version:"${{ inputs.version }}"
 
   beta:

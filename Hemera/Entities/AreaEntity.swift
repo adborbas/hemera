@@ -49,6 +49,25 @@ final class AreaEntity {
     @Relationship(inverse: \ClimateEntity.area)
     var climates: [ClimateEntity] = []
 
+    /**
+     Whether the area holds an entity the user hid locally and could reveal. HA-hidden entities
+     never count: they are filtered before the user ever sees them. Sensors carry no card.
+    */
+    var hasHiddenEntity: Bool {
+        func anyHidden<T: StoredEntity>(_ entities: [T]) -> Bool {
+            entities.contains { $0.isHidden && !$0.isHiddenInHA }
+        }
+        return anyHidden(lights)
+            || anyHidden(covers)
+            || anyHidden(scenes)
+            || anyHidden(scripts)
+            || anyHidden(switches)
+            || anyHidden(buttons)
+            || anyHidden(automations)
+            || anyHidden(binarySensors)
+            || anyHidden(climates)
+    }
+
     init(areaId: String, name: String, icon: String? = nil, sortOrder: Int = 0) {
         self.areaId = areaId
         self.name = name

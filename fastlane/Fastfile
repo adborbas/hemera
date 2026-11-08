@@ -9,8 +9,8 @@ platform :ios do
   # 1. Cut a new release
   #    Branch release/<version> from main and pin <version> on it. The version
   #    is a release counter derived from the tags — the next release after v2.0
-  #    is 3.0 — so nothing has to be decided or bumped ahead of time. Pass
-  #    version: explicitly for a hotfix (2.0 -> 2.1).
+  #    is 3.0. main then moves on to the release after it. Pass version:
+  #    explicitly for a hotfix (2.0 -> 2.1).
   #    Usage: bundle exec fastlane cut_release
   # ---------------------------------------------------------------------------
   desc "Cut a release branch for the next version"
@@ -39,8 +39,10 @@ platform :ios do
       push_to_git_remote(local_branch: branch, remote_branch: branch, force: false)
     end
 
+    bump_main_past(version)
+
     github_output("version", version)
-    UI.success("Cut #{branch} at #{version}. main picks the version up when the release is published and back-merged.")
+    UI.success("Cut #{branch} at #{version}.")
   end
 
   # ---------------------------------------------------------------------------
@@ -161,16 +163,23 @@ platform :ios do
     if behind.zero?
       UI.success("Published #{tag}. No release-branch changes to merge back to main.")
     else
+      # Merged on a side branch so main keeps its own xcconfig: it is already past this version.
+      merge_branch = "merge-release-#{version}"
+      sh("git", "checkout", "-B", merge_branch, "origin/main")
+      sh("git", "merge", "--no-ff", "--no-commit", "origin/#{branch}") { |status| }
+      sh("git", "checkout", "origin/main", "--", XCCONFIG)
+      sh("git", "commit", "--no-edit")
+      push_to_git_remote(local_branch: merge_branch, remote_branch: merge_branch, force: true)
       sh(
         "gh", "pr", "create",
         "--base", "main",
-        "--head", branch,
+        "--head", merge_branch,
         "--title", "Merge #{branch} back to main",
         "--body", "Back-merge of the shipped #{tag} release into main."
       )
       # Admin-merged like the version bump: these commits already shipped, and
       # requiring a review here would stall the unattended publish.
-      sh("gh", "pr", "merge", branch, "--merge", "--admin")
+      sh("gh", "pr", "merge", merge_branch, "--merge", "--admin")
       UI.success("Published #{tag} and merged #{branch} back into main.")
     end
 
@@ -309,10 +318,26 @@ def next_release_version
   "#{highest + 1}.0"
 end
 
-# Read a KEY's value from Config/Shared.xcconfig.
-def get_xcconfig_value(key:)
+# Move main to the release after <version>. Hotfixes and re-runs skip it: main no longer matches.
+def bump_main_past(version)
+  return unless get_xcconfig_value(key: "MARKETING_VERSION", ref: "origin/main") == version
+
+  next_version = "#{version.split(".").first.to_i + 1}.0"
+  branch = "bump-main-#{next_version}"
+  sh("git", "checkout", "-B", branch, "origin/main")
+  set_xcconfig_value(key: "MARKETING_VERSION", value: next_version)
+  git_commit(path: XCCONFIG, message: "Bump main to #{next_version}")
+  push_to_git_remote(local_branch: branch, remote_branch: branch, force: true)
+  sh("gh", "pr", "create", "--base", "main", "--head", branch,
+     "--title", "Bump main to #{next_version}", "--body", "#{version} is cut, main moves on to #{next_version}.")
+  sh("gh", "pr", "merge", branch, "--merge", "--admin")
+end
+
+# Read a KEY's value from Config/Shared.xcconfig, in the working tree or at <ref>.
+def get_xcconfig_value(key:, ref: nil)
   path = File.expand_path("../#{XCCONFIG}", __dir__)
-  match = File.read(path).match(/^#{Regexp.escape(key)}\s*=\s*(.+)$/)
+  contents = ref ? sh("git", "show", "#{ref}:#{XCCONFIG}", log: false) : File.read(path)
+  match = contents.match(/^#{Regexp.escape(key)}\s*=\s*(.+)$/)
   UI.user_error!("`#{key}` not found in #{XCCONFIG}") if match.nil?
   match[1].strip
 end

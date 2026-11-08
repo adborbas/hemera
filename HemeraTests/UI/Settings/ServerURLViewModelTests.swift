@@ -8,11 +8,19 @@ struct ServerURLViewModelTests {
     private let current = URL(string: "http://homeassistant.local:8123")!
     private var editMode: ServerAddressMode { .edit(current: current) }
 
+    private func makeViewModel(
+        urlChanger: SpyURLChanger,
+        probe: MockServerProbe = MockServerProbe(),
+        mode: ServerAddressMode? = nil
+    ) -> ServerURLViewModel {
+        ServerURLViewModel(mode: mode ?? editMode, urlChanger: urlChanger, serverProbe: probe)
+    }
+
     // MARK: - Saving
 
     @Test func save_whenAccepted_recordsNewURLAndDismisses() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
+        let viewModel = makeViewModel(urlChanger: spy)
         viewModel.text = "http://box.tailnet.ts.net:8123"
 
         let result = await viewModel.submit()
@@ -30,7 +38,7 @@ struct ServerURLViewModelTests {
     @Test func save_whenAddressServesDifferentInstance_doesNotSaveAndKeepsSession() async {
         let spy = SpyURLChanger()
         spy.result = .failure(AuthError.differentServer)
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
+        let viewModel = makeViewModel(urlChanger: spy)
         viewModel.text = "http://someone-elses-ha.example.com:8123"
 
         let result = await viewModel.submit()
@@ -42,7 +50,7 @@ struct ServerURLViewModelTests {
     @Test func save_whenAddressUnreachable_reportsReachabilityNotExpiry() async {
         let spy = SpyURLChanger()
         spy.result = .failure(AuthError.serverUnreachable)
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
+        let viewModel = makeViewModel(urlChanger: spy)
         viewModel.text = "http://192.168.1.5:8123"
 
         let result = await viewModel.submit()
@@ -56,7 +64,7 @@ struct ServerURLViewModelTests {
     /// Settings can't resolve, so guessing http here would downgrade an encrypted session.
     @Test func save_withSchemelessHost_defaultsToHTTPS() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
+        let viewModel = makeViewModel(urlChanger: spy)
         viewModel.text = "192.168.1.5:8123"
 
         _ = await viewModel.submit()
@@ -71,7 +79,7 @@ struct ServerURLViewModelTests {
     */
     @Test func save_withPlainHTTPAddress_isAccepted() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
+        let viewModel = makeViewModel(urlChanger: spy)
         viewModel.text = "http://box.tailnet.ts.net:8123"
 
         _ = await viewModel.submit()
@@ -82,7 +90,7 @@ struct ServerURLViewModelTests {
 
     @Test func save_withMalformedInput_reportsInvalidAndDoesNotCallChanger() async {
         let spy = SpyURLChanger()
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: spy)
+        let viewModel = makeViewModel(urlChanger: spy)
         viewModel.text = "   "
 
         let result = await viewModel.submit()
@@ -92,10 +100,41 @@ struct ServerURLViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
+    // MARK: - Probing
+
+    /**
+     The whole point: committing an address proves it by sending it this session's refresh token,
+     so an address that has not answered as Home Assistant must never reach the changer.
+    */
+    @Test(arguments: [AuthError.notHomeAssistant, AuthError.serverUnreachable])
+    func save_whenTheProbeFails_sendsNoTokenAndReports(error: AuthError) async {
+        let spy = SpyURLChanger()
+        let viewModel = makeViewModel(urlChanger: spy, probe: .failing(error))
+        viewModel.text = "https://router.example.com"
+
+        let result = await viewModel.submit()
+
+        #expect(!result)
+        #expect(spy.changeCalls.isEmpty)
+        #expect(viewModel.errorMessage != nil)
+    }
+
+    /// A single candidate deserves the patient timeout; there is no second scheme to fall through to.
+    @Test func save_probesTheNormalisedCandidateWithTheConfirmedTimeout() async {
+        let probe = MockServerProbe()
+        let viewModel = makeViewModel(urlChanger: SpyURLChanger(), probe: probe)
+        viewModel.text = "192.168.1.5:8123"
+
+        _ = await viewModel.submit()
+
+        #expect(probe.probed.map(\.url) == [URL(string: "https://192.168.1.5:8123")!])
+        #expect(probe.probed.map(\.timeout) == [ServerProbe.confirmed])
+    }
+
     // MARK: - canSave
 
     @Test func canSubmit_withUnchangedURL_isFalse() {
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: SpyURLChanger())
+        let viewModel = makeViewModel(urlChanger: SpyURLChanger())
         #expect(!viewModel.canSubmit)
     }
 
@@ -105,15 +144,15 @@ struct ServerURLViewModelTests {
      and would "change" the address to the one already in use.
     */
     @Test func canSubmit_whenStoredURLHasTrailingSlash_isFalseForSameAddress() {
-        let viewModel = ServerURLViewModel(
-            mode: .edit(current: URL(string: "http://homeassistant.local:8123/")!),
-            urlChanger: SpyURLChanger()
+        let viewModel = makeViewModel(
+            urlChanger: SpyURLChanger(),
+            mode: .edit(current: URL(string: "http://homeassistant.local:8123/")!)
         )
         #expect(!viewModel.canSubmit)
     }
 
     @Test func canSubmit_withChangedURL_isTrue() {
-        let viewModel = ServerURLViewModel(mode: editMode, urlChanger: SpyURLChanger())
+        let viewModel = makeViewModel(urlChanger: SpyURLChanger())
         viewModel.text = "http://192.168.1.5:8123"
         #expect(viewModel.canSubmit)
     }

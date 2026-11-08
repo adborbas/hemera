@@ -9,7 +9,6 @@ final class MockHomeTileRepository: HomeTileRepository {
 
     private(set) var addToHomeCalls: [String] = []
     private(set) var removeFromHomeCalls: [String] = []
-    private(set) var reorderCalls: [[(entityId: String, sortOrder: Int)]] = []
     private(set) var commitLayoutCalls: [[(entityId: String, sortOrder: Int, size: TileSize)]] = []
 
     func hasAnyHomeTile() -> Bool {
@@ -28,10 +27,6 @@ final class MockHomeTileRepository: HomeTileRepository {
     func removeFromHome(entityId: String) {
         removeFromHomeCalls.append(entityId)
         stubbedOnHome.remove(entityId)
-    }
-
-    func reorderHomeTiles(_ updates: [(entityId: String, sortOrder: Int)]) {
-        reorderCalls.append(updates)
     }
 
     func commitHomeTileLayout(_ updates: [(entityId: String, sortOrder: Int, size: TileSize)]) {

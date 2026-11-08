@@ -21,6 +21,9 @@ final class AreasViewModel {
         didSet { store.settings.areasGroupedByFloor = areasGroupedByFloor }
     }
 
+    /// A newer build's settings cannot be written back, so the grouping control hides instead of lying.
+    var settingsAreReadOnly: Bool { store.isReadOnly }
+
     private let store: any SettingsStoring
     private let errorNotifier: ErrorNotifier?
     private let connectionRetrier: (any ConnectionRetrying)?
@@ -169,7 +172,8 @@ final class AreasViewModel {
 extension AreasViewModel: FeedActionHandling {
 
     var feedActions: [FeedAction] {
-        [FeedAction(
+        guard !settingsAreReadOnly else { return [] }
+        return [FeedAction(
             id: Self.viewOptionsActionId,
             title: Localization.viewOptions,
             icon: "ellipsis",

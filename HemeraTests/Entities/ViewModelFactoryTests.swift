@@ -70,6 +70,29 @@ struct ViewModelFactoryTests {
         #expect(otherDomainProbes.count == 0)
     }
 
+    /// The cache-miss path must target the owning domain too, not try every registration in turn.
+    @Test
+    func makeViewModel_cacheMiss_buildsOnlyFromTheOwningDomain() throws {
+        let (factory, _) = makeFactory()
+        let otherDomainBuilds = CallCounter()
+        factory.register(
+            ViewModelFactory.Registration(
+                domain: "switch",
+                makeViewModelsForArea: { _ in [] },
+                makeViewModelForEntityId: { _, _ in
+                    otherDomainBuilds.count += 1
+                    return nil
+                },
+                entityExists: { _, _ in false }
+            )
+        )
+
+        #expect(factory.makeViewModel(forEntityId: "light.absent") == nil)
+        #expect(factory.makeViewModel(forEntityId: "fan.unregistered") == nil)
+
+        #expect(otherDomainBuilds.count == 0)
+    }
+
     // MARK: - Helpers
 
     private func makeFactory() -> (ViewModelFactory, ModelContext) {

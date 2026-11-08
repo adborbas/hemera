@@ -48,6 +48,9 @@ final class ScreenManager {
 
     // MARK: - Settings
 
+    /// Settings came from a newer build, so changes made here will not persist.
+    var settingsAreReadOnly: Bool { store.isReadOnly }
+
     var stayAwake: Bool {
         didSet {
             store.settings.stayAwake = stayAwake

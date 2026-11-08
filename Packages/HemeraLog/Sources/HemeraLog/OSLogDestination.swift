@@ -4,14 +4,13 @@ import os
 /// Forwards log entries to Apple's unified logging system (`os.Logger`).
 public struct OSLogDestination: LogDestination, Sendable {
 
-    private let subsystem: String
+    private let logger: Logger
 
     public init(subsystem: String) {
-        self.subsystem = subsystem
+        self.logger = Logger(subsystem: subsystem, category: "general")
     }
 
     public func receive(_ entry: LogEntry) {
-        let logger = Logger(subsystem: subsystem, category: "general")
         let location = "\(entry.file):\(entry.line) \(entry.function)"
         let osLogType = osLogType(from: entry.level)
 

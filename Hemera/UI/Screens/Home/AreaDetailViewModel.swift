@@ -62,7 +62,7 @@ final class AreaDetailViewModel {
     /// Whether the area has at least one hidden entity — drives the all-items-hidden
     /// placeholder so the user can re-enter Show/Hide mode to reveal them.
     func hasHiddenEntities(for area: AreaEntity) -> Bool {
-        viewModelFactory.makeViewModels(for: area).contains { $0.isHidden }
+        area.hasHiddenEntity
     }
 
     /// Builds categorized sections for the virtual unassigned area. The view

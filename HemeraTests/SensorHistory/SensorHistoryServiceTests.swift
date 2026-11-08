@@ -46,4 +46,23 @@ struct SensorHistoryServiceTests {
 
         #expect(data["period"] as? String == "hour")
     }
+    // MARK: - Deadline
+
+    /**
+     HAKit queues a request until the socket answers and never fails it, so asking while
+     disconnected used to hold the chart under a spinner with no error and no retry.
+    */
+    @Test
+    func history_whileDisconnected_failsInsteadOfWaiting() async {
+        let manager = HAConnectionManager(
+            urlProvider: { URL(string: "http://127.0.0.1:9")! },
+            tokenProvider: { "token" }
+        )
+        let service = SensorHistoryService(connectionManager: manager)
+
+        await #expect(throws: SensorHistoryError.disconnected) {
+            _ = try await service.history(forEntityId: "sensor.hallway_temperature", range: .day)
+        }
+    }
+
 }

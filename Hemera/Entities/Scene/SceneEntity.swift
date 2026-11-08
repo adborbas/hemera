@@ -39,8 +39,4 @@ extension SceneEntity {
     static func entityIdPredicate(_ id: String) -> Predicate<SceneEntity> {
         #Predicate { $0.entityId == id }
     }
-
-    static var unassignedPredicate: Predicate<SceneEntity> {
-        #Predicate { $0.area == nil && $0.isAvailable == true }
-    }
 }

@@ -112,10 +112,9 @@ All entity models conform to `StoredEntity`, which provides:
 - `var area: AreaEntity?` — area relationship
 - `func update(from entity: HAEntity)` — sync from HA state
 - `static func entityIdPredicate(_:) -> Predicate<Self>` — lookup by ID
-- `static var unassignedPredicate: Predicate<Self>` — entities without an area
 - Default implementations of `performUpsert`, `fetch(byId:)`, `assignAreaIfMatch`, `assignDeviceIdIfMatch`
 
-**Important:** `entityIdPredicate` and `unassignedPredicate` must be implemented in each concrete `@Model` type — never in a protocol extension or generic function. `#Predicate` in generic/protocol-extension contexts causes SwiftData keypath identity mismatches in release builds.
+**Important:** `entityIdPredicate` must be implemented in each concrete `@Model` type — never in a protocol extension or generic function. `#Predicate` in generic/protocol-extension contexts causes SwiftData keypath identity mismatches in release builds. The same rule applies to the unassigned-entity predicates inlined in `UnassignedEntities`.
 
 ### EntityCardViewModel Protocol (`Entities/EntityCardViewModel.swift`)
 

@@ -12,7 +12,6 @@ protocol HomeTileRepository: AnyObject {
     func isOnHome(entityId: String) -> Bool
     func addToHome(entityId: String)
     func removeFromHome(entityId: String)
-    func reorderHomeTiles(_ updates: [(entityId: String, sortOrder: Int)])
     func commitHomeTileLayout(_ updates: [(entityId: String, sortOrder: Int, size: TileSize)])
 }
 
@@ -40,10 +39,6 @@ final class SwiftDataHomeTileRepository: HomeTileRepository {
 
     func removeFromHome(entityId: String) {
         storage.removeHomeTile(entityId: entityId)
-    }
-
-    func reorderHomeTiles(_ updates: [(entityId: String, sortOrder: Int)]) {
-        storage.updateHomeTileSortOrders(updates)
     }
 
     func commitHomeTileLayout(_ updates: [(entityId: String, sortOrder: Int, size: TileSize)]) {
