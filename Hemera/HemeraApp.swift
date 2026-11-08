@@ -27,7 +27,7 @@ struct HemeraApp: App {
         let appCoordinator = AppCoordinator(sessionManager: sessionManager, router: rtr)
         demoCoordinator.delegate = appCoordinator
 
-        ServiceLocator.configure(authManager: auth, router: rtr, demoCoordinator: demoCoordinator, sessionManager: sessionManager, screenManager: env.screenManager, updateNudge: env.updateNudge, settingsStore: env.settingsStore)
+        ServiceLocator.configure(authManager: auth, router: rtr, demoCoordinator: demoCoordinator, sessionManager: sessionManager, screenManager: env.screenManager, settingsStore: env.settingsStore)
 
         // Start session for returning authenticated users — must be after ServiceLocator.configure()
         sessionManager.startIfAuthenticated()

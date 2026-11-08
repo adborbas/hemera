@@ -26,20 +26,12 @@ struct SessionManagerTests {
             storage: storage
         )
 
-        let screenManager = ScreenManager(store: InMemorySettingsStore())
         ServiceLocator.configure(
             authManager: authManager,
             router: router,
             demoCoordinator: DemoCoordinator(),
             sessionManager: sessionManager,
-            screenManager: screenManager,
-            updateNudge: UpdateNudge(
-                lookup: AppStoreClient(),
-                screenManager: screenManager,
-                installedVersion: "1.0",
-                osVersion: "18.0",
-                mayCheck: { false }
-            ),
+            screenManager: ScreenManager(store: InMemorySettingsStore()),
             settingsStore: InMemorySettingsStore()
         )
 
