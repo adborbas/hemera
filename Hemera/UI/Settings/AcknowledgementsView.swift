@@ -14,6 +14,8 @@ struct AcknowledgementsView: View {
             }
         }
         .navigationTitle(Localization.title)
+        .reportsFeedScroll()
+        .pushedScreenHeader(Localization.title, staysCollapsed: true)
     }
 
     private func projectRow(_ project: Project) -> some View {

@@ -33,8 +33,8 @@ For ViewModels that only use app-lifetime deps, a `convenience init()` pulls fro
 
 - Configured once at app start with long-lived dependencies: `authManager`, `router`, `demoCoordinator`, `sessionManager`, `screenManager`.
 - Session-scoped dependencies are bundled in a `Session` struct (`Session.swift`), stored as `var session: Session?`. Created atomically by `SessionManager` when sessions start, nilled on teardown.
-- `Session` contains: `connectionStatusProvider`, `areaRepository`, `homeTileRepository`, `viewModelFactory`, `restClient`, `errorNotifier`. All non-optional — a Session is always complete.
-- `MainTabView` resolves `sl.session!` once in its `init` and injects deps into child ViewModels via their testable inits.
+- `Session` contains: `connectionStatusProvider`, `areaRepository`, `homeTileRepository`, `viewModelFactory`, `feedResolver`, `restClient`, `errorNotifier`. All non-optional — a Session is always complete.
+- `RootView` resolves the `Session` and hands it to `MainNavigationView`, which injects deps into its ViewModel via the testable init. Feed ViewModels (Home, Areas) are built per session by `SessionManager` and held by the feed providers.
 - Do not add new singleton services here without discussion. Prefer protocol-based injection.
 
 ## Protocol-Based Dependency Injection
@@ -136,6 +136,71 @@ Provides type-erased rendering for heterogeneous entity collections:
 - `makeViewModels(for area:)` — all VMs for an area (delegates to registered factories).
 - `makeViewModel(forEntityId:)` — single VM lookup (delegates to registered factories).
 
+## Feeds
+
+The main screen has no tab bar (ADR-0002). Each **feed** is identified by a `FeedID` (`home`, `areas`,
+`domain:<domain>`), and `MainNavigationView` only ever holds feed IDs. The pill row is stored as feed IDs;
+IDs this build doesn't resolve (such as `area:<id>` pins from earlier builds) are kept and their pills
+hidden. `horizontalSizeClass` picks the layout:
+
+- **Compact** (iPhone, narrow iPad windows): one feed at a time, no pager. It uses the pushed screens'
+  header (`.pushedScreenHeader(_:leading: .account(...))`): the bare avatar top-leading, the feed's
+  actions top-trailing, the feed name as the collapsing title. The avatar opens the side drawer.
+- **Regular**: feeds paged under a static pill header (`FeedHeader`): the home name, then the pills with
+  the feed's actions and the avatar at the row's end. It never collapses.
+
+Both layouts are roots of one `NavigationStack`. `MainNavigationViewModel` owns the selected feed and the
+stack's `path`, so a size-class change keeps both, pushed screens included. `select(_:)` shows a feed
+and pops anything pushed.
+
+- `FeedResolver` (`Feeds/FeedResolver.swift`) is session-scoped, lives in `Session` and is built by
+  `SessionManager` (demo gets its own). It turns an ID into a pill `FeedSummary` (`nil` hides the
+  pill) and an `AnyView`, delegating to the `FeedResolver.Provider` registered for the ID's namespace.
+  A new kind of feed is a new provider; the header and pager don't change.
+- Providers that push screens register their `navigationDestination`s through the provider, because
+  the pager's pages are not a valid place for them. Pushed screens bring their own header (see Header).
+- `FeedPager` (regular width) pages horizontally and only builds the selected page and its neighbours.
+  Only a swipe changes the selection; any other offset change (a resizing window, a relayout) scrolls
+  back to it. Each page gets fixed top and bottom content margins for the header and the home indicator;
+  feed views must not add their own top inset for the header.
+
+### Header
+
+- Screens hide the system navigation bar and draw their own buttons (the bar takes every touch in its
+  row). In regular width the feed's actions and the avatar share one glass capsule only while there are
+  actions.
+- `.pushedScreenHeader(...)` is the one collapsing header: the compact feed root, and pushed screens with
+  a large title (areas, Connect to Server). Its leading slot is a back button, or the avatar at a feed's
+  root. The large title morphs into the centre of the button row. With `staysCollapsed` (Settings and its
+  sub-screens, at any width) it sits there from the start, and the leading slot can be a close button.
+  `FeedHeaderScroll.progress` is the collapse amount; read it rather than dividing `hiddenAmount`
+  yourself, since it stays observed before the range is known.
+- It collapses only in compact width, and never with VoiceOver, Reduce Motion or while a screen edits.
+- Content that fits still collapses the header while the finger is down: the bottom bounce drives it,
+  amplified, and on release the header expands. Content slightly too tall to fit gets extra scroll room,
+  so it rests fully collapsed with nothing cut off, as system large titles do.
+- A drag that would leave the header part-way collapsed near the top scrolls the content to fully
+  expanded or fully collapsed instead, as system large titles do.
+- An optional accessory (an area's climate readings) turns into a subtitle. A header with only a title
+  shows its glass plate once content scrolls under it. Regular width puts everything in one row, the
+  accessory beside the actions when it fits, else under the title. Hiding the bar disables the edge swipe back, so the header restores it on pushed screens. An editing mode
+  (Home's layout, an area's Show/Hide) passes `isEditing`, and the header steps aside for the system bar.
+
+### Section spacing
+
+`SectionHeader` puts `Spacing.l` above a section title and nothing below; tile grids inset their tiles
+by `Spacing.l`. Scroll content adds no vertical padding of its own, so every feed and area screen has
+the same rhythm: header to first content, title to cards, and twice that between sections.
+
+### Feed contract (`Feeds/FeedEnvironment.swift`)
+
+A feed view's one obligation to the navigation screen: put `.reportsFeedScroll()` on its main scroll
+view. It reports the offset (bottom bounce clamped except on short screens, top overscroll kept) and scroll phase to the
+collapsing header through the environment, because a parent cannot observe a nested scroll view's offset. Feeds that don't scroll
+may omit it. Optional channels: `.feedIsEditing(_:)` removes the header and shows the system navigation
+bar for the feed's own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since
+neighbour pages stay alive and share the bar), and `\.openFeed` selects another feed in place.
+
 ## Concurrency Model
 
 - Swift 6 strict concurrency is enabled.
@@ -157,10 +222,13 @@ Demo mode is a first-class feature, not an afterthought:
 
 ## Navigation
 
-- `AppRouter.Destination` enum drives root-level navigation: `.onboarding`, `.connectToServer`, `.connecting`, `.authenticated`.
+- `AppRouter.Destination` enum drives root-level navigation: `.onboarding`, `.connecting`, `.authenticated`.
 - `AppRouter` reacts to `AuthManager` state changes automatically.
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.
+- `.authenticated` shows `MainNavigationView`: one `NavigationStack` whose root is the compact feed or
+  the regular-width pager, with no system navigation bar (see Feeds). Settings opens from the avatar as
+  a sheet.
 
 ## Data Flow
 

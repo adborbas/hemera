@@ -29,6 +29,8 @@ struct KioskModeView: View {
             .disabled(screenManager.settingsAreReadOnly)
         }
         .navigationTitle(Localization.kioskMode)
+        .reportsFeedScroll()
+        .pushedScreenHeader(Localization.kioskMode, staysCollapsed: true)
         .animation(.default, value: screenManager.stayAwake)
     }
 

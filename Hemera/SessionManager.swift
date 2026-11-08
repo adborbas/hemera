@@ -129,15 +129,26 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
         let demoStorage = SwiftDataStorage(context: demoContext)
         let tileRepo = SwiftDataHomeTileRepository(storage: demoStorage)
 
+        let errorNotifier = ErrorNotifier()
+        let resync: () async -> Void = { }
+
         ServiceLocator.shared.session = Session(
             container: demoContainer,
             connectionStatusProvider: DemoConnectionStatusProvider(),
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
+            feedResolver: makeFeedResolver(
+                context: demoContext,
+                homeTileRepository: tileRepo,
+                viewModelFactory: factory,
+                errorNotifier: errorNotifier,
+                resync: resync
+            ),
+            homeProfile: HomeProfile(homeName: "Hemera Home"),
             mainContext: demoContext,
             restClient: DemoRESTClient(),
-            errorNotifier: ErrorNotifier(),
-            resync: { },
+            errorNotifier: errorNotifier,
+            resync: resync,
             sensorHistoryProvider: DemoSensorHistoryProvider()
         )
     }
@@ -226,20 +237,32 @@ private extension SessionManager {
             self?.resyncIfNeeded()
         }
 
+        let resync: () async -> Void = { [weak self] in await self?.performResync() }
+        let homeProfile = HomeProfile()
+
         ServiceLocator.shared.session = Session(
             container: container,
             connectionStatusProvider: connectionManager,
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
+            feedResolver: makeFeedResolver(
+                context: container.mainContext,
+                homeTileRepository: tileRepo,
+                viewModelFactory: factory,
+                errorNotifier: errorNotifier,
+                resync: resync
+            ),
+            homeProfile: homeProfile,
             mainContext: container.mainContext,
             restClient: restClient,
             errorNotifier: errorNotifier,
-            resync: { [weak self] in await self?.performResync() },
+            resync: resync,
             sensorHistoryProvider: SensorHistoryService(connectionManager: connectionManager)
         )
 
         connectionManager.connect()
         syncService.start()
+        Task { await homeProfile.load(over: connectionManager.connection, baseURL: urlHolder.current) }
         Log.info("Session started — WebSocket connecting")
     }
 
@@ -253,6 +276,49 @@ private extension SessionManager {
         wasBackgrounded = false
         clearServiceLocator()
         wipeLocalData()
+    }
+
+    func makeFeedResolver(
+        context: ModelContext,
+        homeTileRepository: any HomeTileRepository,
+        viewModelFactory: ViewModelFactory,
+        errorNotifier: ErrorNotifier,
+        resync: @escaping () async -> Void
+    ) -> FeedResolver {
+        let sl = ServiceLocator.shared
+        let resolver = FeedResolver()
+        let floors = FloorsAndAreas(context: context)
+        let areas = AreasViewModel(
+            homeTileRepository: homeTileRepository,
+            viewModelFactory: viewModelFactory,
+            demoCoordinator: sl.demoCoordinator,
+            authManager: authManager,
+            store: sl.settingsStore,
+            errorNotifier: errorNotifier,
+            connectionRetrier: self,
+            resync: resync
+        )
+        resolver.registerBuiltInFeeds(
+            home: CuratedHomeViewModel(
+                homeTileRepository: homeTileRepository,
+                viewModelFactory: viewModelFactory,
+                authManager: authManager,
+                demoCoordinator: sl.demoCoordinator,
+                errorNotifier: errorNotifier,
+                connectionRetrier: self,
+                resync: resync
+            ),
+            areas: areas,
+            floors: floors
+        )
+        resolver.registerEntityFeeds(
+            context: context,
+            viewModelFactory: viewModelFactory,
+            homeTileRepository: homeTileRepository,
+            authManager: authManager,
+            isDemoMode: sl.demoCoordinator.isActive
+        )
+        return resolver
     }
 
     func clearServiceLocator() {

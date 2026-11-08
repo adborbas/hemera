@@ -169,13 +169,7 @@ struct ClimateControlPanel: View {
                     viewModel.togglePower()
                 }
             } label: {
-                Image(systemName: "power")
-                    .font(.title2)
-                    .foregroundStyle(PlatformColor.systemGray)
-                    .frame(width: Mortar.IconSize.m, height: Mortar.IconSize.m)
-                    .background {
-                        Circle().fill(PlatformColor.systemGray5)
-                    }
+                CircleIconLabel(systemImage: "power", color: PlatformColor.systemGray)
             }
 
             // Mode selector (dropdown)
@@ -191,13 +185,7 @@ struct ClimateControlPanel: View {
                         }
                     }
                 } label: {
-                    Image(systemName: hvacModeIcon(viewModel.hvacMode))
-                        .font(.title2)
-                        .foregroundStyle(viewModel.tintColor)
-                        .frame(width: Mortar.IconSize.m, height: Mortar.IconSize.m)
-                        .background {
-                            Circle().fill(PlatformColor.systemGray5)
-                        }
+                    CircleIconLabel(systemImage: hvacModeIcon(viewModel.hvacMode), color: viewModel.tintColor)
                 }
             }
         }

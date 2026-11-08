@@ -8,7 +8,6 @@ struct AreaDetailView: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var overlayTransition
-    @State private var showClimateSubtitle = true
     @State private var overlayItem: OverlayItem?
     @State private var hideMode = AreaHideMode()
 
@@ -20,7 +19,6 @@ struct AreaDetailView: View {
                     area: area,
                     viewModel: viewModel,
                     overlayItem: $overlayItem,
-                    showClimateSubtitle: $showClimateSubtitle,
                     overlayTransition: overlayTransition,
                     horizontalSizeClass: horizontalSizeClass,
                     isHideMode: hideMode.isActive,
@@ -40,25 +38,23 @@ struct AreaDetailView: View {
             }
         }
         .navigationTitle(viewModel.areaName)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .pushedScreenHeader(
+            viewModel.areaName,
+            isEditing: hideMode.isActive,
+            actions: viewModel.feedActions,
+            perform: viewModel.perform
+        ) { collapse in
+            if let area {
+                // Tappable only while they still read as pills.
+                AreaClimateReadings(area: area, morph: collapse, isInteractive: collapse < 0.5)
+            }
+        }
         .toolbar {
             if hideMode.isActive {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(Localization.done) {
                         setHideMode(false)
-                    }
-                }
-            } else if !viewModel.isDemoMode, !viewModel.isVirtualArea {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            viewModel.openAreaInHA()
-                        } label: {
-                            Label(Localization.openInHomeAssistant, systemImage: "globe")
-                        }
-                    } label: {
-                        Label(Localization.moreOptions, systemImage: "ellipsis.circle")
-                            .labelStyle(.iconOnly)
                     }
                 }
             }
@@ -71,6 +67,10 @@ struct AreaDetailView: View {
         }
         .haWebViewCover(presenter: viewModel.haWebViewPresenter)
         .onDisappear { hideMode.endAnimationWindow() }
+    }
+
+    private var area: AreaEntity? {
+        if case .area(let area) = viewModel.destination { area } else { nil }
     }
 
     private func setHideMode(_ on: Bool) {
@@ -92,15 +92,11 @@ private struct AreaContentView: View {
     @Bindable var area: AreaEntity
     let viewModel: AreaDetailViewModel
     @Binding var overlayItem: OverlayItem?
-    @Binding var showClimateSubtitle: Bool
     let overlayTransition: Namespace.ID
     let horizontalSizeClass: UserInterfaceSizeClass?
     let isHideMode: Bool
     let animatesTileChanges: Bool
     let onEnterHideMode: () -> Void
-
-    /// Held in state so a re-render cannot swap in a fresh, unloaded view model.
-    @State private var climateHistoryTarget: ClimateHistoryTarget?
 
     var body: some View {
         GeometryReader { proxy in
@@ -111,15 +107,13 @@ private struct AreaContentView: View {
             let sections = viewModel.sections(for: area, includingHidden: isHideMode)
 
             ScrollView {
-                climateSummaryRow
-
                 if sections.isEmpty, !isHideMode, viewModel.hasHiddenEntities(for: area) {
                     AllHiddenPlaceholder(action: onEnterHideMode)
                         .frame(maxWidth: .infinity, minHeight: proxy.size.height * 0.7, alignment: .center)
                         .padding(.horizontal, TileGridConstants.padding)
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                        ForEach(sections, id: \.id) { section in
                             AreaDetailSection(
                                 section: section,
                                 viewModel: viewModel,
@@ -127,110 +121,16 @@ private struct AreaContentView: View {
                                 overlayTransition: overlayTransition,
                                 columns: columns,
                                 containerWidth: proxy.size.width,
-                                isFirst: index == 0,
                                 isHideMode: isHideMode,
                                 animatesTileChanges: animatesTileChanges,
                                 onEnterHideMode: onEnterHideMode
                             )
                         }
                     }
-                    .padding(.vertical, TileGridConstants.sectionPadding)
                 }
             }
+            .reportsFeedScroll()
         }
-    }
-
-    // MARK: - Climate history sheet
-
-    /// An area's temperature and humidity, each a tappable link to its own history.
-    @ViewBuilder
-    private var climateSummaryRow: some View {
-        let (temperatureText, humidityText) = AreaDisplayHelpers.climateSummary(for: area)
-        let representatives = AreaDisplayHelpers.representativeSensors(for: area)
-
-        if temperatureText != nil || humidityText != nil {
-            HStack(spacing: Mortar.Spacing.s) {
-                if let temperatureText, let temperature = representatives.temperature {
-                    climateHistoryButton(
-                        text: temperatureText,
-                        sensor: temperature,
-                        fallbackUnit: "°",
-                        icon: "mdi:thermometer"
-                    )
-                }
-
-                if let humidityText, let humidity = representatives.humidity {
-                    climateHistoryButton(
-                        text: humidityText,
-                        sensor: humidity,
-                        fallbackUnit: "%",
-                        icon: "mdi:water-percent"
-                    )
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, TileGridConstants.padding)
-            .opacity(showClimateSubtitle ? 1 : 0)
-            .onScrollVisibilityChange(threshold: 0.5) { isVisible in
-                showClimateSubtitle = isVisible
-            }
-            .sheet(item: $climateHistoryTarget) { target in
-                AreaClimateHistoryView(
-                    viewModel: target.viewModel,
-                    areaName: area.name
-                )
-                .presentationDetents([.large])
-            }
-        }
-    }
-
-    /// 17pt matches the subheadline text; the smallest Mortar.IconSize (19pt) sits above cap height.
-    private let readingIconSize: CGFloat = 17
-
-    /// The grid's own shape, so a reading reads as the same material as the cards under it.
-    private let readingShape = RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)
-
-    /// The pill is shorter than this; the hit area is padded out to the HIG minimum around it.
-    private let readingTapTarget: CGFloat = 44
-
-    /// A tappable reading that opens its own sensor's history sheet.
-    private func climateHistoryButton(
-        text: String,
-        sensor: SensorEntity,
-        fallbackUnit: String,
-        icon: String
-    ) -> some View {
-        Button {
-            guard let session = ServiceLocator.shared.session else { return }
-            climateHistoryTarget = ClimateHistoryTarget(
-                viewModel: AreaClimateHistoryViewModel(
-                    sensor: sensor,
-                    fallbackUnit: fallbackUnit,
-                    provider: session.sensorHistoryProvider
-                )
-            )
-        } label: {
-            HStack(spacing: Mortar.Spacing.xs) {
-                // Tinted so the glyph reads as its own thing rather than competing with the value.
-                MDIIcon(name: icon, size: readingIconSize)
-                    .foregroundStyle(Color.cool)
-                Text(text)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-            .padding(.horizontal, Mortar.Spacing.m)
-            .padding(.vertical, Mortar.Spacing.s)
-            .background(PlatformColor.secondarySystemBackground, in: readingShape)
-            .frame(minHeight: readingTapTarget)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Identified by its view model, so a tap is one target for `.sheet(item:)`.
-    private struct ClimateHistoryTarget: Identifiable {
-        let viewModel: AreaClimateHistoryViewModel
-        var id: ObjectIdentifier { ObjectIdentifier(viewModel) }
     }
 }
 
@@ -265,7 +165,7 @@ private struct UnassignedContentView: View {
                             .padding(.horizontal, TileGridConstants.padding)
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                            ForEach(sections, id: \.id) { section in
                                 AreaDetailSection(
                                     section: section,
                                     viewModel: viewModel,
@@ -273,16 +173,15 @@ private struct UnassignedContentView: View {
                                     overlayTransition: overlayTransition,
                                     columns: columns,
                                     containerWidth: proxy.size.width,
-                                    isFirst: index == 0,
                                     isHideMode: isHideMode,
                                     animatesTileChanges: animatesTileChanges,
                                     onEnterHideMode: onEnterHideMode
                                 )
                             }
                         }
-                        .padding(.vertical, TileGridConstants.sectionPadding)
                     }
                 }
+                .reportsFeedScroll()
             }
         }
     }
@@ -297,7 +196,6 @@ private struct AreaDetailSection: View {
     let overlayTransition: Namespace.ID
     let columns: Int
     let containerWidth: CGFloat
-    let isFirst: Bool
     let isHideMode: Bool
     let animatesTileChanges: Bool
     let onEnterHideMode: () -> Void
@@ -305,7 +203,7 @@ private struct AreaDetailSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let title = section.title, !title.isEmpty {
-                SectionHeader(title, isFirst: isFirst)
+                SectionHeader(title)
                     .padding(.horizontal, TileGridConstants.padding)
             }
 
@@ -334,27 +232,13 @@ private struct AreaDetailSection: View {
                         }
                     }
                     .contextMenu {
-                        if !viewModel.isOnHome(entityId: vm.id) {
-                            Button {
-                                viewModel.addToHome(entityId: vm.id)
-                            } label: {
-                                Label(Localization.addToHome, systemImage: "plus")
-                            }
-                        }
-                        if !viewModel.isDemoMode {
-                            Button {
-                                onEnterHideMode()
-                            } label: {
-                                Label(Localization.showHideItems, systemImage: "eye.slash")
-                            }
-                        }
-                        if !viewModel.isDemoMode {
-                            Button {
-                                viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId)
-                            } label: {
-                                Label(Localization.openInHomeAssistant, systemImage: "globe")
-                            }
-                        }
+                        EntityCardContextMenu(
+                            isOnHome: viewModel.isOnHome(entityId: vm.id),
+                            isDemoMode: viewModel.isDemoMode,
+                            addToHome: { viewModel.addToHome(entityId: vm.id) },
+                            openInHomeAssistant: { viewModel.openEntityInHA(entityId: vm.id, deviceId: vm.deviceId) },
+                            showHideItems: onEnterHideMode
+                        )
                     }
             }
         } else {
@@ -385,6 +269,35 @@ private struct AreaDetailSection: View {
     }
 }
 
+// MARK: - FeedActionHandling
+
+/// The area header's "…" menu.
+extension AreaDetailViewModel: FeedActionHandling {
+
+    var feedActions: [FeedAction] {
+        guard !isDemoMode, !isVirtualArea else { return [] }
+        return [FeedAction(
+            id: Self.moreOptionsActionId,
+            title: AreaDetailView.Localization.moreOptions,
+            icon: "ellipsis",
+            menu: [FeedMenuItem(
+                id: Self.openInHomeAssistantItemId,
+                title: AreaDetailView.Localization.openInHomeAssistant,
+                icon: "globe",
+                isSelected: false
+            )]
+        )]
+    }
+
+    func perform(_ actionID: String, item: String?) {
+        guard actionID == Self.moreOptionsActionId, item == Self.openInHomeAssistantItemId else { return }
+        openAreaInHA()
+    }
+
+    private static let moreOptionsActionId = "moreOptions"
+    private static let openInHomeAssistantItemId = "openInHomeAssistant"
+}
+
 // MARK: - Localization
 
 private extension AreaDetailView {
@@ -392,13 +305,5 @@ private extension AreaDetailView {
         static let moreOptions = String(localized: "More Options", comment: "Toolbar button to show additional actions for an area")
         static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
         static let done = String(localized: "Done", comment: "Toolbar button that exits the show/hide-items editing mode for an area")
-    }
-}
-
-private extension AreaDetailSection {
-    enum Localization {
-        static let showHideItems = String(localized: "Show/Hide Items", comment: "Context menu action that enters a mode for hiding or revealing entities in an area")
-        static let addToHome = String(localized: "Add to Home", comment: "Context menu action to pin an entity to the Home screen")
-        static let openInHomeAssistant = String(localized: "Open in Home Assistant", comment: "Context menu action to open an entity or area in the Home Assistant web interface")
     }
 }

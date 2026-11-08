@@ -17,61 +17,27 @@ struct AreasView: View {
         }
     }
 
-    /// Maps the persisted `Bool` setting to the two-option picker selection.
-    private var groupingSelection: Binding<AreaGrouping> {
-        Binding(
-            get: { viewModel.areasGroupedByFloor ? .byFloor : .none },
-            set: { viewModel.areasGroupedByFloor = ($0 == .byFloor) }
-        )
-    }
-
     @ViewBuilder
     private func content(hasUnassigned: Bool) -> some View {
         let displayedAreas = viewModel.displayedAreas(from: areas)
         let isEmpty = viewModel.isGridEmpty(displayedAreaCount: displayedAreas.count, hasUnassigned: hasUnassigned)
 
-        NavigationStack {
-            Group {
-                if viewModel.isRetrying {
-                    ProgressView()
-                        .controlSize(.large)
-                } else if viewModel.syncFailed, isEmpty {
-                    SyncErrorView {
-                        viewModel.retrySyncAndReload()
-                    }
-                } else if isEmpty {
-                    AreasEmptyView()
-                } else {
-                    areaCardGrid(hasUnassigned: hasUnassigned, hasRealAreas: !displayedAreas.isEmpty)
+        Group {
+            if viewModel.isRetrying {
+                ProgressView()
+                    .controlSize(.large)
+            } else if viewModel.syncFailed, isEmpty {
+                SyncErrorView {
+                    viewModel.retrySyncAndReload()
                 }
+            } else if isEmpty {
+                AreasEmptyView()
+            } else {
+                areaCardGrid(hasUnassigned: hasUnassigned, hasRealAreas: !displayedAreas.isEmpty)
             }
-            .refreshable {
-                await viewModel.refresh()
-            }
-            .navigationTitle(Localization.areas)
-            .navigationDestination(for: AreaDestination.self) { destination in
-                AreaDetailView(viewModel: viewModel.makeDetailViewModel(destination: destination))
-            }
-            .toolbar {
-                // Grouping only has an effect when floors exist, so hide the
-                // menu entirely otherwise — a control that does nothing is
-                // worse than no control.
-                if !floors.isEmpty, !viewModel.settingsAreReadOnly {
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu {
-                            Picker(Localization.grouping, selection: groupingSelection) {
-                                ForEach(AreaGrouping.allCases) { option in
-                                    Label(option.label, systemImage: option.systemImage).tag(option)
-                                }
-                            }
-                            .pickerStyle(.inline)
-                        } label: {
-                            Label(Localization.viewOptions, systemImage: "ellipsis.circle")
-                                .labelStyle(.iconOnly)
-                        }
-                    }
-                }
-            }
+        }
+        .refreshable {
+            await viewModel.refresh()
         }
     }
 }
@@ -114,7 +80,7 @@ private extension AreasView {
         GeometryReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                    ForEach(sections) { section in
                         let areasById = Dictionary(
                             section.areas.map { (UUID(stableForString: $0.areaId), $0) },
                             uniquingKeysWith: { first, _ in first }
@@ -122,7 +88,7 @@ private extension AreasView {
 
                         VStack(alignment: .leading, spacing: 0) {
                             if let title = section.title, !title.isEmpty {
-                                SectionHeader(title, isFirst: index == 0)
+                                SectionHeader(title)
                                     .padding(.horizontal, TileGridConstants.padding)
                             }
 
@@ -138,8 +104,8 @@ private extension AreasView {
                         }
                     }
                 }
-                .padding(.vertical, TileGridConstants.sectionPadding)
             }
+            .reportsFeedScroll()
         }
     }
 
@@ -244,44 +210,5 @@ private struct AreaCardView: View {
 
     private enum Constants {
         static let fallbackIcon = "mdi:texture-box"
-    }
-}
-
-// MARK: - Localization
-
-// MARK: - Grouping Option
-
-/// The two exclusive grouping options offered in the Areas view-options menu.
-/// A view-layer projection of the persisted `areasGroupedByFloor` Bool.
-private enum AreaGrouping: String, CaseIterable, Identifiable {
-    case byFloor
-    case none
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .byFloor: AreasView.Localization.groupByFloor
-        case .none: AreasView.Localization.noGrouping
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .byFloor: "square.stack.3d.up"
-        case .none: "square.grid.2x2"
-        }
-    }
-}
-
-// MARK: - Localization
-
-extension AreasView {
-    fileprivate enum Localization {
-        static let areas = String(localized: "Areas", comment: "Navigation title for the Areas screen showing entities grouped by area")
-        static let viewOptions = String(localized: "View Options", comment: "Accessibility label for the toolbar menu button that holds Areas screen display options")
-        static let grouping = String(localized: "Grouping", comment: "Header for the grouping options in the Areas view-options menu")
-        static let groupByFloor = String(localized: "Group by Floor", comment: "Option in the Areas view-options menu that groups area cards into sections by Home Assistant floor")
-        static let noGrouping = String(localized: "No Grouping", comment: "Option in the Areas view-options menu that shows all area cards in a single flat grid without floor sections")
     }
 }

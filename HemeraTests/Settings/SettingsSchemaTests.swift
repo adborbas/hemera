@@ -23,6 +23,30 @@ struct SettingsSchemaTests {
     }
     """
 
+    /// v1 plus the pill row: both fields are additive, so the schema version is unchanged.
+    static let v1FeedRow = """
+    {
+      "areasGroupedByFloor" : true,
+      "clockFormat" : 0,
+      "dimTimeout" : 30,
+      "feedRow" : [
+        "home",
+        "area:kitchen",
+        "custom:1234"
+      ],
+      "offeredBuiltInFeeds" : [
+        "home",
+        "areas",
+        "domain:light",
+        "domain:cover",
+        "domain:climate",
+        "domain:scene"
+      ],
+      "schemaVersion" : 1,
+      "stayAwake" : true
+    }
+    """
+
     let defaults: UserDefaults
 
     init() {
@@ -41,14 +65,35 @@ struct SettingsSchemaTests {
         #expect(settings.schemaVersion == 1)
     }
 
+    @Test func v1_hasDefaultFeedRow() {
+        // Settings written before the pill row existed must open on the default row.
+        defaults.set(Self.v1, forKey: UserDefaultsSettingsStore.storageKey)
+
+        let settings = UserDefaultsSettingsStore(defaults: defaults).settings
+
+        #expect(settings.feedRow == nil)
+        #expect(settings.offeredBuiltInFeeds == FeedID.builtIns)
+    }
+
+    @Test func v1FeedRow_writesBackUnknownFeedsUnchanged() {
+        // Pins from a newer build must survive a downgrade and the next write.
+        defaults.set(Self.v1FeedRow, forKey: UserDefaultsSettingsStore.storageKey)
+        let store = UserDefaultsSettingsStore(defaults: defaults)
+
+        store.settings.stayAwake = true
+
+        #expect(defaults.string(forKey: UserDefaultsSettingsStore.storageKey) == Self.v1FeedRow)
+    }
+
     /// Fails if the stored format drifts — a renamed key, a changed raw value, different
     /// formatting. Update the fixture only alongside a `SettingsMigration` step.
-    @Test func currentEncoding_matchesV1() {
+    @Test func currentEncoding_matchesV1FeedRow() {
         let store = UserDefaultsSettingsStore(defaults: defaults)
         store.settings.stayAwake = true
+        store.settings.feedRow = [.home, FeedID(rawValue: "area:kitchen"), FeedID(rawValue: "custom:1234")]
 
         let written = defaults.string(forKey: UserDefaultsSettingsStore.storageKey)
 
-        #expect(written == Self.v1)
+        #expect(written == Self.v1FeedRow)
     }
 }

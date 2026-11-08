@@ -49,14 +49,15 @@ struct AreasViewModelTests {
     private func makeViewModel(
         errorNotifier: ErrorNotifier? = nil,
         connectionRetrier: (any ConnectionRetrying)? = nil,
-        resync: @escaping () async -> Void = { }
+        resync: @escaping () async -> Void = { },
+        store: InMemorySettingsStore? = nil
     ) -> AreasViewModel {
         AreasViewModel(
             homeTileRepository: tileRepo,
             viewModelFactory: factory,
             demoCoordinator: demoCoordinator,
             authManager: authManager,
-            store: InMemorySettingsStore(),
+            store: store ?? InMemorySettingsStore(),
             errorNotifier: errorNotifier,
             connectionRetrier: connectionRetrier,
             resync: resync
@@ -99,6 +100,13 @@ struct AreasViewModelTests {
     }
 
     // MARK: - Detail Navigation
+
+    @Test
+    func feedActions_readOnlySettings_hidesGroupingMenu() {
+        // A newer build's settings can't be saved, so a grouping choice would silently not stick.
+        #expect(makeViewModel(store: InMemorySettingsStore(isReadOnly: true)).feedActions.isEmpty)
+        #expect(!makeViewModel().feedActions.isEmpty)
+    }
 
     @Test
     func makeDetailViewModel_forRealArea_returnsDetailVM() {

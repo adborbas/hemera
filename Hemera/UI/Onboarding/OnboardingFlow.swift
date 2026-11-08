@@ -5,7 +5,6 @@ struct OnboardingFlow: View {
     var sessionExpiredMessage: String?
     var onTryDemo: (() -> Void)?
 
-    @Environment(AppRouter.self) private var router
     @State private var path = NavigationPath()
 
     var body: some View {
@@ -17,11 +16,6 @@ struct OnboardingFlow: View {
                         ServerSelectionView(viewModel: ServerSelectionViewModel())
                     }
                 }
-        }
-        .onAppear {
-            if router.destination == .connectToServer {
-                path.append(OnboardingDestination.serverSelection)
-            }
         }
     }
 }

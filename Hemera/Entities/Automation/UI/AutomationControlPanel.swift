@@ -14,12 +14,9 @@ struct AutomationControlPanel: View {
                 triggerAutomation()
             } label: {
                 Label(Localization.trigger, systemImage: "play.fill")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
-                    .background(Color.orange, in: RoundedRectangle(cornerRadius: 16))
             }
+            .buttonStyle(.mortarPrimary())
+            .tint(.orange)
             .opacity(isTriggering ? 0.6 : 1.0)
             .animation(.easeInOut(duration: Mortar.Motion.fast), value: isTriggering)
         }

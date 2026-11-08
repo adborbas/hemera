@@ -4,13 +4,13 @@ import Foundation
 @MainActor
 final class MockDemoCoordinatorDelegate: DemoCoordinatorDelegate {
     var didEnterCallCount = 0
-    var didExitCalls: [(connectToServer: Bool, Void)] = []
+    var didExitCallCount = 0
 
     func demoDidEnter() {
         didEnterCallCount += 1
     }
 
-    func demoDidExit(connectToServer: Bool) {
-        didExitCalls.append((connectToServer, ()))
+    func demoDidExit() {
+        didExitCallCount += 1
     }
 }

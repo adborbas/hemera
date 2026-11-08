@@ -13,7 +13,7 @@ struct ConnectingView: View {
 
             if viewModel.timedOut {
                 Image(systemName: "wifi.exclamationmark")
-                    .font(.system(size: 48))
+                    .font(.system(size: Mortar.IconSize.m))
                     .foregroundStyle(.secondary)
 
                 Text(Localization.unableToConnect)

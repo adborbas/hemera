@@ -45,28 +45,12 @@ struct EditableTileModifier: ViewModifier {
     // MARK: - Resize Button
 
     private var resizeButton: some View {
-        Button {
+        EditBadgeButton(
+            tile.size == .small ? Localization.makeLarger : Localization.makeSmaller,
+            systemImage: resizeIcon
+        ) {
             onResize(nextSize)
-        } label: {
-            Label(
-                tile.size == .small ? Localization.makeLarger : Localization.makeSmaller,
-                systemImage: resizeIcon
-            )
-            .labelStyle(.iconOnly)
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: Mortar.IconSize.s, height: Mortar.IconSize.s)
-            .background(
-                Circle()
-                    .fill(.thinMaterial)
-                    .environment(\.colorScheme, .dark)
-            )
-            // Minimum tap target (HIG) around the smaller visible circle.
-            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .transition(.scale.combined(with: .opacity))
     }
 }
 

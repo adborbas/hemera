@@ -104,6 +104,11 @@ final class ViewModelFactory {
         return vm
     }
 
+    /// For callers that hold the live model, so a cache hit skips the existence fetch.
+    func makeViewModel(forLiveEntityId entityId: String) -> (any EntityCardViewModel)? {
+        cache[entityId] ?? makeViewModel(forEntityId: entityId)
+    }
+
     /// Whether the entity backing a cached VM still exists in storage. Targets the
     /// single registration owning the id's domain (HA ids are `"<domain>.<object>"`)
     /// so the probe is one cheap fetch, not a fan-out across every domain.

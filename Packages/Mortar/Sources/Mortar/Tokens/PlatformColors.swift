@@ -7,6 +7,7 @@ import SwiftUI
 import UIKit
 
 public enum PlatformColor {
+    public static var systemBackground: Color { Color(UIColor.systemBackground) }
     public static var secondarySystemBackground: Color { Color(UIColor.secondarySystemBackground) }
     public static var tertiarySystemBackground: Color { Color(UIColor.tertiarySystemBackground) }
     public static var systemGray: Color { Color(UIColor.systemGray) }
@@ -14,10 +15,12 @@ public enum PlatformColor {
     public static var systemGray3: Color { Color(UIColor.systemGray3) }
     public static var systemGray4: Color { Color(UIColor.systemGray4) }
     public static var systemGray5: Color { Color(UIColor.systemGray5) }
+    public static var secondarySystemFill: Color { Color(UIColor.secondarySystemFill) }
     public static var systemGreen: Color { Color(UIColor.systemGreen) }
 }
 #else
 public enum PlatformColor {
+    public static var systemBackground: Color { Color.white }
     public static var secondarySystemBackground: Color { Color.gray.opacity(0.15) }
     public static var tertiarySystemBackground: Color { Color.gray.opacity(0.1) }
     public static var systemGray: Color { Color.gray }
@@ -25,6 +28,7 @@ public enum PlatformColor {
     public static var systemGray3: Color { Color.gray.opacity(0.5) }
     public static var systemGray4: Color { Color.gray.opacity(0.35) }
     public static var systemGray5: Color { Color.gray.opacity(0.2) }
+    public static var secondarySystemFill: Color { Color.gray.opacity(0.16) }
     public static var systemGreen: Color { Color.green }
 }
 #endif

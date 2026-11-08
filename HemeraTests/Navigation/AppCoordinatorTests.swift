@@ -23,7 +23,7 @@ struct AppCoordinatorTests {
             settingsStore: env.settingsStore
         )
 
-        coordinator = AppCoordinator(sessionManager: sessionManager, authManager: authManager, router: router)
+        coordinator = AppCoordinator(sessionManager: sessionManager, router: router)
     }
 
     // MARK: - demoDidEnter
@@ -38,20 +38,11 @@ struct AppCoordinatorTests {
     // MARK: - demoDidExit
 
     @Test
-    func demoDidExit_withConnectToServerFalse_navigatesToOnboarding() {
+    func demoDidExit_navigatesToOnboarding() {
         coordinator.demoDidEnter()
 
-        coordinator.demoDidExit(connectToServer: false)
+        coordinator.demoDidExit()
 
         #expect(router.destination == .onboarding)
-    }
-
-    @Test
-    func demoDidExit_withConnectToServerTrue_navigatesToConnectToServer() {
-        coordinator.demoDidEnter()
-
-        coordinator.demoDidExit(connectToServer: true)
-
-        #expect(router.destination == .connectToServer)
     }
 }

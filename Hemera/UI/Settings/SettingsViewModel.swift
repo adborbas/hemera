@@ -7,18 +7,21 @@ final class SettingsViewModel {
     enum Route: Hashable {
         case kioskMode
         case serverURL
+        case account
     }
 
     var path = NavigationPath()
     var showLogoutConfirmation = false
+    var showExitDemoConfirmation = false
     var showServerWebView = false
     var showConfetti = false
     private(set) var haVersion: String?
 
     let isDemoMode: Bool
-    let bannerViewModel: DemoModeBannerViewModel
     let screenManager: ScreenManager
+    private let homeProfile: HomeProfile?
     private let authManager: any AuthManaging
+    private let demoCoordinator: any DemoCoordinating
     private let restClient: (any HARESTClienting)?
     private var versionTapCount = 0
     private var pendingRoute: Route?
@@ -28,13 +31,15 @@ final class SettingsViewModel {
         demoCoordinator: any DemoCoordinating,
         screenManager: ScreenManager,
         restClient: (any HARESTClienting)?,
+        homeProfile: HomeProfile?,
         initialRoute: Route? = nil
     ) {
         self.authManager = authManager
         self.isDemoMode = demoCoordinator.isActive
-        self.bannerViewModel = DemoModeBannerViewModel(demoCoordinator: demoCoordinator)
+        self.demoCoordinator = demoCoordinator
         self.screenManager = screenManager
         self.restClient = restClient
+        self.homeProfile = homeProfile
         self.pendingRoute = initialRoute
     }
 
@@ -45,13 +50,27 @@ final class SettingsViewModel {
             demoCoordinator: sl.demoCoordinator,
             screenManager: sl.screenManager,
             restClient: sl.session?.restClient,
+            homeProfile: sl.session?.homeProfile,
             initialRoute: initialRoute
         )
     }
 
-    var isShowingDemoModeHeader: Bool { isDemoMode }
-    var isShowingServerInfoSection: Bool { !isDemoMode }
-    var isShowingLogoutSection: Bool { !isDemoMode }
+    var isAccountPageAvailable: Bool { !isDemoMode }
+
+    var account: Account? { homeProfile?.account }
+
+    /// Falls back to the server host, then "Account", while the user hasn't loaded or failed to.
+    var accountName: String {
+        if isDemoMode { return Localization.demo }
+        if let name = account?.name, !name.trimmingCharacters(in: .whitespaces).isEmpty { return name }
+        return logoutHost ?? Localization.account
+    }
+
+    /// "Role · Home name"; demo mode shows only the home.
+    var accountSubtitle: String {
+        let role = isDemoMode ? nil : account?.role.displayName
+        return [role, homeProfile?.displayName].compactMap { $0 }.joined(separator: " · ")
+    }
 
     var serverURL: URL? { authManager.credentials?.serverURL }
     var logoutHost: String? { authManager.credentials?.serverURL.host() }
@@ -74,6 +93,14 @@ final class SettingsViewModel {
 
     func confirmLogout() {
         authManager.logout()
+    }
+
+    func exitDemoTapped() {
+        showExitDemoConfirmation = true
+    }
+
+    func confirmExitDemo() {
+        demoCoordinator.exit()
     }
 
     func versionTapped() {
@@ -102,5 +129,15 @@ final class SettingsViewModel {
 
     func fetchHAVersion() async {
         haVersion = await restClient?.fetchVersion()
+    }
+}
+
+private extension SettingsViewModel {
+    enum Localization {
+        static let demo = String(localized: "Demo", comment: "Account row title in settings while the app runs in demo mode")
+        static let account = String(
+            localized: "Account",
+            comment: "Account row title in settings until the signed-in user's name is known"
+        )
     }
 }

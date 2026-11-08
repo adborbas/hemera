@@ -13,7 +13,7 @@ struct RootView: View {
     var body: some View {
         Group {
             switch router.destination {
-            case .onboarding, .connectToServer:
+            case .onboarding:
                 OnboardingFlow(
                     sessionExpiredMessage: router.sessionExpiredMessage,
                     onTryDemo: {
@@ -25,9 +25,8 @@ struct RootView: View {
                 ConnectingView(viewModel: ConnectingViewModel())
             case .authenticated:
                 if let session = ServiceLocator.shared.session {
-                    MainTabView(viewModel: MainTabViewModel())
+                    MainNavigationView(session: session)
                         .modelContainer(session.container)
-                        .transaction { $0.animation = nil }
                 } else {
                     /**
                      Session torn down while destination is briefly still .authenticated.

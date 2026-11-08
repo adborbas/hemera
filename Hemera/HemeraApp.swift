@@ -24,15 +24,13 @@ struct HemeraApp: App {
         let sessionManager = SessionManager(authManager: auth, router: rtr, container: env.container, storage: env.storage)
 
         let demoCoordinator = DemoCoordinator()
-        let appCoordinator = AppCoordinator(sessionManager: sessionManager, authManager: auth, router: rtr)
+        let appCoordinator = AppCoordinator(sessionManager: sessionManager, router: rtr)
         demoCoordinator.delegate = appCoordinator
 
         ServiceLocator.configure(authManager: auth, router: rtr, demoCoordinator: demoCoordinator, sessionManager: sessionManager, screenManager: env.screenManager, settingsStore: env.settingsStore)
-        ServiceLocator.shared.appCoordinator = appCoordinator
 
         // Start session for returning authenticated users — must be after ServiceLocator.configure()
         sessionManager.startIfAuthenticated()
-        appCoordinator.startIfAuthenticated()
 
         #if DEBUG
         if CommandLine.arguments.contains("-screenshotMode") {
@@ -60,6 +58,7 @@ struct HemeraApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(router: router, authManager: authManager)
+                .scrollIndicators(.hidden)
                 .modelContainer(environment.container)
                 .environment(environment.screenManager)
                 .onChange(of: scenePhase) { _, newPhase in

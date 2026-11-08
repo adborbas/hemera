@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 protocol DemoCoordinatorDelegate: AnyObject {
     func demoDidEnter()
-    func demoDidExit(connectToServer: Bool)
+    func demoDidExit()
 }
 
 @MainActor
@@ -11,7 +11,6 @@ protocol DemoCoordinating: AnyObject {
     var isActive: Bool { get }
     func enter()
     func exit()
-    func connectToServer()
 }
 
 @MainActor
@@ -26,11 +25,6 @@ final class DemoCoordinator: DemoCoordinating {
 
     func exit() {
         isActive = false
-        delegate?.demoDidExit(connectToServer: false)
-    }
-
-    func connectToServer() {
-        isActive = false
-        delegate?.demoDidExit(connectToServer: true)
+        delegate?.demoDidExit()
     }
 }

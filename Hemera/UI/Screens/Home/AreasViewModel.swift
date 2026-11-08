@@ -16,7 +16,7 @@ final class AreasViewModel {
         errorNotifier?.syncFailed ?? false
     }
 
-    /// Owned here so the toolbar's "View Options" toggle can bind to it.
+    /// Owned here; the "View Options" menu in the feed header toggles it.
     var areasGroupedByFloor: Bool {
         didSet { store.settings.areasGroupedByFloor = areasGroupedByFloor }
     }
@@ -167,13 +167,65 @@ final class AreasViewModel {
 
 }
 
+// MARK: - FeedActionHandling
+
+extension AreasViewModel: FeedActionHandling {
+
+    var feedActions: [FeedAction] {
+        guard !settingsAreReadOnly else { return [] }
+        return [FeedAction(
+            id: Self.viewOptionsActionId,
+            title: Localization.viewOptions,
+            icon: "ellipsis",
+            menu: AreaGrouping.allCases.map { grouping in
+                FeedMenuItem(
+                    id: grouping.rawValue,
+                    title: grouping.label,
+                    icon: grouping.systemImage,
+                    isSelected: (grouping == .byFloor) == areasGroupedByFloor
+                )
+            }
+        )]
+    }
+
+    func perform(_ actionID: String, item: String?) {
+        guard actionID == Self.viewOptionsActionId, let grouping = item.flatMap(AreaGrouping.init(rawValue:)) else { return }
+        areasGroupedByFloor = grouping == .byFloor
+    }
+
+    private static let viewOptionsActionId = "viewOptions"
+}
+
+/// The two exclusive options of the grouping menu, a projection of `areasGroupedByFloor`.
+private enum AreaGrouping: String, CaseIterable {
+    case byFloor
+    case none
+
+    var label: String {
+        switch self {
+        case .byFloor: AreasViewModel.Localization.groupByFloor
+        case .none: AreasViewModel.Localization.noGrouping
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .byFloor: "square.stack.3d.up"
+        case .none: "square.grid.2x2"
+        }
+    }
+}
+
 // MARK: - Localization
 
-private extension AreasViewModel {
-    enum Localization {
+extension AreasViewModel {
+    fileprivate enum Localization {
         static let other = String(
             localized: "Other",
             comment: "Section header on the Areas screen grouping areas that are not assigned to any floor, plus entities not assigned to any area"
         )
+        static let viewOptions = String(localized: "View Options", comment: "Accessibility label for the toolbar menu button that holds Areas screen display options")
+        static let groupByFloor = String(localized: "Group by Floor", comment: "Option in the Areas view-options menu that groups area cards into sections by Home Assistant floor")
+        static let noGrouping = String(localized: "No Grouping", comment: "Option in the Areas view-options menu that shows all area cards in a single flat grid without floor sections")
     }
 }

@@ -14,12 +14,13 @@ struct ServerSelectionView: View {
                 manualEntryRow
             }
             .padding(.horizontal, Mortar.Spacing.xl)
-            .padding(.top, Mortar.Spacing.s)
+            .padding(.top, Mortar.Spacing.l)
             .frame(maxWidth: 600)
             .frame(maxWidth: .infinity)
         }
+        .reportsFeedScroll()
         .navigationTitle(Localization.title)
-        .navigationBarTitleDisplayMode(.large)
+        .pushedScreenHeader(Localization.title)
         .navigationDestination(isPresented: $showManualEntry) {
             ServerAddressView(handler: viewModel, placement: .prominent)
             .modifier(UnencryptedWarning(isPresented: httpWarning(whileManualEntry: true), viewModel: viewModel))
@@ -60,7 +61,7 @@ struct ServerSelectionView: View {
                 .overlay {
                     if isExchangingToken {
                         ZStack {
-                            Color(uiColor: .systemBackground)
+                            PlatformColor.systemBackground
                                 .ignoresSafeArea()
                             ProgressView()
                                 .controlSize(.large)

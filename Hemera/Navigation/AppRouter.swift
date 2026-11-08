@@ -10,7 +10,6 @@ final class AppRouter {
 
     enum Destination {
         case onboarding
-        case connectToServer
         case connecting
         case authenticated
     }
