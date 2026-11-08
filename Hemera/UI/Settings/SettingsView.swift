@@ -210,7 +210,7 @@ struct SettingsView: View {
             } label: {
                 Text(Localization.version)
                 if let update = updateNudge.availableUpdate {
-                    Text(Localization.updateAvailable(update.version))
+                    Text(update.label)
                         .font(.caption)
                         .foregroundStyle(Color.warning)
                 }
@@ -282,9 +282,6 @@ private extension SettingsView {
 
         // About
         static let about = String(localized: "About", comment: "Settings section header for app information")
-        static func updateAvailable(_ version: String) -> String {
-            String(localized: "\(version) available", comment: "Subtitle under the app version when a newer App Store version is available")
-        }
         static let acknowledgements = String(localized: "Acknowledgements", comment: "Navigation link to the open-source acknowledgements screen")
         static let debugPanel = String(localized: "Debug Panel", comment: "Button to open the debug panel from settings (debug builds only)")
     }

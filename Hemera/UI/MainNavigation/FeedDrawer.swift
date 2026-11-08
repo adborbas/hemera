@@ -15,6 +15,7 @@ struct FeedDrawer: View {
     let openSettings: () -> Void
 
     @State private var drag: CGFloat = 0
+    @Environment(UpdateNudge.self) private var updateNudge
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -78,7 +79,12 @@ struct FeedDrawer: View {
             }
 
             Divider()
-            DrawerRow(title: Localization.settings, icon: "gearshape", isSelected: false) {
+            DrawerRow(
+                title: Localization.settings,
+                subtitle: updateNudge.availableUpdate?.label,
+                icon: "gearshape",
+                isSelected: false
+            ) {
                 isOpen = false
                 openSettings()
             }

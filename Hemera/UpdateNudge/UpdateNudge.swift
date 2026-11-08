@@ -6,6 +6,10 @@ struct AvailableUpdate: Equatable, Identifiable {
     let appStoreId: Int
 
     var id: String { version }
+
+    var label: String {
+        String(localized: "\(version) available", comment: "Points to a newer App Store version, under the app version and on the Settings entry")
+    }
 }
 
 /// Nudges a Kiosk Mode device to update, because iOS never updates an app that stays in the foreground.
