@@ -48,7 +48,6 @@ struct FeedPager: View {
                 }
             }
             .scrollTargetBehavior(.paging)
-            .scrollIndicators(.hidden)
             // One-shot scrolls: a `scrollPosition` binding is re-asserted mid-swipe and stalls it.
             .onScrollGeometryChange(for: PagePosition.self) { geometry in
                 let width = geometry.containerSize.width

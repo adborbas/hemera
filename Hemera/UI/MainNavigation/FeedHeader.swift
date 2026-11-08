@@ -53,7 +53,6 @@ private struct PillRow: View {
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.vertical, Mortar.Spacing.xs)
             }
-            .scrollIndicators(.hidden)
             .scrollClipDisabled()
             .onScrollGeometryChange(for: HeaderLayout.EdgeFades.self) { geometry in
                 HeaderLayout.edgeFades(

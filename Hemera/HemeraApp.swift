@@ -58,6 +58,7 @@ struct HemeraApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(router: router, authManager: authManager)
+                .scrollIndicators(.hidden)
                 .modelContainer(environment.container)
                 .environment(environment.screenManager)
                 .onChange(of: scenePhase) { _, newPhase in
