@@ -166,7 +166,7 @@ private struct RegularBar<Accessory: View>: View {
         .modifier(WindowControlsOffset(sizeToFit: true))
         .padding(.horizontal, Mortar.Spacing.l)
         .padding(.bottom, Mortar.Spacing.xs)
-        .modifier(HeaderBackground(isPlateVisible: isPlateVisible(accessoryHeight: accessoryHeight, scroll: scroll)))
+        .mortarHeaderGlass(isPlateVisible: isPlateVisible(accessoryHeight: accessoryHeight, scroll: scroll))
     }
 
     private var titleText: some View {
@@ -241,9 +241,9 @@ private struct CollapsingBar<Accessory: View>: View {
             ZStack { accessory(1) }.fixedSize().hidden()
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { collapsedAccessorySize = $0 }
         }
-        .modifier(HeaderBackground(
+        .mortarHeaderGlass(
             isPlateVisible: isPlateVisible(accessoryHeight: expandedAccessorySize.height, scroll: scroll)
-        ))
+        )
     }
 
     private static var barSpace: String { "CollapsingBar" }
@@ -271,12 +271,10 @@ private struct DismissButton: View {
     var body: some View {
         Button { dismiss() } label: {
             Label(label, systemImage: icon)
-                .labelStyle(.iconOnly)
-                .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                .contentShape(.circle)
+                .labelStyle(.mortarIconButton)
         }
         .tint(.primary)
-        .modifier(GlassCapsule())
+        .mortarGlass()
     }
 }
 
@@ -288,14 +286,8 @@ private struct ActionsCapsule: View {
     var body: some View {
         HStack(spacing: 0) {
             if !actions.isEmpty {
-                HStack(spacing: 0) {
-                    ForEach(actions) { action in
-                        FeedActionButton(action: action) { perform(action.id, $0) }
-                    }
-                }
-                .tint(.primary)
-                .padding(.horizontal, Mortar.Spacing.xxs)
-                .modifier(GlassCapsule())
+                FeedActionButtons(actions: actions, perform: perform)
+                    .mortarGlass()
             }
         }
     }

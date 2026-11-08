@@ -89,7 +89,7 @@ struct AreaClimateReadings: View {
         .padding(.horizontal, Mortar.Spacing.l * (1 - morph))
         .frame(minHeight: Mortar.TapTarget.minimum * (1 - morph))
         .background {
-            Capsule().fill(PillFill.unselected(colorScheme)).opacity(1 - morph)
+            Capsule().fill(.chipFill(colorScheme)).opacity(1 - morph)
         }
         .contentShape(Rectangle())
     }

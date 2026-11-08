@@ -88,7 +88,7 @@ struct FeedDrawer: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background {
             UnevenRoundedRectangle(bottomTrailingRadius: Mortar.Radii.xl, topTrailingRadius: Mortar.Radii.xl)
-                .fill(Color(.secondarySystemBackground))
+                .fill(PlatformColor.secondarySystemBackground)
                 .ignoresSafeArea()
         }
     }
@@ -128,13 +128,8 @@ private struct DrawerRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Mortar.Spacing.m) {
-                Group {
-                    if icon.hasPrefix("mdi:") {
-                        MDIIcon(name: icon, size: iconSize)
-                    } else {
-                        Image(systemName: icon).font(.title3)
-                    }
-                }
+                IconImage(icon, size: iconSize)
+                    .font(.title3)
                 // A fixed column, so every title starts at the same x whatever the glyph's width.
                 .frame(width: Mortar.IconSize.s, height: Mortar.TapTarget.minimum)
                 .accessibilityHidden(true)
@@ -152,7 +147,7 @@ private struct DrawerRow: View {
             }
             .foregroundStyle(.primary)
             .padding(Mortar.Spacing.s)
-            .background(isSelected ? Color(.secondarySystemFill) : .clear, in: .rect(cornerRadius: Mortar.Radii.m))
+            .selectionFill(isSelected)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)

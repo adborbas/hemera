@@ -16,7 +16,7 @@ struct FeedHeader<Buttons: View>: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .accessibilityAddTraits(.isHeader)
-                .modifier(WindowControlsOffset())
+                .modifier(WindowControlsOffset(sizeToFit: true))
                 .padding(.horizontal, Mortar.Spacing.l)
                 .padding(.top, HeaderLayout.titleSpacing)
             HStack(spacing: 0) {
@@ -27,7 +27,7 @@ struct FeedHeader<Buttons: View>: View {
         }
         .padding(.bottom, Mortar.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .modifier(HeaderBackground())
+        .mortarHeaderGlass()
     }
 }
 
@@ -112,21 +112,15 @@ private struct PillButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Mortar.Spacing.s) {
-                Group {
-                    if pill.summary.icon.hasPrefix("mdi:") {
-                        MDIIcon(name: pill.summary.icon, size: iconSize)
-                    } else {
-                        Image(systemName: pill.summary.icon)
-                    }
-                }
-                .accessibilityHidden(true)
+                IconImage(pill.summary.icon, size: iconSize)
+                    .accessibilityHidden(true)
                 Text(pill.summary.title)
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.primary)
             .padding(.horizontal, Mortar.Spacing.m)
             .frame(minHeight: Mortar.TapTarget.minimum)
-            .background(isSelected ? Color(.secondarySystemFill) : .clear, in: .rect(cornerRadius: Mortar.Radii.m))
+            .selectionFill(isSelected)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -154,17 +148,29 @@ struct FeedActionButton: View {
                 }
             } label: {
                 Label(action.title, systemImage: action.icon)
-                    .labelStyle(.iconOnly)
-                    .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                    .contentShape(.rect)
+                    .labelStyle(.mortarIconButton)
             }
         } else {
             Button { perform(nil) } label: {
                 Label(action.title, systemImage: action.icon)
-                    .labelStyle(.iconOnly)
-                    .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                    .contentShape(.rect)
+                    .labelStyle(.mortarIconButton)
             }
         }
+    }
+}
+
+/// The feed's action buttons in a row, for a header to put on glass.
+struct FeedActionButtons: View {
+    let actions: [FeedAction]
+    let perform: (_ actionID: String, _ item: String?) -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(actions) { action in
+                FeedActionButton(action: action) { perform(action.id, $0) }
+            }
+        }
+        .tint(.primary)
+        .padding(.horizontal, Mortar.Spacing.xxs)
     }
 }

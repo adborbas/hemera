@@ -122,7 +122,7 @@ struct SettingsView: View {
 
     private var accountRow: some View {
         HStack(spacing: Mortar.Spacing.l) {
-            AccountAvatar(account: viewModel.account, size: 60)
+            AccountAvatar(account: viewModel.account, size: Mortar.AvatarSize.m)
             VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
                 Text(viewModel.accountName)
                     .font(.title3.weight(.semibold))
@@ -138,7 +138,7 @@ struct SettingsView: View {
     private var accountPage: some View {
         List {
             Section {
-                AccountAvatar(account: viewModel.account, size: 84)
+                AccountAvatar(account: viewModel.account, size: Mortar.AvatarSize.l)
                     .frame(maxWidth: .infinity)
             }
             .listRowBackground(Color.clear)

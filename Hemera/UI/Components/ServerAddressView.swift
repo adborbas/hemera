@@ -72,7 +72,7 @@ struct ServerAddressView: View {
                 .disabled(!handler.canSubmit)
             }
         }
-        .modifier(GlassCapsule())
+        .mortarGlass()
     }
 
     private func submit() {

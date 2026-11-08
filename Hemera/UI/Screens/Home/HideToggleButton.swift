@@ -12,27 +12,12 @@ struct HideToggleButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Label(
-                isHidden ? Localization.show : Localization.hide,
-                systemImage: isHidden ? "eye" : "eye.slash"
-            )
-            .labelStyle(.iconOnly)
-            .contentTransition(.symbolEffect(.replace))
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: Mortar.IconSize.s, height: Mortar.IconSize.s)
-            .background(
-                Circle()
-                    .fill(.thinMaterial)
-                    .environment(\.colorScheme, .dark)
-            )
-            // Minimum tap target (HIG) around the smaller visible circle.
-            .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .transition(.scale.combined(with: .opacity))
+        EditBadgeButton(
+            isHidden ? Localization.show : Localization.hide,
+            systemImage: isHidden ? "eye" : "eye.slash",
+            action: action
+        )
+        .contentTransition(.symbolEffect(.replace))
     }
 }
 

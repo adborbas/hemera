@@ -1,4 +1,5 @@
 import SwiftUI
+import Mortar
 
 struct DimOverlay: View {
 
@@ -11,7 +12,7 @@ struct DimOverlay: View {
                 Color.black
                     .ignoresSafeArea()
 
-                VStack(spacing: 8) {
+                VStack(spacing: Mortar.Spacing.s) {
                     Text(context.date, format: timeFormat)
                         .font(.system(size: 80, weight: .regular, design: .rounded))
 

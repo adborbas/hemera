@@ -61,7 +61,7 @@ struct ServerSelectionView: View {
                 .overlay {
                     if isExchangingToken {
                         ZStack {
-                            Color(uiColor: .systemBackground)
+                            PlatformColor.systemBackground
                                 .ignoresSafeArea()
                             ProgressView()
                                 .controlSize(.large)

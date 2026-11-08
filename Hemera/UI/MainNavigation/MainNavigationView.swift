@@ -176,17 +176,11 @@ private struct HeaderButtons: View {
     var body: some View {
         HStack(spacing: 0) {
             if !actions.isEmpty {
-                HStack(spacing: 0) {
-                    ForEach(actions) { action in
-                        FeedActionButton(action: action) { perform(action.id, $0) }
-                    }
-                }
-                .tint(.primary)
-                .padding(.horizontal, Mortar.Spacing.xxs)
+                FeedActionButtons(actions: actions, perform: perform)
             }
             AccountButton(account: account, action: openSettings)
         }
-        .modifier(GlassCapsule(isActive: !actions.isEmpty))
+        .mortarGlass(isActive: !actions.isEmpty)
     }
 }
 
@@ -200,17 +194,13 @@ struct AccountButton: View {
 
     var body: some View {
         Button(action: action) {
-            AccountAvatar(account: account, size: Constants.avatarSize)
+            AccountAvatar(account: account, size: Mortar.AvatarSize.s)
                 .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(opensMenu ? Localization.menu : Localization.accountAndSettings)
         .accessibilityValue(account?.name ?? "")
-    }
-
-    private enum Constants {
-        static let avatarSize: CGFloat = 32
     }
 }
 
