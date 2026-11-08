@@ -161,22 +161,12 @@ struct AreaClimateHistoryView: View {
     // MARK: - Range
 
     private var rangeChips: some View {
-        HStack(spacing: Mortar.Spacing.xs) {
-            ForEach(TimeRange.allCases, id: \.self) { range in
-                let isSelected = viewModel.selectedRange == range
-                Text(chipLabel(range))
-                    .font(.footnote.weight(isSelected ? .semibold : .regular))
-                    .padding(.horizontal, Mortar.Spacing.m)
-                    .padding(.vertical, Mortar.Spacing.xs)
-                    .background(isSelected ? AnyShapeStyle(.thickMaterial) : AnyShapeStyle(.clear), in: Capsule())
-                    .foregroundStyle(isSelected ? Color.primary : Color.secondary)
-                    .contentShape(Capsule())
-                    .onTapGesture { viewModel.selectedRange = range }
-                    .accessibilityLabel(rangeLabel(range))
-                    .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-            }
-        }
-        .animation(.smooth(duration: 0.20), value: viewModel.selectedRange)
+        PillPicker(
+            options: TimeRange.allCases,
+            selection: $viewModel.selectedRange,
+            title: chipLabel,
+            accessibilityLabel: rangeLabel
+        )
     }
 
     // MARK: - Formatting
