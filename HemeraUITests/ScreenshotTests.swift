@@ -122,7 +122,8 @@ final class ScreenshotTests: XCTestCase {
     func testScreenshot_07_AreaDetail_Portrait() throws {
         XCUIDevice.shared.orientation = .portrait
         navigateToAreasTab()
-        let livingRoom = app.staticTexts["Living Room"].firstMatch
+        // The pager keeps neighbour feeds alive, and Lights has a "Living Room" section header too.
+        let livingRoom = app.buttons["area.living_room"]
         XCTAssertTrue(livingRoom.waitForExistence(timeout: 5))
         livingRoom.tap()
         sleep(1)
@@ -133,7 +134,8 @@ final class ScreenshotTests: XCTestCase {
         try skipUnlessIPad()
         XCUIDevice.shared.orientation = .landscapeLeft
         navigateToAreasTab()
-        let livingRoom = app.staticTexts["Living Room"].firstMatch
+        // The pager keeps neighbour feeds alive, and Lights has a "Living Room" section header too.
+        let livingRoom = app.buttons["area.living_room"]
         XCTAssertTrue(livingRoom.waitForExistence(timeout: 5))
         livingRoom.tap()
         sleep(1)
