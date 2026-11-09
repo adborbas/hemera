@@ -404,7 +404,7 @@ final class HADataSyncService {
     */
     private static let iconTranslationDomains = [
         "light", "switch", "cover", "climate", "binary_sensor",
-        "scene", "script", "automation", "button"
+        "scene", "script", "automation", "button", "vacuum"
     ]
 
     /**

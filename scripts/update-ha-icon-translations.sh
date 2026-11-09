@@ -29,7 +29,7 @@ out_dir = os.environ["OUT_DIR"]
 # Domains Hemera renders entity cards for. Keep in sync with
 # HADataSyncService.iconTranslationDomains and step 15 of the "Adding a new entity type" checklist.
 DOMAINS = ["light", "switch", "cover", "climate", "binary_sensor",
-           "scene", "script", "automation", "button"]
+           "scene", "script", "automation", "button", "vacuum"]
 
 translations = {}
 for domain in DOMAINS:

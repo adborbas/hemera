@@ -147,6 +147,24 @@ enum DemoDataProvider {
             supportedFeaturesRaw: 1 | 2 | 8 | 16 | 32 | 128 | 256
         )
 
+        let robotVacuum = VacuumEntity(
+            entityId: "vacuum.robot_vacuum",
+            name: "Robot Vacuum",
+            state: .docked,
+            supportedFeaturesRaw: VacuumEntity.Features.allDemo.rawValue
+        )
+        robotVacuum.deviceId = "demo_robot_vacuum"
+
+        let robotVacuumBattery = SensorEntity(
+            entityId: "sensor.robot_vacuum_battery",
+            name: "Robot Vacuum Battery",
+            state: "100",
+            deviceClass: "battery",
+            unitOfMeasurement: "%",
+            stateClass: "measurement"
+        )
+        robotVacuumBattery.deviceId = robotVacuum.deviceId
+
         // MARK: - Bedroom
 
         let bedsideLamp = LightEntity(
@@ -429,7 +447,7 @@ enum DemoDataProvider {
             // Living Room
             ceilingLight, floorLamp, tvBacklight, blinds, curtains,
             movieScene, relaxScene, movieScript, motionLights, livingMotion, livingTemp, livingHumidity,
-            livingRoomAC,
+            livingRoomAC, robotVacuum, robotVacuumBattery,
             // Bedroom
             bedsideLamp, readingLight, blackoutBlinds,
             bedroomDoor, nightMode, goodnightScene, morningScene, bedroomTemp, bedroomHumidity,
@@ -464,6 +482,8 @@ enum DemoDataProvider {
         livingTemp.area = livingRoom
         livingHumidity.area = livingRoom
         livingRoomAC.area = livingRoom
+        robotVacuum.area = livingRoom
+        robotVacuumBattery.area = livingRoom
 
         bedsideLamp.area = bedroom
         readingLight.area = bedroom
@@ -554,4 +574,8 @@ enum DemoDataProvider {
 
 private extension CoverEntity.Features {
     static let allDemo: CoverEntity.Features = [.open, .close, .stop, .setPosition]
+}
+
+private extension VacuumEntity.Features {
+    static let allDemo: VacuumEntity.Features = [.start, .pause, .stop, .returnHome, .locate]
 }

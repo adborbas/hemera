@@ -39,6 +39,9 @@ enum IconTranslationsFixture {
         "scene": [
             "_": .init(defaultIcon: "mdi:palette")
         ],
+        "vacuum": [
+            "_": .init(defaultIcon: "mdi:robot-vacuum")
+        ],
         "script": [
             "_": .init(defaultIcon: "mdi:script-text", state: ["on": "mdi:script-text-play"])
         ],

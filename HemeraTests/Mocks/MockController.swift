@@ -3,7 +3,8 @@ import Foundation
 
 @MainActor
 final class MockController: LightControlling, CoverControlling, SceneControlling,
-    ScriptControlling, SwitchControlling, ButtonControlling, AutomationControlling, ClimateControlling {
+    ScriptControlling, SwitchControlling, ButtonControlling, AutomationControlling, ClimateControlling,
+    VacuumControlling {
     func setLight(_ id: String, on: Bool) async {}
     func setBrightness(_ id: String, to brightness: Int) async {}
     func setColorTemp(_ id: String, to mireds: Int) async {}
@@ -36,4 +37,10 @@ final class MockController: LightControlling, CoverControlling, SceneControlling
     func setHumidity(_ id: String, humidity: Double) async {}
     func turnOnClimate(_ id: String) async {}
     func turnOffClimate(_ id: String) async {}
+
+    func startVacuum(_ id: String) async {}
+    func pauseVacuum(_ id: String) async {}
+    func stopVacuum(_ id: String) async {}
+    func returnVacuumToBase(_ id: String) async {}
+    func locateVacuum(_ id: String) async {}
 }

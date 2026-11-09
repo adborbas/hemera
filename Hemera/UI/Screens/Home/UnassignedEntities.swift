@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Aggregates the nine unassigned-by-domain `@Query` results used by both
+/// Aggregates the ten unassigned-by-domain `@Query` results used by both
 /// the Areas grid (presence check) and the unassigned detail view
 /// (entity-ID list). Keeping the predicates in one place avoids drift.
 struct UnassignedEntities<Content: View>: View {
@@ -24,6 +24,8 @@ struct UnassignedEntities<Content: View>: View {
     private var binarySensors: [BinarySensorEntity]
     @Query(filter: #Predicate<ClimateEntity> { $0.area == nil && $0.isAvailable == true }, sort: \ClimateEntity.entityId)
     private var climates: [ClimateEntity]
+    @Query(filter: #Predicate<VacuumEntity> { $0.area == nil && $0.isAvailable == true }, sort: \VacuumEntity.entityId)
+    private var vacuums: [VacuumEntity]
 
     let content: (UnassignedEntitiesSummary) -> Content
 
@@ -45,7 +47,8 @@ struct UnassignedEntities<Content: View>: View {
                 buttons: buttons.filter { !$0.isHiddenInHA },
                 automations: automations.filter { !$0.isHiddenInHA },
                 binarySensors: binarySensors.filter { !$0.isHiddenInHA },
-                climates: climates.filter { !$0.isHiddenInHA }
+                climates: climates.filter { !$0.isHiddenInHA },
+                vacuums: vacuums.filter { !$0.isHiddenInHA }
             )
         )
     }
@@ -61,6 +64,7 @@ struct UnassignedEntitiesSummary {
     let automations: [AutomationEntity]
     let binarySensors: [BinarySensorEntity]
     let climates: [ClimateEntity]
+    let vacuums: [VacuumEntity]
 
     /**
      Whether the virtual "Other" area has any entities at all. It stays in the
@@ -78,6 +82,7 @@ struct UnassignedEntitiesSummary {
             || !automations.isEmpty
             || !binarySensors.isEmpty
             || !climates.isEmpty
+            || !vacuums.isEmpty
     }
 
     /// Whether any unassigned entity is hidden — drives the all-items-hidden placeholder.
@@ -91,6 +96,7 @@ struct UnassignedEntitiesSummary {
             || automations.contains { $0.isHidden }
             || binarySensors.contains { $0.isHidden }
             || climates.contains { $0.isHidden }
+            || vacuums.contains { $0.isHidden }
     }
 
     var entityIds: [String] {
@@ -104,6 +110,7 @@ struct UnassignedEntitiesSummary {
         ids += automations.map(\.entityId)
         ids += binarySensors.map(\.entityId)
         ids += climates.map(\.entityId)
+        ids += vacuums.map(\.entityId)
         return ids
     }
 }

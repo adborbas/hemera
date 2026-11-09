@@ -95,6 +95,7 @@ final class AreasViewModel {
                 || area.automations.contains { !$0.isHiddenInHA }
                 || area.binarySensors.contains { !$0.isHiddenInHA }
                 || area.climates.contains { !$0.isHiddenInHA }
+                || area.vacuums.contains { !$0.isHiddenInHA }
                 || hasClimateData(in: area)
         }
     }
