@@ -118,6 +118,24 @@ struct BinarySensorCardViewModelTests {
         #expect(vm.stateDescription == "Occupied")
     }
 
+    @Test
+    func stateDescription_batteryChargingOn_isCharging() {
+        let vm = makeViewModel(deviceClass: .batteryCharging, state: .on)
+        #expect(vm.stateDescription == "Charging")
+    }
+
+    @Test
+    func stateDescription_batteryChargingOff_isNotCharging() {
+        let vm = makeViewModel(deviceClass: .batteryCharging, state: .off)
+        #expect(vm.stateDescription == "Not charging")
+    }
+
+    // The vacuum panel's charging lookup matches on HA's raw string, so it must decode to this case.
+    @Test
+    func deviceClass_haBatteryChargingString_decodesToBatteryCharging() {
+        #expect(BinarySensorEntity.DeviceClass(rawValue: "battery_charging") == .batteryCharging)
+    }
+
     // MARK: - isOn
 
     @Test

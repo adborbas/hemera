@@ -23,6 +23,12 @@ final class DemoController {
     */
     var scriptRunTokens: [String: UUID] = [:]
 
+    /// How long the demo robot takes to drive back to its dock.
+    var vacuumDockingDelay: Duration = .seconds(3)
+
+    /// The pending arrival per vacuum id, so a newer return replaces it and tests can await it.
+    var vacuumDockingTasks: [String: Task<Void, Never>] = [:]
+
     init(context: ModelContext) {
         self.context = context
     }

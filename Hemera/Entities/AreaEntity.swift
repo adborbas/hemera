@@ -49,6 +49,9 @@ final class AreaEntity {
     @Relationship(inverse: \ClimateEntity.area)
     var climates: [ClimateEntity] = []
 
+    @Relationship(inverse: \VacuumEntity.area)
+    var vacuums: [VacuumEntity] = []
+
     /**
      Whether the area holds an entity the user hid locally and could reveal. HA-hidden entities
      never count: they are filtered before the user ever sees them. Sensors carry no card.
@@ -66,6 +69,7 @@ final class AreaEntity {
             || anyHidden(automations)
             || anyHidden(binarySensors)
             || anyHidden(climates)
+            || anyHidden(vacuums)
     }
 
     init(areaId: String, name: String, icon: String? = nil, sortOrder: Int = 0) {

@@ -45,7 +45,8 @@ struct AreaDetailViewModelTests {
             switchController: controller,
             buttonController: controller,
             automationController: controller,
-            climateController: controller
+            climateController: controller,
+            vacuumController: controller
         )
         viewModel = AreaDetailViewModel(
             destination: .area(area),

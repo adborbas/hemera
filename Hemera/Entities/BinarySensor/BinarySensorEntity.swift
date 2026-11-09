@@ -81,6 +81,7 @@ extension BinarySensorEntity {
         case window
         case smoke
         case occupancy
+        case batteryCharging = "battery_charging"
         case unknown
 
         var id: String { rawValue }

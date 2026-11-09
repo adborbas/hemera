@@ -42,7 +42,7 @@ private extension EntityCategory {
             .covers
         case "climate":
             .climate
-        case "switch", "button", "scene", "script", "automation":
+        case "switch", "button", "scene", "script", "automation", "vacuum":
             .controls
         case "binary_sensor":
             .sensors

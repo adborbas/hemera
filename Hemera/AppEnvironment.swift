@@ -85,6 +85,7 @@ private extension AppEnvironment {
         registry.register(ButtonEntity.self)
         registry.register(AutomationEntity.self)
         registry.register(ClimateEntity.self)
+        registry.register(VacuumEntity.self)
     }
 
     static func deleteStore(at url: URL) {

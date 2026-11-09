@@ -103,6 +103,7 @@ private extension BinarySensorEntity.DeviceClass {
         case .window:    Localization.open
         case .smoke:     Localization.detected
         case .occupancy: Localization.occupied
+        case .batteryCharging: Localization.charging
         case .unknown:   Localization.on
         }
     }
@@ -114,6 +115,7 @@ private extension BinarySensorEntity.DeviceClass {
         case .window:    Localization.closed
         case .smoke:     Localization.clear
         case .occupancy: Localization.clear
+        case .batteryCharging: Localization.notCharging
         case .unknown:   Localization.off
         }
     }
@@ -127,6 +129,8 @@ private enum Localization {
     static let open = String(localized: "Open", comment: "Binary sensor state shown when a door or window is open")
     static let closed = String(localized: "Closed", comment: "Binary sensor state shown when a door or window is closed")
     static let occupied = String(localized: "Occupied", comment: "Binary sensor state shown when occupancy is detected")
+    static let charging = String(localized: "Charging", comment: "Binary sensor state shown when a battery is charging")
+    static let notCharging = String(localized: "Not charging", comment: "Binary sensor state shown when a battery is not charging")
     static let on = String(localized: "On", comment: "Binary sensor generic on state")
     static let off = String(localized: "Off", comment: "Binary sensor generic off state")
     static let unknown = String(localized: "Unknown", comment: "Binary sensor state shown when the state cannot be determined")

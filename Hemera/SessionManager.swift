@@ -124,7 +124,8 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
             switchController: demoController,
             buttonController: demoController,
             automationController: demoController,
-            climateController: demoController
+            climateController: demoController,
+            vacuumController: demoController
         )
         let demoStorage = SwiftDataStorage(context: demoContext)
         let tileRepo = SwiftDataHomeTileRepository(storage: demoStorage)
@@ -211,7 +212,8 @@ private extension SessionManager {
             switchController: SwitchController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
             buttonController: ButtonController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
             automationController: AutomationController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
-            climateController: ClimateController(serviceCaller: serviceCaller, errorNotifier: errorNotifier)
+            climateController: ClimateController(serviceCaller: serviceCaller, errorNotifier: errorNotifier),
+            vacuumController: VacuumController(serviceCaller: serviceCaller, errorNotifier: errorNotifier)
         )
         let tileRepo = SwiftDataHomeTileRepository(storage: storage)
 

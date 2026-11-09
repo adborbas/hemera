@@ -58,7 +58,8 @@ final class ViewModelFactory {
         switchController: some SwitchControlling,
         buttonController: some ButtonControlling,
         automationController: some AutomationControlling,
-        climateController: some ClimateControlling
+        climateController: some ClimateControlling,
+        vacuumController: some VacuumControlling
     ) {
         register(LightCardViewModel.registration(controller: lightController))
         register(CoverCardViewModel.registration(controller: coverController))
@@ -69,6 +70,7 @@ final class ViewModelFactory {
         register(ButtonCardViewModel.registration(controller: buttonController))
         register(AutomationCardViewModel.registration(controller: automationController))
         register(ClimateCardViewModel.registration(controller: climateController))
+        register(VacuumCardViewModel.registration(controller: vacuumController))
     }
 
     // MARK: - Area-Level VM Creation
