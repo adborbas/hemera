@@ -34,6 +34,7 @@ struct WelcomeView: View {
                     Text(Localization.getStarted)
                 }
                 .buttonStyle(.mortarPrimary(width: .fullWidth))
+                .accessibilityIdentifier("welcomeGetStarted")
 
                 if let onTryDemo {
                     Button {

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "auth",
+  "data": {
+    "users": [
+      {
+        "id": "4d5d956c88ab42f1b99f295bea5e656d",
+        "group_ids": [
+          "system-admin"
+        ],
+        "is_owner": true,
+        "is_active": true,
+        "name": "Smoke Owner",
+        "system_generated": false,
+        "local_only": false
+      },
+      {
+        "id": "7f3c1a9e2b6d4e8fa1c05d9b3e7f2a64",
+        "group_ids": [
+          "system-users"
+        ],
+        "is_owner": false,
+        "is_active": true,
+        "name": "Smoke User",
+        "system_generated": false,
+        "local_only": false
+      }
+    ],
+    "groups": [
+      {
+        "id": "system-admin",
+        "name": "Administrators"
+      },
+      {
+        "id": "system-users",
+        "name": "Users"
+      },
+      {
+        "id": "system-read-only",
+        "name": "Read Only"
+      }
+    ],
+    "credentials": [
+      {
+        "id": "b883e52f5f084d66b7ede7670b548942",
+        "user_id": "4d5d956c88ab42f1b99f295bea5e656d",
+        "auth_provider_type": "homeassistant",
+        "auth_provider_id": null,
+        "data": {
+          "username": "smoke-owner"
+        }
+      },
+      {
+        "id": "c94e7d1b6a3f48e2b05c8f1d2a7e6b39",
+        "user_id": "7f3c1a9e2b6d4e8fa1c05d9b3e7f2a64",
+        "auth_provider_type": "homeassistant",
+        "auth_provider_id": null,
+        "data": {
+          "username": "smoke-user"
+        }
+      }
+    ],
+    "refresh_tokens": []
+  }
+}

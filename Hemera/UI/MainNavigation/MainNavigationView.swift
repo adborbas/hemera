@@ -206,6 +206,7 @@ struct AccountButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel(opensMenu ? Localization.menu : Localization.accountAndSettings)
         .accessibilityValue([account?.name, updateNudge.availableUpdate?.label].compactMap(\.self).joined(separator: ", "))
+        .accessibilityIdentifier("accountButton")
     }
 }
 

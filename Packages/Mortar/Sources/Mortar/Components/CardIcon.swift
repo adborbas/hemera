@@ -1,5 +1,17 @@
 import SwiftUI
 
+private struct CardIconsActiveKey: EnvironmentKey {
+    static let defaultValue: Bool = true
+}
+
+extension EnvironmentValues {
+    /// False while cards are arranged or hidden: blocking touches alone leaves VoiceOver's action live.
+    public var cardIconsActive: Bool {
+        get { self[CardIconsActiveKey.self] }
+        set { self[CardIconsActiveKey.self] = newValue }
+    }
+}
+
 public struct CardIcon: View {
 
     private enum Source {
@@ -11,7 +23,10 @@ public struct CardIcon: View {
 
     private let source: Source?
     private let backgroundColor: Color
+    /// What VoiceOver calls `onTap`, e.g. "Turn on". Without one, VoiceOver skips the icon.
+    private let actionLabel: String?
     private var onTap: (() -> Void)?
+    @Environment(\.cardIconsActive) private var isActive
 
     /**
      Draws a Material Design Icon by name, e.g. `"mdi:lightbulb"`.
@@ -20,31 +35,42 @@ public struct CardIcon: View {
        circle. Home Assistant leaves an area's icon null until someone sets one, so nil is the
        common case, not the edge one.
     */
-    public init(icon: String?, fallback: String? = nil, backgroundColor: Color, onTap: (() -> Void)? = nil) {
+    public init(icon: String?, fallback: String? = nil, backgroundColor: Color, actionLabel: String? = nil,
+                onTap: (() -> Void)? = nil) {
         self.source = (icon ?? fallback).map { .mdi(name: $0, fallback: fallback) }
         self.backgroundColor = backgroundColor
+        self.actionLabel = actionLabel
         self.onTap = onTap
     }
 
     /// Draws an SF Symbol. For chrome only — entity and area icons come from Home Assistant.
-    public init(systemImage: String, backgroundColor: Color, onTap: (() -> Void)? = nil) {
+    public init(systemImage: String, backgroundColor: Color, actionLabel: String? = nil, onTap: (() -> Void)? = nil) {
         self.source = .systemImage(systemImage)
         self.backgroundColor = backgroundColor
+        self.actionLabel = actionLabel
         self.onTap = onTap
     }
 
     public var body: some View {
-        icon
+        let circle = icon
             .foregroundStyle(Color.white)
             .frame(width: Mortar.IconSize.m, height: Mortar.IconSize.m)
             .background(
                 Circle()
                     .fill(backgroundColor)
             )
-            .onTapGesture {
-                onTap?()
-            }
-            .allowsHitTesting(onTap != nil)
+        if let onTap, isActive {
+            circle
+                .onTapGesture(perform: onTap)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(actionLabel ?? "")
+                .accessibilityAction(.default, onTap)
+                .accessibilityHidden(actionLabel == nil)
+        } else {
+            circle
+                .allowsHitTesting(false)
+        }
     }
 
     /**

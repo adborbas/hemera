@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "auth_provider.homeassistant",
+  "data": {
+    "users": [
+      {
+        "username": "smoke-owner",
+        "password": "JDJiJDEyJGp2akNlSXdvYmNSbXRpeTlLM1ZlN2VtYkFTcHZjUXE1dEN2bmE0cm95WXRlV200a3pWY1My"
+      },
+      {
+        "username": "smoke-user",
+        "password": "JDJiJDEyJDlkdmlaaTdtRW5QVUxFWnAvV2hGRU83aC4uRlI5dThCWlp2dktkSDBzT2FMZVJKeWI2UTgu"
+      }
+    ]
+  }
+}

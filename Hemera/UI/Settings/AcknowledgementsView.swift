@@ -13,6 +13,7 @@ struct AcknowledgementsView: View {
                 }
             }
         }
+        .accessibilityIdentifier("acknowledgements")
         .navigationTitle(Localization.title)
         .reportsFeedScroll()
         .pushedScreenHeader(Localization.title, staysCollapsed: true)

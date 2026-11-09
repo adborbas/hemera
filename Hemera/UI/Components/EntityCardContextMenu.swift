@@ -13,11 +13,13 @@ struct EntityCardContextMenu: View {
             Button(action: addToHome) {
                 Label(Localization.addToHome, systemImage: "plus")
             }
+            .accessibilityIdentifier("addToHome")
         }
         if !isDemoMode, let showHideItems {
             Button(action: showHideItems) {
                 Label(Localization.showHideItems, systemImage: "eye.slash")
             }
+            .accessibilityIdentifier("showHideItems")
         }
         if !isDemoMode {
             Button(action: openInHomeAssistant) {

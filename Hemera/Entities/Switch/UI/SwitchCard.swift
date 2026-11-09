@@ -7,10 +7,12 @@ struct SwitchCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
             CardIcon(icon: viewModel.iconName,
-                     backgroundColor: viewModel.iconBackgroundColor) {
+                     backgroundColor: viewModel.iconBackgroundColor,
+                     actionLabel: viewModel.isAvailable ? (viewModel.isOn ? Localization.turnOff : Localization.turnOn) : nil) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.toggle()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
             CardLabel(title: viewModel.name,
                       subtitle: viewModel.isOn ? Localization.on : Localization.off,
@@ -25,6 +27,8 @@ private extension SwitchCard {
     enum Localization {
         static let on = String(localized: "On", comment: "Switch entity state shown on card when the switch is turned on")
         static let off = String(localized: "Off", comment: "Switch entity state shown on card when the switch is turned off")
+        static let turnOn = String(localized: "Turn on", comment: "VoiceOver name for the card icon that turns the switch on")
+        static let turnOff = String(localized: "Turn off", comment: "VoiceOver name for the card icon that turns the switch off")
     }
 }
 

@@ -71,6 +71,7 @@ struct AreaClimateReadings: View {
                 readingLabel(text: text, icon: icon)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier(sensor.entityId)
         } else {
             readingLabel(text: text, icon: icon)
                 .accessibilityElement(children: .combine)

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "core.entity_registry",
+  "data": {
+    "entities": [
+      {
+        "entity_id": "automation.smoke_schedule",
+        "platform": "automation",
+        "unique_id": "smoke_schedule",
+        "area_id": "smoke_kitchen"
+      },
+      {
+        "entity_id": "binary_sensor.smoke_door",
+        "platform": "template",
+        "unique_id": "smoke_door",
+        "area_id": "smoke_living_room"
+      },
+      {
+        "entity_id": "button.smoke_doorbell",
+        "platform": "template",
+        "unique_id": "smoke_doorbell",
+        "area_id": "smoke_kitchen"
+      },
+      {
+        "entity_id": "cover.smoke_blind",
+        "platform": "smoke",
+        "unique_id": "smoke_blind",
+        "area_id": "smoke_living_room"
+      },
+      {
+        "entity_id": "light.smoke_lamp",
+        "platform": "template",
+        "unique_id": "smoke_lamp",
+        "area_id": "smoke_living_room"
+      },
+      {
+        "entity_id": "scene.smoke_evening",
+        "platform": "homeassistant",
+        "unique_id": "smoke_evening",
+        "area_id": "smoke_kitchen"
+      },
+      {
+        "entity_id": "script.smoke_routine",
+        "platform": "script",
+        "unique_id": "smoke_routine",
+        "area_id": "smoke_kitchen"
+      },
+      {
+        "entity_id": "sensor.smoke_temperature",
+        "platform": "template",
+        "unique_id": "smoke_temperature",
+        "area_id": "smoke_living_room"
+      },
+      {
+        "entity_id": "sensor.smoke_humidity",
+        "platform": "template",
+        "unique_id": "smoke_humidity",
+        "area_id": "smoke_living_room"
+      },
+      {
+        "entity_id": "switch.smoke_fan",
+        "platform": "template",
+        "unique_id": "smoke_fan",
+        "area_id": "smoke_living_room"
+      },
+      {
+        "entity_id": "switch.smoke_kettle",
+        "platform": "template",
+        "unique_id": "smoke_kettle",
+        "area_id": "smoke_kitchen"
+      }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+frontend:
+config:
+# The charts read only the history the smoke integration seeds, so live states must not add to it.
+recorder:
+  exclude:
+    entities:
+      - sensor.smoke_temperature
+      - sensor.smoke_humidity
+template:
+  - switch:
+      - name: Smoke Fan
+        unique_id: smoke_fan
+        optimistic: true
+        turn_on: []
+        turn_off: []
+      - name: Smoke Kettle
+        unique_id: smoke_kettle
+        optimistic: true
+        turn_on: []
+        turn_off: []
+  - light:
+      - name: Smoke Lamp
+        unique_id: smoke_lamp
+        optimistic: true
+        turn_on: []
+        turn_off: []
+  - button:
+      - name: Smoke Doorbell
+        unique_id: smoke_doorbell
+        device_class: restart
+        press: []
+  - sensor:
+      - name: Smoke Temperature
+        unique_id: smoke_temperature
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: "21.5"
+      - name: Smoke Humidity
+        unique_id: smoke_humidity
+        device_class: humidity
+        state_class: measurement
+        unit_of_measurement: "%"
+        state: "48"
+  - binary_sensor:
+      - name: Smoke Door
+        unique_id: smoke_door
+        device_class: door
+        state: "{{ true }}"
+scene:
+  - id: smoke_evening
+    name: Smoke Evening
+    entities: {}
+script:
+  smoke_routine:
+    alias: Smoke Routine
+    sequence: []
+automation:
+  - id: smoke_schedule
+    alias: Smoke Schedule
+    triggers:
+      - trigger: event
+        event_type: smoke_never_fired
+    actions: []

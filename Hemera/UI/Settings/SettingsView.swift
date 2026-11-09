@@ -65,6 +65,7 @@ struct SettingsView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button(Localization.done) { viewModel.closeServer() }
+                                .accessibilityIdentifier("serverWebViewDone")
                         }
                     }
                 }
@@ -75,6 +76,7 @@ struct SettingsView: View {
                 viewModel.confirmLogout()
                 dismiss()
             }
+            .accessibilityIdentifier("logOutConfirm")
             Button(Localization.cancel, role: .cancel) {}
         } message: {
             if let host = viewModel.logoutHost {
@@ -101,6 +103,7 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsViewModel.Route.account) {
                     accountRow
                 }
+                .accessibilityIdentifier("settingsAccount")
             } else {
                 HStack {
                     accountRow
@@ -156,8 +159,10 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsViewModel.Route.serverURL) {
                     LabeledContent(Localization.url, value: url.absoluteString)
                 }
+                .accessibilityIdentifier("settingsServerURL")
                 if let haVersion = viewModel.haVersion {
                     LabeledContent(Localization.version, value: haVersion)
+                        .accessibilityIdentifier("settingsHAVersion")
                 }
                 Button {
                     viewModel.openServer()
@@ -169,6 +174,7 @@ struct SettingsView: View {
                     }
                 }
                 .tint(.primary)
+                .accessibilityIdentifier("settingsOpenServer")
             }
         }
     }
@@ -181,6 +187,7 @@ struct SettingsView: View {
                 Text(Localization.logOut)
             }
             .buttonStyle(.mortarDestructive(width: .fullWidth))
+            .accessibilityIdentifier("settingsLogOut")
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
         }
@@ -193,6 +200,7 @@ struct SettingsView: View {
                     Text(viewModel.screenManager.stayAwake ? Localization.on : Localization.off)
                 }
             }
+            .accessibilityIdentifier("settingsKioskMode")
         }
     }
 
@@ -233,6 +241,7 @@ struct SettingsView: View {
             NavigationLink(Localization.acknowledgements) {
                 AcknowledgementsView()
             }
+            .accessibilityIdentifier("settingsAcknowledgements")
             #if DEBUG
             NavigationLink {
                 DebugPanelContentView()

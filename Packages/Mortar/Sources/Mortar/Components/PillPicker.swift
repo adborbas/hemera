@@ -4,6 +4,7 @@ public struct PillPicker<Option: Hashable>: View {
     public let options: [Option]
     @Binding public var selection: Option
     private let content: Content
+    private let identifier: ((Option) -> String)?
 
     @Namespace private var selectionSpace
 
@@ -16,6 +17,7 @@ public struct PillPicker<Option: Hashable>: View {
         self.options = options
         self._selection = selection
         self.content = .icon(icon)
+        self.identifier = nil
     }
 
     /// A compact picker of short titles, read out by their spoken labels.
@@ -23,11 +25,13 @@ public struct PillPicker<Option: Hashable>: View {
         options: [Option],
         selection: Binding<Option>,
         title: @escaping (Option) -> String,
-        accessibilityLabel: @escaping (Option) -> String
+        accessibilityLabel: @escaping (Option) -> String,
+        accessibilityIdentifier: ((Option) -> String)? = nil
     ) {
         self.options = options
         self._selection = selection
         self.content = .title(title, accessibilityLabel: accessibilityLabel)
+        self.identifier = accessibilityIdentifier
     }
 
     public var body: some View {
@@ -50,6 +54,7 @@ public struct PillPicker<Option: Hashable>: View {
                         }
                     }
                     .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+                    .accessibilityIdentifier(identifier?(option) ?? "")
             }
         }
         .padding(isCompact ? Mortar.Spacing.xxs : Mortar.Spacing.xs)

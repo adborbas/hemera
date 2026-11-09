@@ -29,6 +29,13 @@
 			remoteGlobalIDString = 6449A3DA2EC9CB1B00D56CD2;
 			remoteInfo = Hemera;
 		};
+		64E100022FB0000100F1A1B1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6449A3D32EC9CB1B00D56CD2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6449A3DA2EC9CB1B00D56CD2;
+			remoteInfo = Hemera;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +43,7 @@
 		64C9207A2EE0374D004DD20E /* HemeraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		64D1B0012FA0000100D2E3A1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		64E100012FB0000100F1A1B1 /* HemeraSmokeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HemeraSmokeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -67,6 +75,11 @@
 			path = HemeraUITests;
 			sourceTree = "<group>";
 		};
+		64E100032FB0000100F1A1B1 /* HemeraSmokeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HemeraSmokeTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +109,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		64E100042FB0000100F1A1B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -113,6 +133,7 @@
 				6449A3DD2EC9CB1B00D56CD2 /* Hemera */,
 				64C9207B2EE0374D004DD20E /* HemeraTests */,
 				64D100032FA0000100E1F1A1 /* HemeraUITests */,
+				64E100032FB0000100F1A1B1 /* HemeraSmokeTests */,
 				643FF3E32F39232E008DDFD8 /* Frameworks */,
 				6449A3DC2EC9CB1B00D56CD2 /* Products */,
 			);
@@ -124,6 +145,7 @@
 				6449A3DB2EC9CB1B00D56CD2 /* Hemera.app */,
 				64C9207A2EE0374D004DD20E /* HemeraTests.xctest */,
 				64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */,
+				64E100012FB0000100F1A1B1 /* HemeraSmokeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -212,6 +234,29 @@
 			productReference = 64D100012FA0000100E1F1A1 /* HemeraUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		64E100052FB0000100F1A1B1 /* HemeraSmokeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 64E1000B2FB0000100F1A1B1 /* Build configuration list for PBXNativeTarget "HemeraSmokeTests" */;
+			buildPhases = (
+				64E100072FB0000100F1A1B1 /* Sources */,
+				64E100042FB0000100F1A1B1 /* Frameworks */,
+				64E100062FB0000100F1A1B1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				64E100082FB0000100F1A1B1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				64E100032FB0000100F1A1B1 /* HemeraSmokeTests */,
+			);
+			name = HemeraSmokeTests;
+			packageProductDependencies = (
+			);
+			productName = HemeraSmokeTests;
+			productReference = 64E100012FB0000100F1A1B1 /* HemeraSmokeTests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -230,6 +275,10 @@
 						TestTargetID = 6449A3DA2EC9CB1B00D56CD2;
 					};
 					64D100052FA0000100E1F1A1 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 6449A3DA2EC9CB1B00D56CD2;
+					};
+					64E100052FB0000100F1A1B1 = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = 6449A3DA2EC9CB1B00D56CD2;
 					};
@@ -259,6 +308,7 @@
 				6449A3DA2EC9CB1B00D56CD2 /* Hemera */,
 				64C920792EE0374D004DD20E /* HemeraTests */,
 				64D100052FA0000100E1F1A1 /* HemeraUITests */,
+				64E100052FB0000100F1A1B1 /* HemeraSmokeTests */,
 			);
 		};
 /* End PBXProject section */
@@ -279,6 +329,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		64D100062FA0000100E1F1A1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		64E100062FB0000100F1A1B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -309,6 +366,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		64E100072FB0000100F1A1B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -321,6 +385,11 @@
 			isa = PBXTargetDependency;
 			target = 6449A3DA2EC9CB1B00D56CD2 /* Hemera */;
 			targetProxy = 64D100022FA0000100E1F1A1 /* PBXContainerItemProxy */;
+		};
+		64E100082FB0000100F1A1B1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6449A3DA2EC9CB1B00D56CD2 /* Hemera */;
+			targetProxy = 64E100022FB0000100F1A1B1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -579,6 +648,40 @@
 			};
 			name = Release;
 		};
+		64E100092FB0000100F1A1B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.smoketests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hemera;
+			};
+			name = Debug;
+		};
+		64E1000A2FB0000100F1A1B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adborbas.hemera.app.smoketests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hemera;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -614,6 +717,15 @@
 			buildConfigurations = (
 				64D100092FA0000100E1F1A1 /* Debug */,
 				64D1000A2FA0000100E1F1A1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		64E1000B2FB0000100F1A1B1 /* Build configuration list for PBXNativeTarget "HemeraSmokeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				64E100092FB0000100F1A1B1 /* Debug */,
+				64E1000A2FB0000100F1A1B1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

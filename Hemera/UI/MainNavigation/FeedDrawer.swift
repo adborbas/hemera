@@ -73,6 +73,7 @@ struct FeedDrawer: View {
                         ) {
                             onSelect(feed.id)
                         }
+                        .accessibilityIdentifier("feed.\(feed.id.rawValue)")
                     }
                 }
                 .padding(.horizontal, Mortar.Spacing.l)
@@ -88,6 +89,7 @@ struct FeedDrawer: View {
                 isOpen = false
                 openSettings()
             }
+            .accessibilityIdentifier("drawerSettings")
             .padding(.horizontal, Mortar.Spacing.l)
             .padding(.vertical, Mortar.Spacing.s)
         }

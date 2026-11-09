@@ -10,14 +10,17 @@ struct ScriptCard: View {
                    isWorking: viewModel.isRunning) {
             CardIcon(
                 icon: viewModel.isRunning ? "mdi:stop" : viewModel.iconName,
-                backgroundColor: viewModel.tintColor
+                backgroundColor: viewModel.tintColor,
+                actionLabel: viewModel.isAvailable ? (viewModel.isRunning ? Localization.stop : Localization.run) : nil
             ) {
                 viewModel.performPrimaryAction()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
             CardLabel(
                 title: viewModel.name,
-                subtitle: viewModel.isRunning ? Localization.running : Localization.script
+                subtitle: viewModel.isRunning ? Localization.running : Localization.script,
+                accessibilityIdentifier: viewModel.id
             )
         }
         .unavailableStyle(viewModel.isAvailable)
@@ -29,6 +32,8 @@ private extension ScriptCard {
     enum Localization {
         static let script = String(localized: "Script", comment: "Entity type label shown on an idle script card")
         static let running = String(localized: "Running…", comment: "Subtitle shown on a script (action) card while the script is executing")
+        static let run = String(localized: "Run", comment: "VoiceOver name for the card icon that runs the script")
+        static let stop = String(localized: "Stop", comment: "VoiceOver name for the card icon that stops the running script")
     }
 }
 

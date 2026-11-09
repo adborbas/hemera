@@ -47,6 +47,7 @@ struct ServerAddressView: View {
                     action: submit
                 )
                 .disabled(!handler.canSubmit)
+                .accessibilityIdentifier("serverAddressSubmit")
             }
         }
         .padding(Mortar.Spacing.xl)
@@ -102,6 +103,7 @@ struct ServerAddressView: View {
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .focused($isAddressFieldFocused)
+                .accessibilityIdentifier("serverAddressField")
                 .padding(Mortar.Spacing.m)
                 .background(
                     RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous)

@@ -19,10 +19,12 @@ Hemera is an open-source Home Assistant client for iOS, built with SwiftUI. Lice
 Everything lives at the repo root:
 
 - `Hemera/` — main app target: `Auth/`, `Demo/`, `Entities/` (one module per HA domain), `HomeAssistant/`, `Navigation/`, `Persistency/`, `Screen/`, `UI/`. The per-domain entity module layout is documented in [architecture.md](.agents/rules/architecture.md).
-- `HemeraTests/` — unit tests (Swift Testing); `HemeraUITests/` — screenshot capture (XCTest).
+- `HemeraTests/` — unit tests (Swift Testing); `HemeraUITests/` — screenshot capture (XCTest);
+  `HemeraSmokeTests/` — the end-to-end smoke flow (XCTest).
 - `Packages/` — local Swift packages: Mortar (design system), TileGridEngine, HemeraLog, AppStoreScreenshots.
 - `Config/` — Xcode `xcconfig` files (shared + per-developer signing).
-- `scripts/` — screenshot capture and Home Assistant icon-translation tooling.
+- `scripts/` — screenshot capture, Home Assistant icon-translation tooling, and the smoke flow
+  (`smoke-test.sh`, with its Home Assistant fixture in `scripts/smoke/`).
 - `.agents/rules/` — coding conventions (also exposed as `.claude/rules`).
 
 This is orientation, not an inventory — explore the repository for the current layout.
@@ -60,6 +62,13 @@ Run SPM package tests:
 ```bash
 swift test --package-path Packages/TileGridEngine
 swift test --package-path Packages/AppStoreScreenshots
+```
+
+Run the smoke flow (a Release build against a throwaway Home Assistant, as an owner and a non-admin, then the
+owner on iPad; needs `python3.14`, takes about 14 minutes, artefacts go to `.smoke/runs/`):
+```bash
+scripts/smoke-test.sh
+HA_VERSION=2026.11.0 scripts/smoke-test.sh   # pin a Home Assistant version instead of the latest on PyPI
 ```
 
 ## Branches

@@ -47,6 +47,7 @@ private struct PillRow: View {
                         PillButton(pill: pill, isSelected: pill.id == selection) {
                             onSelect(pill.id)
                         }
+                        .accessibilityIdentifier("pill.\(pill.id.rawValue)")
                         .id(pill.id)
                     }
                 }

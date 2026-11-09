@@ -6,12 +6,18 @@ Hemera uses release branches to allow development to continue on `main` while a 
 
 Trigger **Release Train** from the **Actions** tab, with no inputs. It cuts the release branch,
 bumps `main` to the next version, uploads to TestFlight and prepares the App Store version with the build attached.
+
+Before submitting, run `scripts/smoke-test.sh` on the release branch. It builds Hemera in Release, starts a
+throwaway Home Assistant on the latest stable version and walks the main flows as an owner and as a
+non-admin, then the owner again on iPad, printing pass/fail per step. It takes about 14 minutes and exits
+non-zero on any failure; the train does not run it for you.
+
 Then you do the one thing Apple requires a human for: press **Submit for Review**.
 
 Once Apple releases the version, the hourly **Auto-publish When Live** workflow tags it, creates the
 GitHub release, back-merges into `main` and deletes the release branch. Nothing else to trigger.
 
-So a normal release is: *dispatch the train → submit for review → done.*
+So a normal release is: *dispatch the train → run the smoke test → submit for review → done.*
 
 ## The individual steps
 
