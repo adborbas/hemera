@@ -7,10 +7,12 @@ struct ClimateCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isActive) {
             CardIcon(icon: viewModel.iconName,
-                     backgroundColor: viewModel.iconBackgroundColor) {
+                     backgroundColor: viewModel.iconBackgroundColor,
+                     actionLabel: viewModel.isAvailable ? (viewModel.isOff ? Localization.turnOn : Localization.turnOff) : nil) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.togglePower()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
             CardLabel(title: viewModel.name,
                       subtitle: viewModel.statusText,
@@ -19,6 +21,13 @@ struct ClimateCard: View {
         .unavailableStyle(viewModel.isAvailable)
         .animation(Mortar.Motion.springNormal, value: viewModel.hvacMode)
         .animation(Mortar.Motion.springNormal, value: viewModel.hvacAction)
+    }
+}
+
+private extension ClimateCard {
+    enum Localization {
+        static let turnOn = String(localized: "Turn on", comment: "VoiceOver name for the card icon that turns the thermostat on")
+        static let turnOff = String(localized: "Turn off", comment: "VoiceOver name for the card icon that turns the thermostat off")
     }
 }
 

@@ -254,8 +254,12 @@ private struct LeadingButton: View {
 
     var body: some View {
         switch leading {
-        case .back: DismissButton(label: Localization.back, icon: "chevron.left")
-        case .close(let label): DismissButton(label: label, icon: "xmark")
+        case .back:
+            DismissButton(label: Localization.back, icon: "chevron.left")
+                .accessibilityIdentifier("screenBack")
+        case .close(let label):
+            DismissButton(label: label, icon: "xmark")
+                .accessibilityIdentifier("screenClose")
         case .account(let account, let action):
             AccountButton(account: account, action: action, opensMenu: true)
         }

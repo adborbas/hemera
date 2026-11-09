@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "http",
+  "data": {
+    "server_host": [
+      "127.0.0.1"
+    ],
+    "server_port": 18123
+  }
+}

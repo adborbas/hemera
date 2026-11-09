@@ -26,6 +26,7 @@ struct EditableTileModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .allowsHitTesting(!isEditing)
+            .environment(\.cardIconsActive, !isEditing)
             .overlay(alignment: .bottomTrailing) {
                 if isEditing {
                     resizeButton

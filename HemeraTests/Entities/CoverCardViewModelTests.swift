@@ -207,6 +207,49 @@ struct CoverCardViewModelTests {
         #expect(controller.toggledIds == ["cover.test"])
     }
 
+    // MARK: - Icon Action Label
+
+    // VoiceOver announces this before the tap, so it must name what `iconTapped` will do.
+    @Test(arguments: [
+        (CoverEntity.State.closed, Int?.none, "Open"),
+        (.open, 40, "Open"),
+        (.open, 100, "Close"),
+        (.open, nil, "Close"),
+        (.opening, nil, "Stop"),
+        (.closing, nil, "Stop"),
+    ])
+    func iconActionLabel_matchesIconTappedAction(state: CoverEntity.State, position: Int?, expected: String) async {
+        let controller = SpyCoverControlling()
+        let vm = makeViewModel(state: state, position: position, features: [.open, .close, .stop],
+                               controller: controller)
+
+        vm.iconTapped()
+        await vm.actionTask?.value
+
+        let calls = ["Open": controller.openedIds, "Close": controller.closedIds, "Stop": controller.stoppedIds]
+        #expect(calls.filter { !$0.value.isEmpty }.keys.sorted() == [expected])
+        #expect(vm.iconActionLabel == expected)
+    }
+
+    // Telling a VoiceOver user "Stop" when the tap really toggles could close a garage door on them.
+    @Test
+    func iconActionLabel_opening_withoutStopFeature_namesTheToggleThatRuns() async {
+        let controller = SpyCoverControlling()
+        let vm = makeViewModel(state: .opening, features: [.open, .close], controller: controller)
+
+        vm.iconTapped()
+        await vm.actionTask?.value
+
+        #expect(controller.toggledIds == ["cover.test"])
+        #expect(controller.stoppedIds.isEmpty)
+        #expect(vm.iconActionLabel == "Toggle")
+    }
+
+    @Test
+    func iconActionLabel_unavailable_isNil() {
+        #expect(makeViewModel(state: .unavailable).iconActionLabel == nil)
+    }
+
     // MARK: - Simple State Description
 
     @Test

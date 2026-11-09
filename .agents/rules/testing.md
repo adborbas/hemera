@@ -3,7 +3,7 @@
 ## Frameworks
 
 - **Unit tests**: Swift Testing (`import Testing`). Use `@Test` and `#expect`.
-- **UI tests**: XCTest (`import XCTest`). Used exclusively for screenshot capture in demo mode.
+- **UI tests**: XCTest (`import XCTest`). Used for screenshot capture in demo mode, and for the smoke flow described under UI Tests.
 - Do NOT use XCTest for unit tests. All new unit tests must use Swift Testing.
 
 ## Test Structure
@@ -115,12 +115,20 @@ let button = ButtonEntity(entityId: "button.test", name: "Test", deviceClass: .r
 
 ## UI Tests
 
-UI tests are exclusively for screenshot capture:
+`HemeraUITests` is for screenshot capture only:
 - Run in demo mode via `-screenshotMode` launch argument.
 - Use `XCUIApplication.screenshotApp()` helper.
 - Naming: `testScreenshot_<number>_<description>_<orientation>`.
 - Use `sleep(1)` for animation settling before capturing.
 - Do NOT add behavioral UI tests. Test behavior through unit tests of view models.
+
+**The one exception is `HemeraSmokeTests`**, the end-to-end smoke flow that `scripts/smoke-test.sh` runs on a
+Release build against a real Home Assistant. Behavioural tests belong in that target and nowhere else:
+- One test per step, named `testSmoke_<number>_<Step>`, and every step must be able to fail on user-visible behaviour.
+- No `sleep`: wait on elements or poll Home Assistant. No retries and no coordinates.
+- Identifiers only. Text is matched only on Home Assistant's own pages, which the app does not own.
+- No test hooks in the app. App changes for a step are limited to accessibility: identifiers, plus labels and
+  traits VoiceOver needs anyway. They never change what a sighted user sees or does.
 
 ## SPM Package Tests
 

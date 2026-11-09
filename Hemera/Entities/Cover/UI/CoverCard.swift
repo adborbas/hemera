@@ -15,10 +15,12 @@ struct CoverCard: View {
                    isActive: viewModel.isOpen,
                    isWorking: viewModel.isMoving) {
             CardIcon(icon: viewModel.iconName,
-                     backgroundColor: viewModel.iconBackgroundColor) {
+                     backgroundColor: viewModel.iconBackgroundColor,
+                     actionLabel: viewModel.iconActionLabel) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.iconTapped()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
             CardLabel(title: viewModel.name,
                       subtitle: isMediumTile ? viewModel.simpleStateDescription : viewModel.stateDescription,

@@ -10,18 +10,21 @@ struct ButtonCard: View {
         EntityCard {
             CardIcon(
                 icon: viewModel.iconName,
-                backgroundColor: viewModel.iconBackgroundColor
+                backgroundColor: viewModel.iconBackgroundColor,
+                actionLabel: viewModel.isAvailable ? viewModel.subtitle : nil
             ) {
                 handleTap()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
-            CardLabel(title: viewModel.name, subtitle: viewModel.subtitle)
+            CardLabel(title: viewModel.name, subtitle: viewModel.subtitle, accessibilityIdentifier: viewModel.id)
         }
         .unavailableStyle(viewModel.isAvailable)
         .scaleEffect(isPressing ? 0.95 : 1.0)
         .animation(.spring(duration: Mortar.Motion.fast), value: isPressing)
         .alert(Localization.confirmTitle(viewModel.name), isPresented: $showConfirmation) {
             Button(viewModel.subtitle, role: .destructive) { performPress() }
+                .accessibilityIdentifier("\(viewModel.id).confirm")
             Button(Localization.cancel, role: .cancel) { }
         } message: {
             Text(Localization.confirmMessage(viewModel.name))

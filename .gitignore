@@ -75,6 +75,9 @@ Config/Local.xcconfig
 # App Store screenshot generation
 Screenshots/
 .deriveddata-screenshots/
+
+# Smoke test build products and per-run artefacts
+.smoke/
 Packages/AppStoreScreenshots/Resources/Bezels/
 
 # Ruby / bundler (vendored gems on CI via ruby/setup-ruby bundler-cache)

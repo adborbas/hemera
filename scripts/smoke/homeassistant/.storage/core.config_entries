@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "core.config_entries",
+  "data": {
+    "entries": [
+      {
+        "entry_id": "5a1e0c3f9b7d4e2a8c6f1b0d3e5a7c92",
+        "version": 1,
+        "domain": "smoke",
+        "title": "Smoke",
+        "data": {},
+        "options": {},
+        "source": "user",
+        "unique_id": null
+      }
+    ]
+  }
+}

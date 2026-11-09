@@ -106,6 +106,7 @@ private extension AreasView {
                 }
             }
             .reportsFeedScroll()
+            .accessibilityIdentifier("areasGrid")
         }
     }
 
@@ -130,6 +131,7 @@ private extension AreasView {
                 AreaCardView(area: area)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("area.\(area.areaId)")
         } else if tile.id == Self.unassignedTileId {
             NavigationLink(value: AreaDestination.unassigned(hasRealAreas: hasRealAreas)) {
                 unassignedCard(hasRealAreas: hasRealAreas)

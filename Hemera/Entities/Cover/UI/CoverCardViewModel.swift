@@ -154,31 +154,31 @@ final class CoverCardViewModel: Identifiable {
         }
     }
 
+    /// What VoiceOver calls `iconTapped`. Nil hides the icon, as tapping it does nothing.
+    var iconActionLabel: String? {
+        guard let action = iconAction else { return nil }
+        return cover.supportedFeatures.contains(action.feature) ? action.label : Localization.toggleAction
+    }
+
     func iconTapped() {
-        guard cover.isAvailable else { return }
-        switch state {
-        case .open:
-            if let position, position != 100 {
-                performWithToggleFallback(`open`, ifSupported: .open)
-            } else {
-                performWithToggleFallback(close, ifSupported: .close)
-            }
-        case .closed:
-            performWithToggleFallback(`open`, ifSupported: .open)
-        case .opening:
-            performWithToggleFallback(stop, ifSupported: .stop)
-        case .closing:
-            performWithToggleFallback(stop, ifSupported: .stop)
-        case .unknown, .unavailable:
-            break
+        guard let action = iconAction else { return }
+        if cover.supportedFeatures.contains(action.feature) {
+            action.perform()
+        } else {
+            toggle()
         }
     }
 
-    private func performWithToggleFallback(_ action: () -> Void, ifSupported feature: CoverEntity.Features) {
-        if cover.supportedFeatures.contains(feature) {
-            action()
-        } else {
-            toggle()
+    // A cover lacking `feature` gets `toggle()` instead, so the label and the tap both read this.
+    private var iconAction: (feature: CoverEntity.Features, label: String, perform: () -> Void)? {
+        guard cover.isAvailable else { return nil }
+        switch state {
+        case .open:
+            if let position, position != 100 { return (.open, Localization.openAction, `open`) }
+            return (.close, Localization.closeAction, close)
+        case .closed: return (.open, Localization.openAction, `open`)
+        case .opening, .closing: return (.stop, Localization.stopAction, stop)
+        case .unknown, .unavailable: return nil
         }
     }
 
@@ -222,6 +222,10 @@ private extension CoverCardViewModel {
         static let closing = String(localized: "Closing", comment: "Cover entity state shown on card while the cover is actively closing")
         static let unknown = String(localized: "Unknown", comment: "Cover entity state shown on card when the state cannot be determined")
         static let unavailable = String(localized: "Unavailable", comment: "Cover entity state shown on card when the device is unreachable")
+        static let openAction = String(localized: "cover.iconAction.open", defaultValue: "Open", comment: "VoiceOver name for the card icon that opens the cover")
+        static let closeAction = String(localized: "Close", comment: "VoiceOver name for the card icon that closes the cover")
+        static let stopAction = String(localized: "Stop", comment: "VoiceOver name for the card icon that stops the moving cover")
+        static let toggleAction = String(localized: "cover.iconAction.toggle", defaultValue: "Toggle", comment: "VoiceOver name for the card icon of a cover that only supports toggling")
 
         static func positionAndState(_ position: Int, _ state: String) -> String {
             String(localized: "\(position)% \(state)", comment: "Cover card subtitle showing position percentage and state, e.g. '75% Open'")

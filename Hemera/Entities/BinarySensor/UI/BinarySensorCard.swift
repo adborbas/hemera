@@ -11,7 +11,7 @@ struct BinarySensorCard: View {
                 backgroundColor: viewModel.iconBackgroundColor
             )
         } label: {
-            CardLabel(title: viewModel.name, subtitle: viewModel.stateDescription)
+            CardLabel(title: viewModel.name, subtitle: viewModel.stateDescription, accessibilityIdentifier: viewModel.id)
         }
         .unavailableStyle(viewModel.isAvailable)
         .animation(Mortar.Motion.springNormal, value: viewModel.isOn)

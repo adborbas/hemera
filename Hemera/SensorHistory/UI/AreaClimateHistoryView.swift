@@ -60,6 +60,7 @@ struct AreaClimateHistoryView: View {
                 .foregroundStyle(.tertiary)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("climateHistoryReadout")
         .animation(.smooth(duration: 0.20), value: viewModel.readout?.mean)
     }
 
@@ -101,7 +102,9 @@ struct AreaClimateHistoryView: View {
     private var content: some View {
         chart
             .opacity(isStale ? Self.staleOpacity : 1)
-            .overlay { if isStale { ProgressView().controlSize(.small) } }
+            .overlay {
+                if isStale { ProgressView().controlSize(.small).accessibilityIdentifier("climateHistoryLoading") }
+            }
     }
 
     /// A chart already on screen while a newer range is still in flight.
@@ -117,11 +120,13 @@ struct AreaClimateHistoryView: View {
             ProgressView()
                 .controlSize(.small)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityIdentifier("climateHistoryLoading")
 
         case .noRecordedHistory:
             Text(Localization.noRecordedHistory)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityIdentifier("climateHistoryEmpty")
 
         case .failed:
             VStack(spacing: Mortar.Spacing.s) {
@@ -134,6 +139,7 @@ struct AreaClimateHistoryView: View {
                 .accessibilityLabel(Localization.retryAction)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityIdentifier("climateHistoryFailed")
 
         case let .loaded(series):
             ClimateChartView(
@@ -155,6 +161,7 @@ struct AreaClimateHistoryView: View {
                     xAxisTitle: Localization.timeAxis
                 )
             )
+            .accessibilityIdentifier("climateHistoryChart")
         }
     }
 
@@ -165,7 +172,8 @@ struct AreaClimateHistoryView: View {
             options: TimeRange.allCases,
             selection: $viewModel.selectedRange,
             title: chipLabel,
-            accessibilityLabel: rangeLabel
+            accessibilityLabel: rangeLabel,
+            accessibilityIdentifier: { "climateRange.\($0)" }
         )
     }
 

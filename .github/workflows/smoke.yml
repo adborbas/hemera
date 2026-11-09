@@ -1,0 +1,54 @@
+name: Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      ha-version:
+        description: 'Home Assistant version from PyPI. Empty means the latest stable'
+        required: false
+        default: ''
+
+# The smoke flow runs on iOS 27.2, which needs Xcode 27.2 rather than CI's 27.1.
+env:
+  XCODE_VERSION: '27.2'
+
+permissions:
+  contents: read
+
+# No concurrency group: each run gets its own runner, and a group would cancel queued runs.
+
+jobs:
+  smoke:
+    name: Smoke Test
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      # The image ships no iOS 27.2 simulator runtime, which the script's iPhone 17 Pro needs.
+      - name: Download iOS simulator runtime
+        run: xcodebuild -downloadPlatform iOS
+
+      # Home Assistant's own minimum, capped below a 3.15 it has not been tested on.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '>=3.14.2 <3.15'
+
+      - name: Set up Local.xcconfig
+        run: echo "DEVELOPMENT_TEAM = ${{ vars.DEVELOPMENT_TEAM }}" > Config/Local.xcconfig
+
+      - name: Run smoke test
+        env:
+          HA_VERSION: ${{ inputs.ha-version }}
+        run: ./scripts/smoke-test.sh
+
+      - name: Upload artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-artefacts
+          path: .smoke/runs/
+          include-hidden-files: true

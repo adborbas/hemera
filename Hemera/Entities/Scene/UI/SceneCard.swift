@@ -9,12 +9,14 @@ struct SceneCard: View {
         EntityCard {
             CardIcon(
                 icon: isActivating ? "mdi:check-circle" : viewModel.iconName,
-                backgroundColor: isActivating ? .green : .purple
+                backgroundColor: isActivating ? .green : .purple,
+                actionLabel: viewModel.isAvailable ? Localization.activate : nil
             ) {
                 activateScene()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
-            CardLabel(title: viewModel.name, subtitle: Localization.scene)
+            CardLabel(title: viewModel.name, subtitle: Localization.scene, accessibilityIdentifier: viewModel.id)
         }
         .unavailableStyle(viewModel.isAvailable)
         .animation(.easeInOut(duration: Mortar.Motion.fast), value: isActivating)
@@ -35,6 +37,7 @@ struct SceneCard: View {
 private extension SceneCard {
     enum Localization {
         static let scene = String(localized: "Scene", comment: "Entity type label shown on a scene card")
+        static let activate = String(localized: "Activate", comment: "VoiceOver name for the card icon that activates the scene")
     }
 }
 

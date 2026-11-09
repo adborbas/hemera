@@ -7,13 +7,16 @@ struct AutomationCard: View {
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor, isActive: viewModel.isOn) {
             CardIcon(icon: viewModel.iconName,
-                     backgroundColor: viewModel.iconBackgroundColor) {
+                     backgroundColor: viewModel.iconBackgroundColor,
+                     actionLabel: viewModel.isAvailable ? (viewModel.isOn ? Localization.turnOff : Localization.turnOn) : nil) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.toggle()
             }
+            .accessibilityIdentifier("\(viewModel.id).icon")
         } label: {
             CardLabel(title: viewModel.name,
-                      subtitle: viewModel.isOn ? Localization.on : Localization.off)
+                      subtitle: viewModel.isOn ? Localization.on : Localization.off,
+                      accessibilityIdentifier: viewModel.id)
         }
         .unavailableStyle(viewModel.isAvailable)
         .animation(Mortar.Motion.springNormal, value: viewModel.isOn)
@@ -24,6 +27,8 @@ private extension AutomationCard {
     enum Localization {
         static let on = String(localized: "On", comment: "Automation entity state shown on card when the automation is enabled")
         static let off = String(localized: "Off", comment: "Automation entity state shown on card when the automation is disabled")
+        static let turnOn = String(localized: "Turn on", comment: "VoiceOver name for the card icon that turns the automation on")
+        static let turnOff = String(localized: "Turn off", comment: "VoiceOver name for the card icon that turns the automation off")
     }
 }
 

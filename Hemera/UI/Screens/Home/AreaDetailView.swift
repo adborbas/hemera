@@ -56,6 +56,7 @@ struct AreaDetailView: View {
                     Button(Localization.done) {
                         setHideMode(false)
                     }
+                    .accessibilityIdentifier("hideModeDone")
                 }
             }
         }
@@ -259,11 +260,13 @@ private struct AreaDetailSection: View {
     private func hideModeTile(for vm: any EntityCardViewModel) -> some View {
         vm.makeCardView()
             .allowsHitTesting(false)
+            .environment(\.cardIconsActive, false)
             .opacity(vm.isHidden ? 0.4 : 1)
             .overlay(alignment: .bottomTrailing) {
                 HideToggleButton(isHidden: vm.isHidden) {
                     vm.isHidden.toggle()
                 }
+                .accessibilityIdentifier("\(vm.id).hideToggle")
             }
             .animation(Mortar.Motion.springNormal, value: vm.isHidden)
     }

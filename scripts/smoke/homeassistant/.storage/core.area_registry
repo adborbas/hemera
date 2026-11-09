@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "core.area_registry",
+  "data": {
+    "areas": [
+      {
+        "id": "smoke_bedroom",
+        "name": "Smoke Bedroom"
+      },
+      {
+        "id": "smoke_kitchen",
+        "name": "Smoke Kitchen"
+      },
+      {
+        "id": "smoke_living_room",
+        "name": "Smoke Living Room"
+      }
+    ]
+  }
+}

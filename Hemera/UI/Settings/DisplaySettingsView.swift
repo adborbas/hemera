@@ -8,6 +8,7 @@ struct KioskModeView: View {
         List {
             Section {
                 Toggle(Localization.kioskMode, isOn: $screenManager.stayAwake)
+                    .accessibilityIdentifier("kioskModeToggle")
                 if screenManager.stayAwake {
                     Picker(Localization.dimAfter, selection: $screenManager.dimTimeout) {
                         ForEach(DimTimeout.allCases) { timeout in

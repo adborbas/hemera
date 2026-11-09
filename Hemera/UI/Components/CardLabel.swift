@@ -21,13 +21,15 @@ struct CardLabel<Subtitle: View>: View {
                     .fontWeight(.bold)
                     .lineLimit(isMediumTile ? 2 : 1)
                     .accessibilityIdentifier(id)
+                subtitle
+                    .accessibilityIdentifier("\(id).state")
             } else {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .lineLimit(isMediumTile ? 2 : 1)
+                subtitle
             }
-            subtitle
         }
     }
 }

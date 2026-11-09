@@ -13,6 +13,7 @@ struct HomeEmptyView: View {
                 Button(Localization.showAreas) { openFeed(.areas) }
             }
         }
+        .accessibilityIdentifier("homeEmpty")
     }
 }
 

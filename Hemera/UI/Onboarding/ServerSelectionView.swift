@@ -164,6 +164,7 @@ struct ServerSelectionView: View {
         ) {
             DisclosureIndicator()
         }
+        .accessibilityIdentifier("serverEnterManually")
     }
 }
 
@@ -185,6 +186,7 @@ private struct UnencryptedWarning: ViewModifier {
                 Task { await viewModel.confirmHTTPConnection() }
             }
             .keyboardShortcut(.defaultAction)
+            .accessibilityIdentifier("httpWarningContinue")
             Button(ServerSelectionView.Localization.cancel, role: .cancel) {
                 viewModel.cancelHTTPWarning()
             }
