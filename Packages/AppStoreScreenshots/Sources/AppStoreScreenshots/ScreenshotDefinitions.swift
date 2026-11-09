@@ -70,3 +70,13 @@ struct S07_ClimateControl: View {
         FramedScreenshotView(screenshotName: "06_ClimateControl_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.climateControl)
     }
 }
+
+// MARK: - Climate History
+
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+struct S08_ClimateHistory: View {
+    @Environment(\.appScreenshotEnvironment) var environment
+    var body: some View {
+        FramedScreenshotView(screenshotName: "08_ClimateHistory_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.climateHistory)
+    }
+}

@@ -91,6 +91,7 @@ PORTRAIT_TESTS=(
     "testScreenshot_05_SwitchControlPanel_Portrait"
     "testScreenshot_06_ClimateControlPanel_Portrait"
     "testScreenshot_07_AreaDetail_Portrait"
+    "testScreenshot_08_ClimateHistory_Portrait"
 )
 
 # Per-device capture: dark mode portrait only

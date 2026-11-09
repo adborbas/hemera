@@ -34,6 +34,7 @@ func exportAllFramedScreenshots() throws {
     try exportScreenshot(S05_CoverControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
     try exportScreenshot(S06_SwitchControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
     try exportScreenshot(S07_ClimateControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S08_ClimateHistory.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
 }
 
 // MARK: - Unified export
