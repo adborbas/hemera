@@ -91,6 +91,7 @@ PORTRAIT_TESTS=(
     "testScreenshot_05_SwitchControlPanel_Portrait"
     "testScreenshot_06_ClimateControlPanel_Portrait"
     "testScreenshot_07_AreaDetail_Portrait"
+    "testScreenshot_08_ClimateHistory_Portrait"
 )
 
 # Per-device capture: dark mode portrait only
@@ -107,6 +108,13 @@ capture_device() {
     fi
 
     xcrun simctl boot "$device_id" 2>/dev/null || true
+    xcrun simctl bootstatus "$device_id" >/dev/null
+    # Full Screen Apps: iPad's default Windowed Apps mode draws a resize handle. Applies after a reboot.
+    xcrun simctl spawn "$device_id" defaults write com.apple.springboard SBChamoisWindowingEnabled -bool false
+    xcrun simctl spawn "$device_id" defaults write com.apple.springboard SBMedusaMultitaskingEnabled -bool false
+    xcrun simctl shutdown "$device_id"
+    xcrun simctl boot "$device_id"
+    xcrun simctl bootstatus "$device_id" >/dev/null
     xcrun simctl status_bar "$device_id" override --time "9:41"
     xcrun simctl ui "$device_id" appearance dark
     capture_screenshots "$device_name" "$device_id" "$dir_prefix" ${test_filters[@]+"${test_filters[@]}"}

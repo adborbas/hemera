@@ -122,7 +122,8 @@ final class ScreenshotTests: XCTestCase {
     func testScreenshot_07_AreaDetail_Portrait() throws {
         XCUIDevice.shared.orientation = .portrait
         navigateToAreasTab()
-        let livingRoom = app.staticTexts["Living Room"].firstMatch
+        // The pager keeps neighbour feeds alive, and Lights has a "Living Room" section header too.
+        let livingRoom = app.buttons["area.living_room"]
         XCTAssertTrue(livingRoom.waitForExistence(timeout: 5))
         livingRoom.tap()
         sleep(1)
@@ -133,11 +134,29 @@ final class ScreenshotTests: XCTestCase {
         try skipUnlessIPad()
         XCUIDevice.shared.orientation = .landscapeLeft
         navigateToAreasTab()
-        let livingRoom = app.staticTexts["Living Room"].firstMatch
+        // The pager keeps neighbour feeds alive, and Lights has a "Living Room" section header too.
+        let livingRoom = app.buttons["area.living_room"]
         XCTAssertTrue(livingRoom.waitForExistence(timeout: 5))
         livingRoom.tap()
         sleep(1)
         takeScreenshot(named: "07_AreaDetail_Landscape")
+    }
+
+    // MARK: - Climate History (Living Room temperature)
+
+    func testScreenshot_08_ClimateHistory_Portrait() throws {
+        XCUIDevice.shared.orientation = .portrait
+        openLivingRoomTemperatureHistory()
+        sleep(1)
+        takeScreenshot(named: "08_ClimateHistory_Portrait")
+    }
+
+    func testScreenshot_08_ClimateHistory_Landscape() throws {
+        try skipUnlessIPad()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        openLivingRoomTemperatureHistory()
+        sleep(1)
+        takeScreenshot(named: "08_ClimateHistory_Landscape")
     }
 
     // MARK: - Climate Control Panel
@@ -182,6 +201,17 @@ private extension ScreenshotTests {
         XCTAssertTrue(areasButton.waitForExistence(timeout: 5))
         areasButton.tap()
         XCTAssertTrue(app.buttons["Kitchen"].firstMatch.waitForExistence(timeout: 5))
+    }
+
+    func openLivingRoomTemperatureHistory() {
+        navigateToAreasTab()
+        let livingRoom = app.buttons["area.living_room"]
+        XCTAssertTrue(livingRoom.waitForExistence(timeout: 5))
+        livingRoom.tap()
+        let temperature = app.buttons["sensor.living_room_temperature"]
+        XCTAssertTrue(temperature.waitForExistence(timeout: 5))
+        temperature.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["climateHistoryChart"].waitForExistence(timeout: 10))
     }
 
     func skipUnlessIPad() throws {
