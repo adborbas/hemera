@@ -273,9 +273,24 @@ final class HADataSyncService {
         }
     }
 
+    /// Only sensors show device-page names, so only they store one; other domains keep `friendly_name`.
+    private func assignEntityName(_ mapping: DeviceMapping) {
+        switch mapping.entityId.prefix(while: { $0 != "." }) {
+        case SensorEntity.domain:
+            let descriptor = FetchDescriptor(predicate: SensorEntity.entityIdPredicate(mapping.entityId))
+            (try? mainContext.fetch(descriptor))?.first?.entityName = mapping.entityName
+        case BinarySensorEntity.domain:
+            let descriptor = FetchDescriptor(predicate: BinarySensorEntity.entityIdPredicate(mapping.entityId))
+            (try? mainContext.fetch(descriptor))?.first?.entityName = mapping.entityName
+        default:
+            break
+        }
+    }
+
     private func applyDeviceMappings(_ payload: SyncPayload) async {
         for (index, mapping) in payload.deviceMappings.enumerated() {
             entityRegistry.assignDeviceId(mapping.deviceId, toEntityWithId: mapping.entityId, in: mainContext)
+            assignEntityName(mapping)
             if (index + 1).isMultiple(of: Self.yieldBatchSize) {
                 saveBatch("device batch")
                 await Task.yield()

@@ -105,6 +105,17 @@ struct RegistryEntriesDecodingTests {
         #expect(snapshot.deviceMappings[0].deviceId == "dev-1")
     }
 
+    /// HA's device page shows the user's rename, else the integration's name, never the friendly name.
+    @Test func entitySnapshot_entityName_prefersUserNameOverOriginalName() throws {
+        let snapshot = try #require(EntityRegistrySnapshot.decode(HAData(value: [
+            ["entity_id": "sensor.renamed", "device_id": "dev-1", "name": "Mine", "original_name": "Filter Left Time"],
+            ["entity_id": "sensor.original", "device_id": "dev-1", "name": NSNull(), "original_name": "Filter Left Time"],
+            ["entity_id": "sensor.unnamed", "device_id": "dev-1", "name": NSNull(), "original_name": NSNull()]
+        ])))
+
+        #expect(snapshot.deviceMappings.map(\.entityName) == ["Mine", "Filter Left Time", nil])
+    }
+
     /// `hidden_by` carries *who* hid it; any non-null value means hidden.
     @Test func entitySnapshot_treatsAnyHiddenByValueAsHidden() throws {
         let snapshot = try #require(EntityRegistrySnapshot.decode(HAData(value: [

@@ -15,6 +15,8 @@ final class SensorEntity: StoredEntity {
     var unitOfMeasurement: String?
     var icon: String?
     var deviceId: String?
+    /// Name without the device's, from the entity registry; `nil` until a full sync sets it.
+    var entityName: String?
     var isAvailable: Bool = true
     var isHidden: Bool = false
     var isHiddenInHA: Bool = false
