@@ -22,70 +22,43 @@ struct DeviceSensorsView: View {
 
 // MARK: - Row
 
-/// A constant-height card; name and value wrap to two lines and truncate after that.
+/// A constant-height card: the name across the top, the value with its level and time left below.
 private struct DeviceSensorRow: View {
     let row: DeviceSensorsViewModel.Row
 
-    @ScaledMetric(relativeTo: .subheadline) private var height = 72
-    @ScaledMetric(relativeTo: .headline) private var valueMaxWidth = 140
+    @ScaledMetric(relativeTo: .body) private var height = 72
 
     var body: some View {
         HStack(spacing: Mortar.Spacing.m) {
             MDIIcon(name: row.icon ?? Constants.fallbackIcon, size: Mortar.IconSize.xs)
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
-                NameValueLayout(valueMaxWidth: valueMaxWidth, spacing: Mortar.Spacing.s) {
-                    Text(row.name)
-                        .font(.subheadline.weight(.medium))
+            VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
+                Text(row.name)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                HStack(spacing: Mortar.Spacing.m) {
                     Text(row.value)
-                        .font(.system(.headline, design: .rounded))
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(.secondary)
                         .monospacedDigit()
-                        .multilineTextAlignment(.trailing)
-                }
-                .lineLimit(2)
-                if row.percent != nil || row.timeLeft != nil {
-                    HStack(spacing: Mortar.Spacing.s) {
-                        if let percent = row.percent { LevelBar(percent: percent) }
-                        if let timeLeft = row.timeLeft {
-                            Text(Localization.timeLeft(timeLeft))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                                .lineLimit(1)
-                        }
+                        .lineLimit(1)
+                    if let percent = row.percent { LevelBar(percent: percent) }
+                    if let timeLeft = row.timeLeft {
+                        Text(Localization.timeLeft(timeLeft))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .fixedSize()
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, Mortar.Spacing.m)
         .frame(height: height)
         .cardBackground()
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// Name leading, value trailing, both centred; the value takes its own width up to `valueMaxWidth`.
-private struct NameValueLayout: Layout {
-    let valueMaxWidth: CGFloat
-    let spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let (name, value) = sizes(width: proposal.width ?? .infinity, subviews: subviews)
-        let width = proposal.width ?? name.width + spacing + value.width
-        return CGSize(width: width, height: max(name.height, value.height))
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let (name, value) = sizes(width: bounds.width, subviews: subviews)
-        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.midY), anchor: .leading, proposal: .init(name))
-        subviews[1].place(at: CGPoint(x: bounds.maxX, y: bounds.midY), anchor: .trailing, proposal: .init(value))
-    }
-
-    private func sizes(width: CGFloat, subviews: Subviews) -> (name: CGSize, value: CGSize) {
-        let valueWidth = min(subviews[1].sizeThatFits(.unspecified).width, valueMaxWidth, width)
-        let value = subviews[1].sizeThatFits(.init(width: valueWidth, height: nil))
-        let name = subviews[0].sizeThatFits(.init(width: max(0, width - valueWidth - spacing), height: nil))
-        return (name, value)
     }
 }
 
