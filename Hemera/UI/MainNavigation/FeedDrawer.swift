@@ -133,33 +133,12 @@ private struct DrawerRow: View {
     let isSelected: Bool
     let action: () -> Void
 
-    @ScaledMetric(relativeTo: .title3) private var iconSize = Mortar.IconSize.xs
-
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Mortar.Spacing.m) {
-                IconImage(icon, size: iconSize)
-                    .font(.title3)
-                    .overlay(alignment: .topTrailing) {
-                        if update != nil { UpdateDot() }
-                    }
-                // A fixed column, so every title starts at the same x whatever the glyph's width.
-                .frame(width: Mortar.IconSize.s, height: Mortar.TapTarget.minimum)
-                .accessibilityHidden(true)
-
-                VStack(alignment: .leading) {
-                    Text(title)
-                        .font(.body.weight(.semibold))
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer(minLength: 0)
+            ListRowLabel(title: title, subtitle: subtitle, icon: icon) {
+                if update != nil { UpdateDot() }
             }
             .foregroundStyle(.primary)
-            .padding(Mortar.Spacing.s)
             .selectionFill(isSelected)
             .contentShape(.rect)
         }

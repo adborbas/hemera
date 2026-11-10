@@ -7,8 +7,15 @@ struct DeviceSensorsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Mortar.Spacing.s) {
-                ForEach(viewModel.rows) { DeviceSensorRow(row: $0) }
+            VStack(spacing: Mortar.Spacing.xs) {
+                ForEach(viewModel.rows) { row in
+                    ListRowLabel(
+                        title: row.name, subtitle: row.value,
+                        icon: row.icon.map { "mdi:\($0)" } ?? Constants.fallbackIcon
+                    )
+                    .lineLimit(1)
+                    .accessibilityElement(children: .combine)
+                }
             }
             .padding(.horizontal, Mortar.Spacing.l)
             .padding(.bottom, Mortar.Spacing.xl)
@@ -17,37 +24,6 @@ struct DeviceSensorsView: View {
         .pushedScreenHeader(Localization.sensors, staysCollapsed: true)
         .background(PlatformColor.systemBackground)
         .containerBackground(.clear, for: .navigation)
-    }
-}
-
-// MARK: - Row
-
-/// A constant-height card: the name across the top, the value below.
-private struct DeviceSensorRow: View {
-    let row: DeviceSensorsViewModel.Row
-
-    @ScaledMetric(relativeTo: .body) private var height = 72
-
-    var body: some View {
-        HStack(spacing: Mortar.Spacing.m) {
-            MDIIcon(name: row.icon ?? Constants.fallbackIcon, size: Mortar.IconSize.xs)
-                .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: Mortar.Spacing.xxs) {
-                Text(row.name)
-                    .font(.body.weight(.medium))
-                    .lineLimit(1)
-                Text(row.value)
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, Mortar.Spacing.m)
-        .frame(height: height)
-        .cardBackground()
-        .accessibilityElement(children: .combine)
     }
 }
 
