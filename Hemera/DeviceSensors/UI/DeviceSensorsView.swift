@@ -15,7 +15,7 @@ struct DeviceSensorsView: View {
         }
         .reportsFeedScroll()
         .pushedScreenHeader(Localization.sensors, staysCollapsed: true)
-        .background(.ultraThickMaterial)
+        .background(PlatformColor.systemBackground)
         .containerBackground(.clear, for: .navigation)
     }
 }
