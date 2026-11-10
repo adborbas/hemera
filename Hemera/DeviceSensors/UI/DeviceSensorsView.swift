@@ -7,13 +7,14 @@ struct DeviceSensorsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Mortar.Spacing.xs) {
+            VStack(spacing: Mortar.Spacing.s) {
                 ForEach(viewModel.rows) { row in
                     ListRowLabel(
                         title: row.name, subtitle: row.value,
                         icon: row.icon.map { "mdi:\($0)" } ?? Constants.fallbackIcon
                     )
                     .lineLimit(1)
+                    .selectionFill(true)
                     .accessibilityElement(children: .combine)
                 }
             }
