@@ -468,6 +468,21 @@ enum DemoDataProvider {
             context.insert(entity)
         }
 
+        // Reachable only from their device's panel (its Sensors page), so they get no area.
+        bedroomHeater.deviceId = "demo_bedroom_heater"
+        coffeeMachine.deviceId = "demo_coffee_machine"
+        let deviceSensors = [
+            (bedroomHeater.deviceId, "sensor.bedroom_heater_battery", "Battery", "64", "battery", "%"),
+            (coffeeMachine.deviceId, "sensor.coffee_machine_power", "Power", "1250.4", "power", "W"),
+            (coffeeMachine.deviceId, "sensor.coffee_machine_energy", "Energy", "3.42", "energy", "kWh"),
+        ].map { deviceId, entityId, name, state, deviceClass, unit in
+            let sensor = SensorEntity(entityId: entityId, name: name, state: state, deviceClass: deviceClass, unitOfMeasurement: unit)
+            sensor.deviceId = deviceId
+            sensor.entityName = name
+            return sensor
+        }
+        deviceSensors.forEach { context.insert($0) }
+
         // THEN set area relationships (both objects in context → inverse is maintained)
         ceilingLight.area = livingRoom
         floorLamp.area = livingRoom
