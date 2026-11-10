@@ -7,7 +7,7 @@ import SwiftData
 final class DeviceSensorsViewModel {
 
     /// One card: a reading, or a part's life % paired with its time left.
-    struct Row: Identifiable, Hashable {
+    struct Row: Identifiable {
         let id: String
         let name: String
         let icon: String?
@@ -33,11 +33,19 @@ final class DeviceSensorsViewModel {
         self.locale = locale
     }
 
-    var hasSensors: Bool { !readings.isEmpty }
+    /// Counts instead of building rows, so a panel doesn't redraw whenever a sensor's value changes.
+    var hasSensors: Bool {
+        let device: String? = deviceId
+        let sensors = FetchDescriptor<SensorEntity>(predicate: #Predicate { $0.deviceId == device && !$0.isHiddenInHA })
+        let binarySensors = FetchDescriptor<BinarySensorEntity>(
+            predicate: #Predicate { $0.deviceId == device && !$0.isHiddenInHA }
+        )
+        return ((try? context.fetchCount(sensors)) ?? 0) + ((try? context.fetchCount(binarySensors)) ?? 0) > 0
+    }
 
-    /// A to Z by name, then `%` and time sensors of the same part merged into one row.
+    /// `%` and time sensors of the same part merged into one row, then A to Z by the name shown.
     var rows: [Row] {
-        Self.paired(readings.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
+        Self.paired(readings).sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }
 
@@ -62,7 +70,7 @@ private extension DeviceSensorsViewModel {
         let device: String? = deviceId
         let descriptor = FetchDescriptor<SensorEntity>(predicate: #Predicate { $0.deviceId == device && !$0.isHiddenInHA })
         return ((try? context.fetch(descriptor)) ?? []).map { sensor in
-            let number = sensor.isAvailable ? Double(sensor.state) : nil
+            let number = sensor.isAvailable ? Self.number(sensor.state) : nil
             return Reading(
                 id: sensor.entityId,
                 name: sensor.entityName ?? sensor.name,
@@ -89,7 +97,7 @@ private extension DeviceSensorsViewModel {
                 id: binarySensor.entityId,
                 name: binarySensor.entityName ?? binarySensor.name,
                 icon: card.iconName,
-                value: card.stateDescription,
+                value: binarySensor.isAvailable ? card.stateDescription : Localization.unavailable,
                 unit: nil,
                 percent: nil,
                 isNumber: false
@@ -109,6 +117,12 @@ private extension DeviceSensorsViewModel {
         case "%": return number + "%"
         case let unit?: return number + " " + unit
         }
+    }
+
+    /// Plain decimals only: `Double` alone would also take "nan", "inf" and hex as numbers.
+    static func number(_ state: String) -> Double? {
+        guard !state.isEmpty, state.allSatisfy({ "0123456789.-+eE".contains($0) }) else { return nil }
+        return Double(state).flatMap { $0.isFinite ? $0 : nil }
     }
 
     static let unknownState = "unknown"

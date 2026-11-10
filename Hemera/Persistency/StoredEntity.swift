@@ -119,12 +119,17 @@ extension StoredEntity {
     }
 
     /// Assigns a device ID to the entity with the given entity ID, if this type owns it.
-    static func assignDeviceIdIfMatch(_ deviceId: String, entityId: String, in context: ModelContext) {
+    /// Also stores `entityName` on types that show it (`RegistryNamed`); `nil` clears a stale one.
+    static func assignDeviceIdIfMatch(
+        _ deviceId: String, entityName: String? = nil, entityId: String, in context: ModelContext
+    ) {
         let descriptor = FetchDescriptor<Self>(
             predicate: entityIdPredicate(entityId)
         )
         do {
-            try context.fetch(descriptor).first?.deviceId = deviceId
+            let entity = try context.fetch(descriptor).first
+            entity?.deviceId = deviceId
+            (entity as? any RegistryNamed)?.entityName = entityName
         } catch {
             Log.warning("Failed to fetch \(Self.domain) entity \(entityId) for device ID assignment", cause: error)
         }
@@ -189,4 +194,9 @@ extension StoredEntity {
             entity.area = nil
         }
     }
+}
+
+/// An entity shown by its registry name (`name ?? original_name`), which every full sync refreshes.
+protocol RegistryNamed: AnyObject {
+    var entityName: String? { get set }
 }

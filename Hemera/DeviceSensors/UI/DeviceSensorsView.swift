@@ -4,11 +4,14 @@ import SwiftUI
 /// A device's sensors and binary sensors, pushed from its control panel.
 struct DeviceSensorsView: View {
     let viewModel: DeviceSensorsViewModel
+    @State private var detailId: String?
 
     var body: some View {
         ScrollView {
             VStack(spacing: Mortar.Spacing.s) {
-                ForEach(viewModel.rows) { DeviceSensorRow(row: $0) }
+                ForEach(viewModel.rows) { row in
+                    DeviceSensorRow(row: row) { detailId = row.id }
+                }
             }
             .padding(.horizontal, Mortar.Spacing.l)
             .padding(.bottom, Mortar.Spacing.xl)
@@ -17,7 +20,7 @@ struct DeviceSensorsView: View {
         .pushedScreenHeader(Localization.sensors, staysCollapsed: true)
         .background(.ultraThickMaterial)
         .containerBackground(.clear, for: .navigation)
-        .navigationDestination(for: DeviceSensorsViewModel.Row.self) { DeviceSensorDetailView(row: $0) }
+        .navigationDestination(item: $detailId) { DeviceSensorDetailView(viewModel: viewModel, id: $0) }
     }
 }
 
@@ -26,22 +29,28 @@ struct DeviceSensorsView: View {
 /// A constant-height card; one whose name or value is cut short drills down to the full text.
 private struct DeviceSensorRow: View {
     let row: DeviceSensorsViewModel.Row
+    let openDetail: () -> Void
 
     @ScaledMetric(relativeTo: .subheadline) private var height = 56
     @ScaledMetric(relativeTo: .headline) private var valueMaxWidth = 140
     @State private var isNameTruncated = false
     @State private var isValueTruncated = false
 
+    private var isTruncated: Bool { isNameTruncated || isValueTruncated }
+
+    /// On top of the card, not around it, so the text keeps its measurements when the button appears.
     var body: some View {
-        if isNameTruncated || isValueTruncated {
-            NavigationLink(value: row) { card(showsDisclosure: true) }
-                .buttonStyle(.plain)
-        } else {
-            card(showsDisclosure: false)
-        }
+        card
+            .overlay {
+                if isTruncated {
+                    Button(action: openDetail) { Color.clear.contentShape(Rectangle()) }
+                        .buttonStyle(.plain)
+                }
+            }
+            .accessibilityElement(children: .combine)
     }
 
-    private func card(showsDisclosure: Bool) -> some View {
+    private var card: some View {
         HStack(spacing: Mortar.Spacing.m) {
             MDIIcon(name: row.icon ?? Constants.fallbackIcon, size: Mortar.IconSize.xs)
                 .foregroundStyle(.secondary)
@@ -69,23 +78,26 @@ private struct DeviceSensorRow: View {
                     }
                 }
             }
-            if showsDisclosure { DisclosureIndicator() }
+            if isTruncated { DisclosureIndicator() }
         }
         .padding(.horizontal, Mortar.Spacing.m)
         .frame(height: height)
         .cardBackground()
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 }
 
 // MARK: - Detail
 
-/// Everything a row had to cut short, wrapped instead of truncated.
+/// Everything a row had to cut short, wrapped instead of truncated, and as live as the list.
 private struct DeviceSensorDetailView: View {
-    let row: DeviceSensorsViewModel.Row
+    let viewModel: DeviceSensorsViewModel
+    let id: String
 
     var body: some View {
+        if let row = viewModel.rows.first(where: { $0.id == id }) { detail(row) }
+    }
+
+    private func detail(_ row: DeviceSensorsViewModel.Row) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Mortar.Spacing.m) {
                 Text(row.name)

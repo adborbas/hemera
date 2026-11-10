@@ -93,6 +93,23 @@ struct DeviceSensorsViewModelTests {
         #expect(makeViewModel().rows.first?.value == "Charging")
     }
 
+    /// A binary sensor gone from the last sync keeps its old state; showing it would claim a reading.
+    @Test func value_binarySensorMissingFromSync_isUnavailable() {
+        insertBinarySensor("binary_sensor.robika_charging", name: "Charging", deviceClass: .batteryCharging)
+            .isAvailable = false
+
+        #expect(makeViewModel().rows.first?.value == "Unavailable")
+    }
+
+    /// "nan", "inf" and hex parse as `Double`; treating them as numbers would draw a NaN-wide bar.
+    @Test(arguments: ["nan", "inf", "0x1A"])
+    func value_numberLookalikes_areText(_ state: String) {
+        insertSensor("sensor.robika_odd", name: "Odd", state: state, unit: "%")
+
+        #expect(makeViewModel().rows.first?.percent == nil)
+        #expect(makeViewModel().rows.first?.value.hasSuffix("%") == false)
+    }
+
     // MARK: - Pairing
 
     @Test func rows_pairPercentAndTimeOfTheSamePart() {
@@ -116,6 +133,15 @@ struct DeviceSensorsViewModelTests {
 
         let pairs = makeViewModel().rows.map { "\($0.value)/\($0.timeLeft ?? "-")" }.sorted()
         #expect(pairs == ["80%/196 h", "99%/296 h"])
+    }
+
+    /// A paired row shows its stem, so it must sort by the stem, not the sensor's full name.
+    @Test func rows_sortedByTheNameShownAfterPairing() {
+        insertSensor("sensor.robika_filter_level", name: "Filter Life Level", state: "98", unit: "%")
+        insertSensor("sensor.robika_filter_time", name: "Filter Left Time", state: "146", unit: "h")
+        insertSensor("sensor.robika_filter_cleaner", name: "Filter Cleaner", state: "ok")
+
+        #expect(makeViewModel().rows.map(\.name) == ["Filter", "Filter Cleaner"])
     }
 
     @Test func rows_unpairedReadingsStayOnTheirOwn() {
@@ -151,9 +177,13 @@ struct DeviceSensorsViewModelTests {
         return sensor
     }
 
-    private func insertBinarySensor(_ id: String, name: String, deviceClass: BinarySensorEntity.DeviceClass) {
+    @discardableResult
+    private func insertBinarySensor(
+        _ id: String, name: String, deviceClass: BinarySensorEntity.DeviceClass
+    ) -> BinarySensorEntity {
         let binarySensor = BinarySensorEntity(entityId: id, name: name, state: .on, deviceClass: deviceClass)
         binarySensor.deviceId = "robika"
         context.insert(binarySensor)
+        return binarySensor
     }
 }
