@@ -61,7 +61,7 @@ struct AreaDetailView: View {
             }
         }
         .sheet(item: $overlayItem) { item in
-            item.viewModel.makeOverlayView(isPresented: $overlayItem.isPresented)
+            EntityOverlay(viewModel: item.viewModel, isPresented: $overlayItem.isPresented)
                 .applyUnlessScreenshotMode {
                     $0.navigationTransition(.zoom(sourceID: item.id, in: overlayTransition))
                 }

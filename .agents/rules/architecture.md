@@ -121,6 +121,8 @@ All entity models conform to `StoredEntity`, which provides:
 Provides type-erased rendering for heterogeneous entity collections:
 - `makeCardView() -> AnyView` — card tile for grids
 - `makeOverlayView(isPresented:) -> AnyView?` — detail control panel (default: `nil`)
+- Overlays are presented through `EntityOverlay`, which hosts the panel in a `NavigationStack` and adds the info
+  button that pushes the device's Sensors page (`Hemera/DeviceSensors/`). Panels need no code for it.
 
 ### EntityRegistry (`Persistency/EntityRegistry.swift`)
 
