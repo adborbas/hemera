@@ -73,7 +73,7 @@ private extension DeviceSensorsViewModel {
             let number = sensor.isAvailable ? Self.number(sensor.state) : nil
             return Reading(
                 id: sensor.entityId,
-                name: sensor.entityName ?? sensor.name,
+                name: Self.displayName(sensor.entityName ?? sensor.name),
                 icon: iconResolver.iconName(
                     domain: SensorEntity.domain, deviceClass: sensor.deviceClass,
                     state: sensor.state, entityIcon: sensor.icon
@@ -95,7 +95,7 @@ private extension DeviceSensorsViewModel {
             let card = BinarySensorCardViewModel(binarySensor: binarySensor, iconResolver: iconResolver)
             return Reading(
                 id: binarySensor.entityId,
-                name: binarySensor.entityName ?? binarySensor.name,
+                name: Self.displayName(binarySensor.entityName ?? binarySensor.name),
                 icon: card.iconName,
                 value: binarySensor.isAvailable ? card.stateDescription : Localization.unavailable,
                 unit: nil,
@@ -117,6 +117,11 @@ private extension DeviceSensorsViewModel {
         case "%": return number + "%"
         case let unit?: return number + " " + unit
         }
+    }
+
+    /// Some integrations build names with a stray space where a prefix was empty.
+    static func displayName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Plain decimals only: `Double` alone would also take "nan", "inf" and hex as numbers.

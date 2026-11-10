@@ -48,6 +48,13 @@ struct DeviceSensorsViewModelTests {
         #expect(makeViewModel().rows.map(\.name) == ["Filter Filter Left Time"])
     }
 
+    /// A leading space from the integration would indent the row's first line only.
+    @Test func rows_trimSpacesAroundNames() {
+        insertSensor("sensor.robika_fault", name: "Robika Fault Ids", state: "0").entityName = " Robot Cleaner Fault Ids "
+
+        #expect(makeViewModel().rows.first?.name == "Robot Cleaner Fault Ids")
+    }
+
     @Test func rows_sortedAToZByName() {
         insertSensor("sensor.robika_c", name: "charging state", state: "charging")
         insertSensor("sensor.robika_a", name: "Battery Voltage", state: "14")

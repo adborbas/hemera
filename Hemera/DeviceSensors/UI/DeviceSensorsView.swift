@@ -64,7 +64,7 @@ private struct DeviceSensorRow: View {
     }
 }
 
-/// Name leading, value trailing: the value gets its natural width up to `valueMaxWidth`, the name the rest.
+/// Name leading, value trailing, both centred; the value takes its own width up to `valueMaxWidth`.
 private struct NameValueLayout: Layout {
     let valueMaxWidth: CGFloat
     let spacing: CGFloat
@@ -77,8 +77,8 @@ private struct NameValueLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let (name, value) = sizes(width: bounds.width, subviews: subviews)
-        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.minY), anchor: .topLeading, proposal: .init(name))
-        subviews[1].place(at: CGPoint(x: bounds.maxX, y: bounds.minY), anchor: .topTrailing, proposal: .init(value))
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.midY), anchor: .leading, proposal: .init(name))
+        subviews[1].place(at: CGPoint(x: bounds.maxX, y: bounds.midY), anchor: .trailing, proposal: .init(value))
     }
 
     private func sizes(width: CGFloat, subviews: Subviews) -> (name: CGSize, value: CGSize) {
