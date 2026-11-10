@@ -11,7 +11,6 @@ final class DeviceSensorsViewModel {
         let name: String
         let icon: String?
         let value: String
-        let percent: Double?
     }
 
     private let deviceId: String
@@ -69,8 +68,7 @@ private extension DeviceSensorsViewModel {
                     domain: SensorEntity.domain, deviceClass: sensor.deviceClass,
                     state: sensor.state, entityIcon: sensor.icon
                 ),
-                value: value(of: sensor, isNumber: number != nil),
-                percent: sensor.unitOfMeasurement == "%" ? number : nil
+                value: value(of: sensor, isNumber: number != nil)
             )
         }
     }
@@ -86,8 +84,7 @@ private extension DeviceSensorsViewModel {
                 id: binarySensor.entityId,
                 name: Self.displayName(binarySensor.entityName ?? binarySensor.name),
                 icon: card.iconName,
-                value: binarySensor.isAvailable ? card.stateDescription : Localization.unavailable,
-                percent: nil
+                value: binarySensor.isAvailable ? card.stateDescription : Localization.unavailable
             )
         }
     }

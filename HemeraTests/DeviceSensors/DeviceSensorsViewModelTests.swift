@@ -94,7 +94,6 @@ struct DeviceSensorsViewModelTests {
         insertSensor("sensor.robika_c", name: "C", state: "5", unit: "%").isAvailable = false
 
         #expect(makeViewModel().rows.map(\.value) == ["Unknown", "Unavailable", "Unavailable"])
-        #expect(makeViewModel().rows.allSatisfy { $0.percent == nil })
     }
 
     @Test func value_text_capitalisesOnlyTheFirstLetter() {
@@ -117,12 +116,11 @@ struct DeviceSensorsViewModelTests {
         #expect(makeViewModel().rows.first?.value == "Unavailable")
     }
 
-    /// "nan", "inf" and hex parse as `Double`; treating them as numbers would draw a NaN-wide bar.
+    /// "nan", "inf" and hex parse as `Double`; treating them as numbers would put a unit after text.
     @Test(arguments: ["nan", "inf", "0x1A"])
     func value_numberLookalikes_areText(_ state: String) {
         insertSensor("sensor.robika_odd", name: "Odd", state: state, unit: "%")
 
-        #expect(makeViewModel().rows.first?.percent == nil)
         #expect(makeViewModel().rows.first?.value.hasSuffix("%") == false)
     }
 

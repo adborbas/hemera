@@ -22,7 +22,7 @@ struct DeviceSensorsView: View {
 
 // MARK: - Row
 
-/// A constant-height card: the name across the top, the value and its level below.
+/// A constant-height card: the name across the top, the value below.
 private struct DeviceSensorRow: View {
     let row: DeviceSensorsViewModel.Row
 
@@ -36,14 +36,11 @@ private struct DeviceSensorRow: View {
                 Text(row.name)
                     .font(.body.weight(.medium))
                     .lineLimit(1)
-                HStack(spacing: Mortar.Spacing.m) {
-                    Text(row.value)
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                    if let percent = row.percent { LevelBar(percent: percent) }
-                }
+                Text(row.value)
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -54,31 +51,10 @@ private struct DeviceSensorRow: View {
     }
 }
 
-// MARK: - Pieces
-
-private struct LevelBar: View {
-    let percent: Double
-
-    var body: some View {
-        Capsule()
-            .fill(.fill.tertiary)
-            .overlay(alignment: .leading) {
-                GeometryReader { proxy in
-                    Capsule()
-                        .fill(.tertiary)
-                        .frame(width: proxy.size.width * min(max(percent, 0), 100) / 100)
-                }
-            }
-            .frame(height: Constants.barHeight)
-            .accessibilityHidden(true)
-    }
-}
-
 // MARK: - Constants
 
 private enum Constants {
     static let fallbackIcon = "mdi:eye"
-    static let barHeight: CGFloat = 6
 }
 
 // MARK: - Localization
