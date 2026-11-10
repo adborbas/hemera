@@ -7,6 +7,7 @@ public struct EntityControlPanel<Content: View, Footer: View>: View {
 
     @ViewBuilder
     private let content: () -> Content
+    @Environment(\.entityControlPanelInfo) private var info
 
     @ViewBuilder
     private let footer: () -> Footer
@@ -47,6 +48,19 @@ public struct EntityControlPanel<Content: View, Footer: View>: View {
             }
             .buttonStyle(.plain)
             .padding(Mortar.Spacing.xl)
+        }
+        .overlay(alignment: .topTrailing) {
+            if let info {
+                Button(action: info.action) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.title)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(Mortar.Spacing.xl)
+                .accessibilityLabel(info.label)
+            }
         }
         .background(.ultraThickMaterial)
         .applySheetStyle()
@@ -119,4 +133,21 @@ private extension View {
         })
         .sliderFill(.blue)
     }
+}
+
+// MARK: - Info button
+
+/// The panel's top-trailing button, leading to more about the entity; `nil` hides it.
+public struct EntityControlPanelInfo {
+    public let label: String
+    public let action: () -> Void
+
+    public init(label: String, action: @escaping () -> Void) {
+        self.label = label
+        self.action = action
+    }
+}
+
+extension EnvironmentValues {
+    @Entry public var entityControlPanelInfo: EntityControlPanelInfo?
 }

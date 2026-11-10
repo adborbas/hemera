@@ -18,7 +18,7 @@ final class EntityRegistry: Sendable {
         let entityType: any StoredEntity.Type
         let upsert: @Sendable (ModelContext, HAEntity) -> Void
         let assignArea: @Sendable (AreaEntity, String, ModelContext) -> Void
-        let assignDeviceId: @Sendable (String, String, ModelContext) -> Void
+        let assignDeviceId: @Sendable (String, String?, String, ModelContext) -> Void
         let markMissing: @Sendable (Set<String>, ModelContext) -> Void
         let clearAreas: @Sendable (Set<String>, ModelContext) -> Void
         let applyHAHidden: @Sendable (Set<String>, ModelContext) -> Void
@@ -46,8 +46,8 @@ final class EntityRegistry: Sendable {
                 assignArea: { area, entityId, context in
                     type.assignAreaIfMatch(area, entityId: entityId, in: context)
                 },
-                assignDeviceId: { deviceId, entityId, context in
-                    type.assignDeviceIdIfMatch(deviceId, entityId: entityId, in: context)
+                assignDeviceId: { deviceId, entityName, entityId, context in
+                    type.assignDeviceIdIfMatch(deviceId, entityName: entityName, entityId: entityId, in: context)
                 },
                 markMissing: { serverEntityIds, context in
                     type.markMissingAsUnavailable(serverEntityIds: serverEntityIds, in: context)
@@ -78,9 +78,11 @@ final class EntityRegistry: Sendable {
     }
 
     /// Assigns a device ID to an entity by its entity ID.
-    func assignDeviceId(_ deviceId: String, toEntityWithId entityId: String, in context: ModelContext) {
+    func assignDeviceId(
+        _ deviceId: String, entityName: String? = nil, toEntityWithId entityId: String, in context: ModelContext
+    ) {
         guard let registration = registration(forEntityId: entityId) else { return }
-        registration.assignDeviceId(deviceId, entityId, context)
+        registration.assignDeviceId(deviceId, entityName, entityId, context)
     }
 
     /// HA ids are `"<domain>.<object>"`, so one lookup replaces a fetch per registered type.

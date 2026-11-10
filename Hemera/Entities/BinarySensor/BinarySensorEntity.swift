@@ -21,6 +21,7 @@ final class BinarySensorEntity: StoredEntity {
     var deviceClassRaw: String?
     var icon: String?
     var deviceId: String?
+    var entityName: String?
     var isAvailable: Bool = true
     var isHidden: Bool = false
     var isHiddenInHA: Bool = false
@@ -87,3 +88,8 @@ extension BinarySensorEntity {
         var id: String { rawValue }
     }
 }
+
+// MARK: - RegistryNamed
+
+/// Named on the device Sensors page without the device's name; `nil` until a full sync sets it.
+extension BinarySensorEntity: RegistryNamed {}

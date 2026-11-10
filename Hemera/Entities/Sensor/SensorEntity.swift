@@ -15,6 +15,7 @@ final class SensorEntity: StoredEntity {
     var unitOfMeasurement: String?
     var icon: String?
     var deviceId: String?
+    var entityName: String?
     var isAvailable: Bool = true
     var isHidden: Bool = false
     var isHiddenInHA: Bool = false
@@ -52,3 +53,8 @@ extension SensorEntity {
         #Predicate { $0.entityId == id }
     }
 }
+
+// MARK: - RegistryNamed
+
+/// Named on the device Sensors page without the device's name; `nil` until a full sync sets it.
+extension SensorEntity: RegistryNamed {}

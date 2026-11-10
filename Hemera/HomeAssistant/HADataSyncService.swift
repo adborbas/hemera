@@ -275,7 +275,9 @@ final class HADataSyncService {
 
     private func applyDeviceMappings(_ payload: SyncPayload) async {
         for (index, mapping) in payload.deviceMappings.enumerated() {
-            entityRegistry.assignDeviceId(mapping.deviceId, toEntityWithId: mapping.entityId, in: mainContext)
+            entityRegistry.assignDeviceId(
+                mapping.deviceId, entityName: mapping.entityName, toEntityWithId: mapping.entityId, in: mainContext
+            )
             if (index + 1).isMultiple(of: Self.yieldBatchSize) {
                 saveBatch("device batch")
                 await Task.yield()

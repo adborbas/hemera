@@ -49,6 +49,8 @@ extension FloorRegistryEntry {
 struct DeviceMapping: Sendable {
     let entityId: String
     let deviceId: String
+    /// The entity's own name without the device's, as HA's device page shows it: `name ?? original_name`.
+    var entityName: String? = nil
 }
 
 /// The slice of the entity registry Hemera reads: device links, direct area pins, and HA-hidden entities.
@@ -69,7 +71,8 @@ struct EntityRegistrySnapshot: Sendable {
                   let entityId = dict["entity_id"] as? String
             else { continue }
             if let deviceId = dict["device_id"] as? String {
-                deviceMappings.append(DeviceMapping(entityId: entityId, deviceId: deviceId))
+                let entityName = dict["name"] as? String ?? dict["original_name"] as? String
+                deviceMappings.append(DeviceMapping(entityId: entityId, deviceId: deviceId, entityName: entityName))
             }
             if let areaId = dict["area_id"] as? String {
                 entityAreaIds[entityId] = areaId
