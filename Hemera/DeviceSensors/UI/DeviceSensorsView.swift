@@ -4,14 +4,11 @@ import SwiftUI
 /// A device's sensors and binary sensors, pushed from its control panel.
 struct DeviceSensorsView: View {
     let viewModel: DeviceSensorsViewModel
-    @State private var detailId: String?
 
     var body: some View {
         ScrollView {
             VStack(spacing: Mortar.Spacing.s) {
-                ForEach(viewModel.rows) { row in
-                    DeviceSensorRow(row: row) { detailId = row.id }
-                }
+                ForEach(viewModel.rows) { DeviceSensorRow(row: $0) }
             }
             .padding(.horizontal, Mortar.Spacing.l)
             .padding(.bottom, Mortar.Spacing.xl)
@@ -20,51 +17,32 @@ struct DeviceSensorsView: View {
         .pushedScreenHeader(Localization.sensors, staysCollapsed: true)
         .background(.ultraThickMaterial)
         .containerBackground(.clear, for: .navigation)
-        .navigationDestination(item: $detailId) { DeviceSensorDetailView(viewModel: viewModel, id: $0) }
     }
 }
 
 // MARK: - Row
 
-/// A constant-height card; one whose name or value is cut short drills down to the full text.
+/// A constant-height card; name and value wrap to two lines and truncate after that.
 private struct DeviceSensorRow: View {
     let row: DeviceSensorsViewModel.Row
-    let openDetail: () -> Void
 
-    @ScaledMetric(relativeTo: .subheadline) private var height = 56
+    @ScaledMetric(relativeTo: .subheadline) private var height = 72
     @ScaledMetric(relativeTo: .headline) private var valueMaxWidth = 140
-    @State private var isNameTruncated = false
-    @State private var isValueTruncated = false
 
-    private var isTruncated: Bool { isNameTruncated || isValueTruncated }
-
-    /// On top of the card, not around it, so the text keeps its measurements when the button appears.
     var body: some View {
-        card
-            .overlay {
-                if isTruncated {
-                    Button(action: openDetail) { Color.clear.contentShape(Rectangle()) }
-                        .buttonStyle(.plain)
-                }
-            }
-            .accessibilityElement(children: .combine)
-    }
-
-    private var card: some View {
         HStack(spacing: Mortar.Spacing.m) {
             MDIIcon(name: row.icon ?? Constants.fallbackIcon, size: Mortar.IconSize.xs)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
-                HStack(alignment: .firstTextBaseline) {
-                    TruncatingText(row.name, font: .subheadline.weight(.medium), isTruncated: $isNameTruncated)
-                    Spacer(minLength: Mortar.Spacing.s)
-                    TruncatingText(
-                        row.value, font: .system(.headline, design: .rounded),
-                        maxWidth: valueMaxWidth, isTruncated: $isValueTruncated
-                    )
-                    .monospacedDigit()
-                    .layoutPriority(1)
+                NameValueLayout(valueMaxWidth: valueMaxWidth, spacing: Mortar.Spacing.s) {
+                    Text(row.name)
+                        .font(.subheadline.weight(.medium))
+                    Text(row.value)
+                        .font(.system(.headline, design: .rounded))
+                        .monospacedDigit()
+                        .multilineTextAlignment(.trailing)
                 }
+                .lineLimit(2)
                 if row.percent != nil || row.timeLeft != nil {
                     HStack(spacing: Mortar.Spacing.s) {
                         if let percent = row.percent { LevelBar(percent: percent) }
@@ -78,51 +56,36 @@ private struct DeviceSensorRow: View {
                     }
                 }
             }
-            if isTruncated { DisclosureIndicator() }
         }
         .padding(.horizontal, Mortar.Spacing.m)
         .frame(height: height)
         .cardBackground()
+        .accessibilityElement(children: .combine)
     }
 }
 
-// MARK: - Detail
+/// Name leading, value trailing: the value gets its natural width up to `valueMaxWidth`, the name the rest.
+private struct NameValueLayout: Layout {
+    let valueMaxWidth: CGFloat
+    let spacing: CGFloat
 
-/// Everything a row had to cut short, wrapped instead of truncated, and as live as the list.
-private struct DeviceSensorDetailView: View {
-    let viewModel: DeviceSensorsViewModel
-    let id: String
-
-    var body: some View {
-        if let row = viewModel.rows.first(where: { $0.id == id }) { detail(row) }
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let (name, value) = sizes(width: proposal.width ?? .infinity, subviews: subviews)
+        let width = proposal.width ?? name.width + spacing + value.width
+        return CGSize(width: width, height: max(name.height, value.height))
     }
 
-    private func detail(_ row: DeviceSensorsViewModel.Row) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Mortar.Spacing.m) {
-                Text(row.name)
-                    .font(.title3.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                VStack(alignment: .leading, spacing: Mortar.Spacing.s) {
-                    Text(row.value)
-                        .font(.system(.headline, design: .rounded))
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let percent = row.percent { LevelBar(percent: percent) }
-                    if let timeLeft = row.timeLeft {
-                        Text(Localization.timeLeft(timeLeft)).foregroundStyle(.secondary)
-                    }
-                }
-                .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Mortar.Spacing.m)
-                .cardBackground()
-            }
-            .padding(.horizontal, Mortar.Spacing.l)
-        }
-        .reportsFeedScroll()
-        .pushedScreenHeader(row.name, staysCollapsed: true)
-        .background(.ultraThickMaterial)
-        .containerBackground(.clear, for: .navigation)
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let (name, value) = sizes(width: bounds.width, subviews: subviews)
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.minY), anchor: .topLeading, proposal: .init(name))
+        subviews[1].place(at: CGPoint(x: bounds.maxX, y: bounds.minY), anchor: .topTrailing, proposal: .init(value))
+    }
+
+    private func sizes(width: CGFloat, subviews: Subviews) -> (name: CGSize, value: CGSize) {
+        let valueWidth = min(subviews[1].sizeThatFits(.unspecified).width, valueMaxWidth, width)
+        let value = subviews[1].sizeThatFits(.init(width: valueWidth, height: nil))
+        let name = subviews[0].sizeThatFits(.init(width: max(0, width - valueWidth - spacing), height: nil))
+        return (name, value)
     }
 }
 
@@ -143,43 +106,6 @@ private struct LevelBar: View {
             }
             .frame(height: Constants.barHeight)
             .accessibilityHidden(true)
-    }
-}
-
-/// One line of text that reports whether it got cut short; no wider than `maxWidth` when given.
-private struct TruncatingText: View {
-    let text: String
-    let font: Font
-    let maxWidth: CGFloat?
-    @Binding var isTruncated: Bool
-
-    @State private var shownWidth: CGFloat = 0
-    @State private var fullWidth: CGFloat = 0
-
-    init(_ text: String, font: Font, maxWidth: CGFloat? = nil, isTruncated: Binding<Bool>) {
-        self.text = text
-        self.font = font
-        self.maxWidth = maxWidth
-        _isTruncated = isTruncated
-    }
-
-    var body: some View {
-        Text(text)
-            .font(font)
-            .lineLimit(1)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { shownWidth = $0; update() }
-            .frame(width: maxWidth.map { min(fullWidth.rounded(.up), $0) }, alignment: .trailing)
-            .background {
-                Text(text)
-                    .font(font)
-                    .fixedSize()
-                    .hidden()
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { fullWidth = $0; update() }
-            }
-    }
-
-    private func update() {
-        isTruncated = fullWidth > shownWidth + 0.5
     }
 }
 
