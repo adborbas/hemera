@@ -128,7 +128,7 @@ struct DeviceSensorsViewModelTests {
         #expect(rows.first?.name == "Filter")
         #expect(rows.first?.value == "98%")
         #expect(rows.first?.percent == 98)
-        #expect(rows.first?.timeLeft == "146 h")
+        #expect(rows.first?.detail == "146 h left")
     }
 
     /// Two parts sharing a name (main and side brush) pair in entity-id order rather than guessing.
@@ -138,8 +138,8 @@ struct DeviceSensorsViewModelTests {
         insertSensor("sensor.robika_brush_1_time", name: "Brush Left Time", state: "296", unit: "h")
         insertSensor("sensor.robika_brush_2_time", name: "Brush Left Time", state: "196", unit: "h")
 
-        let pairs = makeViewModel().rows.map { "\($0.value)/\($0.timeLeft ?? "-")" }.sorted()
-        #expect(pairs == ["80%/196 h", "99%/296 h"])
+        let pairs = makeViewModel().rows.map { "\($0.value)/\($0.detail ?? "-")" }.sorted()
+        #expect(pairs == ["80%/196 h left", "99%/296 h left"])
     }
 
     /// A paired row shows its stem, so it must sort by the stem, not the sensor's full name.
@@ -157,13 +157,49 @@ struct DeviceSensorsViewModelTests {
 
         let rows = makeViewModel().rows
         #expect(rows.map(\.name) == ["Filter Life Level", "Mop Left Time"])
-        #expect(rows.allSatisfy { $0.timeLeft == nil })
+        #expect(rows.allSatisfy { $0.detail == nil })
     }
 
     /// "Unknown left" says nothing; a time without a number stays its own row instead.
     @Test func rows_timeWithoutANumber_isNotPaired() {
         insertSensor("sensor.robika_det_level", name: "Detergent Left Level", state: "40", unit: "%")
         insertSensor("sensor.robika_det_time", name: "Detergent Left Time", state: "unknown", unit: "h")
+
+        #expect(makeViewModel().rows.count == 2)
+    }
+
+    /// Charging only explains the battery level, so they share a card.
+    @Test func rows_pairBatteryWithChargingBinarySensor() {
+        insertSensor("sensor.phone_battery", name: "Battery Level", state: "82", unit: "%", deviceClass: "battery")
+        insertBinarySensor("binary_sensor.phone_charging", name: "Charging", deviceClass: .batteryCharging)
+
+        let rows = makeViewModel().rows
+        #expect(rows.map(\.name) == ["Battery Level"])
+        #expect(rows.first?.detail == "Charging")
+    }
+
+    @Test func rows_pairPowerWithEnergy() {
+        insertSensor("sensor.plug_power", name: "Power", state: "1250.4", unit: "W", deviceClass: "power")
+        insertSensor("sensor.plug_energy", name: "Energy", state: "3.42", unit: "kWh", deviceClass: "energy")
+
+        let rows = makeViewModel().rows
+        #expect(rows.map(\.name) == ["Power"])
+        #expect(rows.first?.value == "1250.4 W")
+        #expect(rows.first?.detail == "3.42 kWh")
+    }
+
+    /// Two power sensors leave no way to know which energy belongs to which, so none pair.
+    @Test func rows_deviceClassPair_needsExactlyOneOfEach() {
+        insertSensor("sensor.plug_power_1", name: "Power 1", state: "10", unit: "W", deviceClass: "power")
+        insertSensor("sensor.plug_power_2", name: "Power 2", state: "20", unit: "W", deviceClass: "power")
+        insertSensor("sensor.plug_energy", name: "Energy", state: "3", unit: "kWh", deviceClass: "energy")
+
+        #expect(makeViewModel().rows.count == 3)
+    }
+
+    @Test func rows_deviceClassPair_withoutAReading_staysApart() {
+        insertSensor("sensor.plug_power", name: "Power", state: "12", unit: "W", deviceClass: "power")
+        insertSensor("sensor.plug_energy", name: "Energy", state: "unknown", unit: "kWh", deviceClass: "energy")
 
         #expect(makeViewModel().rows.count == 2)
     }
@@ -176,9 +212,10 @@ struct DeviceSensorsViewModelTests {
 
     @discardableResult
     private func insertSensor(
-        _ id: String, name: String, state: String, unit: String? = nil, deviceId: String = "robika"
+        _ id: String, name: String, state: String, unit: String? = nil, deviceClass: String? = nil,
+        deviceId: String = "robika"
     ) -> SensorEntity {
-        let sensor = SensorEntity(entityId: id, name: name, state: state, unitOfMeasurement: unit)
+        let sensor = SensorEntity(entityId: id, name: name, state: state, deviceClass: deviceClass, unitOfMeasurement: unit)
         sensor.deviceId = deviceId
         context.insert(sensor)
         return sensor

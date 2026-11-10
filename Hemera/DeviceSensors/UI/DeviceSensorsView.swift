@@ -22,7 +22,7 @@ struct DeviceSensorsView: View {
 
 // MARK: - Row
 
-/// A constant-height card: the name across the top, the value with its level and time left below.
+/// A constant-height card: the name across the top, the value with its level and detail below.
 private struct DeviceSensorRow: View {
     let row: DeviceSensorsViewModel.Row
 
@@ -43,8 +43,8 @@ private struct DeviceSensorRow: View {
                         .monospacedDigit()
                         .lineLimit(1)
                     if let percent = row.percent { LevelBar(percent: percent) }
-                    if let timeLeft = row.timeLeft {
-                        Text(Localization.timeLeft(timeLeft))
+                    if let detail = row.detail {
+                        Text(detail)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -96,11 +96,4 @@ private enum Localization {
         localized: "Sensors",
         comment: "Title of the page listing a device's sensors, pushed from its control panel"
     )
-
-    static func timeLeft(_ time: String) -> String {
-        String(
-            localized: "\(time) left",
-            comment: "Time remaining for a part, e.g. '58 h left', under its life bar on a device's Sensors page"
-        )
-    }
 }
