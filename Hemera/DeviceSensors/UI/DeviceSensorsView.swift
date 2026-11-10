@@ -73,7 +73,7 @@ private struct LevelBar: View {
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
                     Capsule()
-                        .fill(.secondary)
+                        .fill(.tertiary)
                         .frame(width: proxy.size.width * min(max(percent, 0), 100) / 100)
                 }
             }

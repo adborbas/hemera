@@ -43,9 +43,14 @@ final class DeviceSensorsViewModel {
         return ((try? context.fetchCount(sensors)) ?? 0) + ((try? context.fetchCount(binarySensors)) ?? 0) > 0
     }
 
-    /// `%` and time sensors of the same part merged into one row, then A to Z by the name shown.
+    /// Paired readings merged into one row, A to Z by the name shown; ties by entity id so rows stay put.
     var rows: [Row] {
-        Self.paired(readings).sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        Self.paired(readings).sorted {
+            switch $0.name.localizedStandardCompare($1.name) {
+            case .orderedSame: $0.id < $1.id
+            case let order: order == .orderedAscending
+            }
+        }
     }
 }
 

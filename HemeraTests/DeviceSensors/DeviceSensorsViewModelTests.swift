@@ -63,6 +63,15 @@ struct DeviceSensorsViewModelTests {
         #expect(makeViewModel().rows.map(\.name) == ["Battery Voltage", "Brush Cleaner", "charging state"])
     }
 
+    /// Two parts HA names the same must not swap places when the list redraws.
+    @Test func rows_equalNames_orderedByEntityId() {
+        insertSensor("sensor.robika_brush_b", name: "Brush", state: "2")
+        insertSensor("sensor.robika_brush_a", name: "Brush", state: "1")
+        insertSensor("sensor.robika_brush_c", name: "Brush", state: "3")
+
+        #expect(makeViewModel().rows.map(\.id) == ["sensor.robika_brush_a", "sensor.robika_brush_b", "sensor.robika_brush_c"])
+    }
+
     // MARK: - Values
 
     @Test func value_percentHasNoSpace_otherUnitsDo() {
