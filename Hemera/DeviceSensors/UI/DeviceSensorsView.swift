@@ -22,7 +22,7 @@ struct DeviceSensorsView: View {
 
 // MARK: - Row
 
-/// A constant-height card: the name across the top, the value with its level and detail below.
+/// A constant-height card: the name across the top, the value and its level below.
 private struct DeviceSensorRow: View {
     let row: DeviceSensorsViewModel.Row
 
@@ -43,14 +43,6 @@ private struct DeviceSensorRow: View {
                         .monospacedDigit()
                         .lineLimit(1)
                     if let percent = row.percent { LevelBar(percent: percent) }
-                    if let detail = row.detail {
-                        Text(detail)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .fixedSize()
-                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
