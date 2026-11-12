@@ -96,7 +96,7 @@ struct FeedDrawer: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background {
             UnevenRoundedRectangle(bottomTrailingRadius: Mortar.Radii.xl, topTrailingRadius: Mortar.Radii.xl)
-                .fill(PlatformColor.secondarySystemBackground)
+                .fill(.regularMaterial)
                 .ignoresSafeArea()
         }
     }

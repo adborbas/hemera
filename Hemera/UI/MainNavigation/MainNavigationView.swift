@@ -31,6 +31,7 @@ struct MainNavigationView: View {
     var body: some View {
         NavigationStack(path: $viewModel.path) {
             viewModel.resolver.registerNavigationDestinations(on: AnyView(root))
+                .themedBackground()
         }
         .accessibilityHidden(viewModel.isDrawerOpen)
         .overlay {

@@ -64,6 +64,7 @@ struct HemeraApp: App {
                 .scrollIndicators(.hidden)
                 .modelContainer(environment.container)
                 .environment(environment.screenManager)
+                .environment(environment.themeManager)
                 .environment(environment.updateNudge)
                 .task { await environment.updateNudge.checkDaily() }
                 .onChange(of: environment.screenManager.stayAwake) {

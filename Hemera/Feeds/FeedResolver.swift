@@ -59,6 +59,7 @@ final class FeedResolver: FeedResolving {
             navigationDestinations: { root in
                 AnyView(root.navigationDestination(for: AreaDestination.self) { destination in
                     AreaDetailView(viewModel: areas.makeDetailViewModel(destination: destination))
+                        .themedBackground()
                 })
             },
             // Grouping does nothing without floors, so the menu is hidden then.
