@@ -7,8 +7,6 @@ struct Screensaver: View {
     /// The dimmed theme to paint behind the clock; `nil` is plain black.
     let paint: ThemePaint?
     @State private var showHint = true
-    @State private var shownAt = Date()
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.everyMinute) { context in
@@ -34,8 +32,6 @@ struct Screensaver: View {
                         .font(.system(size: 22, weight: .regular, design: .rounded))
                 }
                 .foregroundStyle(.white.opacity(paint == nil ? 0.6 : ThemeMaths.screensaverClockOpacity))
-                .offset(clockOffset(at: context.date))
-                .animation(reduceMotion ? nil : .easeInOut(duration: 3), value: clockOffset(at: context.date))
 
                 VStack {
                     Spacer()
@@ -55,16 +51,6 @@ struct Screensaver: View {
                 showHint = false
             }
         }
-    }
-
-    /// Starts centred, then moves the clock every minute so a static screen doesn't burn in.
-    static func clockOffset(minutesShown minute: Int) -> CGSize {
-        let minute = Double(minute)
-        return CGSize(width: (sin(minute * 0.9) * 12).rounded(), height: (sin(minute * 0.53) * 12).rounded())
-    }
-
-    private func clockOffset(at date: Date) -> CGSize {
-        Self.clockOffset(minutesShown: Int(date.timeIntervalSince(shownAt) / 60))
     }
 
     private var timeFormat: Date.FormatStyle {
