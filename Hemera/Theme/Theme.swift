@@ -65,7 +65,20 @@ enum ThemeFamily: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    /// The family whose field comes nearest to `color`; a near-tie goes to the narrower field.
+    static func nearest(to color: ThemeColor) -> ThemeFamily {
+        let narrowestFirst: [ThemeFamily] = [.greyscale, .pastel, .muted, .bright]
+        return narrowestFirst.min { $0.distance(to: color) < $1.distance(to: color) - 0.0001 } ?? .bright
+    }
+
     private static let presetHues = [0.0, 0.07, 0.13, 0.36, 0.5, 0.6, 0.72, 0.86]
+
+    /// Squared sRGB distance from `color` to the nearest colour on this family's field.
+    private func distance(to color: ThemeColor) -> Double {
+        let position = position(of: color)
+        let nearest = self.color(hue: position.hue, radius: position.radius)
+        return zip(nearest.rgb, color.rgb).map { ($0 - $1) * ($0 - $1) }.reduce(0, +)
+    }
 }
 
 // MARK: - Codable

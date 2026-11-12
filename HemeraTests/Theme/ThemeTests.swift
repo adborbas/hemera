@@ -17,6 +17,21 @@ struct ThemeTests {
     }
 
     @Test(arguments: ThemeFamily.allCases)
+    func nearest_ofEachPreset_isItsOwnFamily(family: ThemeFamily) {
+        // A Gradient stored without its family still reopens on the page that shows its preset selected.
+        for preset in family.presets {
+            #expect(ThemeFamily.nearest(to: preset) == family)
+        }
+    }
+
+    @Test func nearest_ofAColourOffEveryField_isTheClosestField() {
+        // A dark saturated red is on no page; the muted page is the one that comes close to it.
+        let darkRed = ThemeColor(hue: 0, saturation: 0.9, brightness: 0.5)
+
+        #expect(ThemeFamily.nearest(to: darkRed) == .muted)
+    }
+
+    @Test(arguments: ThemeFamily.allCases)
     func position_ofAFieldColour_isWhereItWasPicked(family: ThemeFamily) {
         // The editor reopens with the handle where the user left it.
         let hue = family == .greyscale ? 0 : 0.3

@@ -14,8 +14,11 @@ struct MainNavigationView: View {
     @State private var showSettings = false
     @State private var settingsInitialRoute: SettingsViewModel.Route?
     @State private var toolbarActions: [FeedAction] = []
+    /// The theme the editor opened on, while it is open.
+    @State private var themeEditorOpenedOn: Theme?
 
     @Environment(ScreenManager.self) private var screenManager
+    @Environment(ThemeManager.self) private var themeManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -33,6 +36,13 @@ struct MainNavigationView: View {
             viewModel.resolver.registerNavigationDestinations(on: AnyView(root))
                 .themedBackground()
         }
+        .allowsHitTesting(!isEditingTheme)
+        .accessibilityHidden(isEditingTheme)
+        .overlay(alignment: horizontalSizeClass == .compact ? .bottom : .bottomTrailing) {
+            if let themeEditorOpenedOn {
+                themeEditor(openedOn: themeEditorOpenedOn)
+            }
+        }
         .accessibilityHidden(viewModel.isDrawerOpen)
         .overlay {
             if horizontalSizeClass == .compact {
@@ -42,7 +52,7 @@ struct MainNavigationView: View {
                     subtitle: viewModel.resolver.subtitle(for:),
                     selection: viewModel.selectedFeed,
                     isOpen: $viewModel.isDrawerOpen,
-                    canSwipeOpen: viewModel.path.isEmpty && !isFeedEditing,
+                    canSwipeOpen: viewModel.path.isEmpty && !isFeedEditing && !isEditingTheme,
                     onSelect: viewModel.select,
                     openSettings: { showSettings = true }
                 )
@@ -53,7 +63,7 @@ struct MainNavigationView: View {
             settingsInitialRoute = nil
             screenManager.acknowledgeSettingsDismissed()
         }) {
-            SettingsView(viewModel: SettingsViewModel(initialRoute: settingsInitialRoute))
+            SettingsView(viewModel: SettingsViewModel(initialRoute: settingsInitialRoute), editTheme: editTheme)
         }
         .onChange(of: screenManager.settingsRequest) { _, new in
             switch new {
@@ -67,6 +77,41 @@ struct MainNavigationView: View {
                 break
             }
         }
+    }
+
+    private var isEditingTheme: Bool { themeEditorOpenedOn != nil }
+
+    /**
+     A floating panel rather than a sheet, so it can fade fully while a control is touched.
+     One branch for both widths, so resizing the window keeps the editor's page and handle.
+    */
+    private func themeEditor(openedOn theme: Theme) -> some View {
+        let isCompact = horizontalSizeClass == .compact
+        return ThemeEditorView(
+            theme: theme,
+            isDrawer: isCompact,
+            cancel: { finishEditingTheme(keep: false) },
+            done: { finishEditingTheme(keep: true) }
+        )
+        .frame(width: isCompact ? nil : 360)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(isCompact ? 0 : Mortar.Spacing.xl)
+        .transition(isCompact ? .move(edge: .bottom) : .scale(scale: 0.8, anchor: .bottomTrailing).combined(with: .opacity))
+    }
+
+    /// Settings closes and the panel takes its place over Home; finishing reopens Settings.
+    private func editTheme() {
+        themeManager.beginEditing()
+        showSettings = false
+        viewModel.showHomeForThemeEditing()
+        withAnimation(Mortar.Motion.springNormal) { themeEditorOpenedOn = themeManager.theme }
+    }
+
+    private func finishEditingTheme(keep: Bool) {
+        if keep { themeManager.commit() } else { themeManager.cancel() }
+        withAnimation(Mortar.Motion.springNormal) { themeEditorOpenedOn = nil }
+        viewModel.returnFromThemeEditing()
+        showSettings = true
     }
 
     private var root: some View {
@@ -97,6 +142,7 @@ struct MainNavigationView: View {
         }
         .onChange(of: viewModel.pills.map(\.id)) { viewModel.reselectHomeIfSelectionIsHidden() }
         .environment(\.openFeed, viewModel.select)
+        .environment(\.scrollToTopRequest, viewModel.scrollToTopRequest)
     }
 
     /// Compact width: the selected feed alone, its name as the title and the avatar where back would be.
@@ -104,9 +150,9 @@ struct MainNavigationView: View {
         viewModel.resolver.view(for: viewModel.selectedFeed)
             .pushedScreenHeader(
                 viewModel.resolver.summary(for: viewModel.selectedFeed)?.title ?? viewModel.title,
-                leading: .account(viewModel.homeProfile.account, action: openDrawer),
+                leading: isEditingTheme ? .hidden : .account(viewModel.homeProfile.account, action: openDrawer),
                 isEditing: isFeedEditing,
-                actions: toolbarActions,
+                actions: isEditingTheme ? [] : toolbarActions,
                 perform: perform
             )
             // A fresh header per feed, so a new feed starts expanded.
@@ -142,12 +188,14 @@ struct MainNavigationView: View {
                     selection: viewModel.selectedFeed,
                     onSelect: viewModel.select
                 ) {
-                    HeaderButtons(
-                        actions: toolbarActions,
-                        account: viewModel.homeProfile.account,
-                        perform: perform,
-                        openSettings: { showSettings = true }
-                    )
+                    if !isEditingTheme {
+                        HeaderButtons(
+                            actions: toolbarActions,
+                            account: viewModel.homeProfile.account,
+                            perform: perform,
+                            openSettings: { showSettings = true }
+                        )
+                    }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
                 .transition(.move(edge: .top).combined(with: .opacity))

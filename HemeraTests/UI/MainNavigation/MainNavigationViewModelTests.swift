@@ -69,6 +69,90 @@ struct MainNavigationViewModelTests {
         #expect(viewModel.path.count == 1)
     }
 
+    // MARK: - Theme editing
+
+    @Test func showHomeForThemeEditing_fromAnotherFeed_showsHomeAtItsTop() {
+        // The editor previews the theme on Home, whatever feed it was opened from.
+        let viewModel = makeViewModel()
+        viewModel.select(.areas)
+        viewModel.isDrawerOpen = true
+        let request = viewModel.scrollToTopRequest
+
+        viewModel.showHomeForThemeEditing()
+
+        #expect(viewModel.selectedFeed == .home)
+        #expect(viewModel.path.isEmpty)
+        #expect(!viewModel.isDrawerOpen)
+        #expect(viewModel.scrollToTopRequest != request)
+    }
+
+    @Test func returnFromThemeEditing_fromAnotherFeed_selectsThatFeedAgain() {
+        // Closing the editor must leave the user where they were, not on Home.
+        let viewModel = makeViewModel()
+        viewModel.select(.areas)
+
+        viewModel.showHomeForThemeEditing()
+        viewModel.returnFromThemeEditing()
+
+        #expect(viewModel.selectedFeed == .areas)
+        #expect(viewModel.path.isEmpty)
+    }
+
+    @Test func themeEditing_fromPushedAreaScreen_popsItAndPutsItBack() {
+        // An open area screen would hide Home during the preview, and must be there again afterwards.
+        let viewModel = makeViewModel()
+        viewModel.select(.areas)
+        viewModel.path.append(AreaDestination.unassigned(hasRealAreas: true))
+        let pathBefore = viewModel.path
+
+        viewModel.showHomeForThemeEditing()
+        #expect(viewModel.selectedFeed == .home)
+        #expect(viewModel.path.isEmpty)
+
+        viewModel.returnFromThemeEditing()
+        #expect(viewModel.selectedFeed == .areas)
+        #expect(viewModel.path == pathBefore)
+    }
+
+    @Test func themeEditing_fromHome_scrollsHomeToItsTopAndStaysOnHome() {
+        // Home already on screen may be scrolled down; the preview needs its top, where the theme shows.
+        let viewModel = makeViewModel()
+        let request = viewModel.scrollToTopRequest
+
+        viewModel.showHomeForThemeEditing()
+        #expect(viewModel.scrollToTopRequest != request)
+
+        viewModel.returnFromThemeEditing()
+        #expect(viewModel.selectedFeed == .home)
+        #expect(viewModel.path.isEmpty)
+    }
+
+    @Test func returnFromThemeEditing_whenTheFeedStoppedResolving_staysOnHome() {
+        // A feed removed during editing has no page left; returning to it would show a blank screen.
+        let resolver = StubFeedResolver()
+        let viewModel = makeViewModel(resolver: resolver, row: FeedID.builtIns + [kitchen])
+        viewModel.select(kitchen)
+        viewModel.showHomeForThemeEditing()
+
+        resolver.unresolvable = [kitchen]
+        viewModel.returnFromThemeEditing()
+
+        #expect(viewModel.selectedFeed == .home)
+    }
+
+    @Test func returnFromThemeEditing_twice_keepsTheFeedPickedSince() {
+        // Only the first return restores; a stale place must not override a later choice.
+        let viewModel = makeViewModel()
+        viewModel.select(.areas)
+        viewModel.showHomeForThemeEditing()
+        viewModel.returnFromThemeEditing()
+
+        viewModel.select(.domain("light"))
+        viewModel.returnFromThemeEditing()
+
+        #expect(viewModel.selectedFeed == .domain("light"))
+    }
+
     // MARK: - Pills
 
     @Test func pills_withNothingStored_followDefaultRow() {

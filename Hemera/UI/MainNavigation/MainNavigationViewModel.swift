@@ -15,6 +15,8 @@ final class MainNavigationViewModel {
     /// Compact width's feed list.
     var isDrawerOpen = false
     private(set) var showOfflineBanner = false
+    /// Changes when the feeds should scroll back to their top.
+    private(set) var scrollToTopRequest = 0
 
     let resolver: any FeedResolving
     let homeProfile: HomeProfile
@@ -25,6 +27,7 @@ final class MainNavigationViewModel {
     private let connectionStatusProvider: (any ConnectionStatusProviding)?
     private let offlineBannerDelay: Duration
     private var offlineBannerTask: Task<Void, Never>?
+    private var placeBeforeThemeEditing: (feed: FeedID, path: NavigationPath)?
 
     /// One per feed in the row that can be shown right now, in row order.
     var pills: [Pill] {
@@ -65,6 +68,22 @@ final class MainNavigationViewModel {
         selectedFeed = id
         path = NavigationPath()
         isDrawerOpen = false
+    }
+
+    /// Shows Home at its root and top behind the theme editor, remembering the feed and screens left.
+    func showHomeForThemeEditing() {
+        placeBeforeThemeEditing = (selectedFeed, path)
+        select(.home)
+        scrollToTopRequest += 1
+    }
+
+    /// Puts back the feed and pushed screens from before `showHomeForThemeEditing()`.
+    func returnFromThemeEditing() {
+        guard let place = placeBeforeThemeEditing else { return }
+        placeBeforeThemeEditing = nil
+        selectedFeed = place.feed
+        path = place.path
+        reselectHomeIfSelectionIsHidden()
     }
 
     /// Call when the pills change: a selected feed that stopped resolving has no page left to show.

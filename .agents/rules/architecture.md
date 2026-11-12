@@ -203,6 +203,7 @@ collapsing header through the environment, because a parent cannot observe a nes
 may omit it. Optional channels: `.feedIsEditing(_:)` removes the header and shows the system navigation
 bar for the feed's own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since
 neighbour pages stay alive and share the bar), and `\.openFeed` selects another feed in place.
+The reporter also scrolls the feed to its top whenever `\.scrollToTopRequest` changes; feeds need no code for it.
 
 ## Concurrency Model
 

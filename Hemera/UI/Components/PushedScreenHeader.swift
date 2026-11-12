@@ -36,6 +36,8 @@ enum HeaderLeading {
     case close(label: String)
     /// A feed's root has nothing to go back to; the bare avatar takes the back button's place.
     case account(Account?, action: () -> Void)
+    /// The avatar's room left empty, while a panel over the feed takes the touches.
+    case hidden
 }
 
 private struct PushedScreenHeader<Accessory: View>: ViewModifier {
@@ -262,6 +264,8 @@ private struct LeadingButton: View {
                 .accessibilityIdentifier("screenClose")
         case .account(let account, let action):
             AccountButton(account: account, action: action, opensMenu: true)
+        case .hidden:
+            Color.clear.frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
         }
     }
 }
