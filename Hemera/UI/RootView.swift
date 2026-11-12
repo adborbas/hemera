@@ -43,10 +43,10 @@ struct RootView: View {
             WindowActivityTracker {
                 screenManager.registerUserActivity()
             }
-            DimOverlayWindowInstaller(screenManager: screenManager, isDimmed: screenManager.isDimmed)
+            ScreensaverWindowInstaller(screenManager: screenManager, isScreensaverShown: screenManager.isScreensaverShown)
         }
-        .statusBarHidden(screenManager.isDimmed)
-        .animation(.easeInOut(duration: 0.3), value: screenManager.isDimmed)
+        .statusBarHidden(screenManager.isScreensaverShown)
+        .animation(.easeInOut(duration: 0.3), value: screenManager.isScreensaverShown)
         .overlay {
             if let notifier = ServiceLocator.shared.session?.errorNotifier {
                 ToastOverlay(notifier: notifier)
@@ -126,52 +126,52 @@ private class ActivityTrackingGestureRecognizer: UIGestureRecognizer, UIGestureR
     }
 }
 
-// MARK: - Dim Overlay Window
+// MARK: - Screensaver Window
 
-/// Presents `DimOverlay` in a separate `UIWindow` above the main window so
+/// Presents `Screensaver` in a separate `UIWindow` above the main window so
 /// it renders on top of sheets and other modal presentations.
-private struct DimOverlayWindowInstaller: UIViewRepresentable {
+private struct ScreensaverWindowInstaller: UIViewRepresentable {
     let screenManager: ScreenManager
-    let isDimmed: Bool
+    let isScreensaverShown: Bool
 
-    func makeUIView(context: Context) -> DimOverlayInstallerView {
-        let view = DimOverlayInstallerView()
+    func makeUIView(context: Context) -> ScreensaverInstallerView {
+        let view = ScreensaverInstallerView()
         view.screenManager = screenManager
         view.isUserInteractionEnabled = false
         return view
     }
 
-    func updateUIView(_ uiView: DimOverlayInstallerView, context: Context) {
-        uiView.updateStatusBar(hidden: isDimmed)
+    func updateUIView(_ uiView: ScreensaverInstallerView, context: Context) {
+        uiView.updateStatusBar(hidden: isScreensaverShown)
     }
 }
 
-private class DimOverlayInstallerView: UIView {
+private class ScreensaverInstallerView: UIView {
     var screenManager: ScreenManager?
-    private var dimWindow: DimOverlayWindow?
-    private var hostingController: DimOverlayHostingController?
+    private var screensaverWindow: ScreensaverWindow?
+    private var hostingController: ScreensaverHostingController?
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if let windowScene = window?.windowScene, dimWindow == nil, let screenManager {
-            let w = DimOverlayWindow(windowScene: windowScene)
+        if let windowScene = window?.windowScene, screensaverWindow == nil, let screenManager {
+            let w = ScreensaverWindow(windowScene: windowScene)
             w.screenManager = screenManager
             w.windowLevel = .alert + 1
             w.backgroundColor = .clear
 
-            let host = DimOverlayHostingController(
-                rootView: DimOverlayWindowContent(screenManager: screenManager)
+            let host = ScreensaverHostingController(
+                rootView: ScreensaverWindowContent(screenManager: screenManager)
             )
             host.view.backgroundColor = .clear
             w.rootViewController = host
             w.isHidden = false
 
-            dimWindow = w
+            screensaverWindow = w
             hostingController = host
-        } else if window == nil, let w = dimWindow {
+        } else if window == nil, let w = screensaverWindow {
             w.isHidden = true
             w.rootViewController = nil
-            dimWindow = nil
+            screensaverWindow = nil
             hostingController = nil
         }
     }
@@ -181,7 +181,7 @@ private class DimOverlayInstallerView: UIView {
     }
 }
 
-private final class DimOverlayHostingController: UIHostingController<DimOverlayWindowContent> {
+private final class ScreensaverHostingController: UIHostingController<ScreensaverWindowContent> {
     var statusBarHidden = false {
         didSet {
             guard statusBarHidden != oldValue else { return }
@@ -192,29 +192,29 @@ private final class DimOverlayHostingController: UIHostingController<DimOverlayW
     override var prefersStatusBarHidden: Bool { statusBarHidden }
 }
 
-/// Passes through all touches when the screen is not dimmed.
-private final class DimOverlayWindow: UIWindow {
+/// Passes through all touches when the screensaver is not shown.
+private final class ScreensaverWindow: UIWindow {
     weak var screenManager: ScreenManager?
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard let screenManager, screenManager.isDimmed else { return nil }
+        guard let screenManager, screenManager.isScreensaverShown else { return nil }
         return super.hitTest(point, with: event)
     }
 }
 
-private struct DimOverlayWindowContent: View {
+private struct ScreensaverWindowContent: View {
     let screenManager: ScreenManager
 
     var body: some View {
         ZStack {
-            if screenManager.isDimmed {
-                DimOverlay(clockFormat: screenManager.clockFormat)
+            if screenManager.isScreensaverShown {
+                Screensaver(clockFormat: screenManager.clockFormat)
                     .transition(.opacity)
                     .onTapGesture {
                         screenManager.registerUserActivity()
                     }
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: screenManager.isDimmed)
+        .animation(.easeInOut(duration: 0.3), value: screenManager.isScreensaverShown)
     }
 }

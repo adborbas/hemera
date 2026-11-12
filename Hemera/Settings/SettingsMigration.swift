@@ -42,7 +42,7 @@ private extension SettingsMigration {
             settings.stayAwake = defaults.bool(forKey: LegacyKey.stayAwake)
         }
         if defaults.object(forKey: LegacyKey.dimTimeout) != nil {
-            settings.dimTimeout = DimTimeout(rawValue: defaults.integer(forKey: LegacyKey.dimTimeout)) ?? settings.dimTimeout
+            settings.dimTimeout = ScreensaverTimeout(rawValue: defaults.integer(forKey: LegacyKey.dimTimeout)) ?? settings.dimTimeout
         }
         if defaults.object(forKey: LegacyKey.clockFormat) != nil {
             settings.clockFormat = ClockFormat(rawValue: defaults.integer(forKey: LegacyKey.clockFormat)) ?? settings.clockFormat

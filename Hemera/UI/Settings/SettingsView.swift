@@ -285,7 +285,7 @@ private extension SettingsView {
         }
 
         // Kiosk Mode
-        static let kioskMode = String(localized: "Kiosk Mode", comment: "Settings section header and navigation link for kiosk mode (stay awake, dimming)")
+        static let kioskMode = String(localized: "Kiosk Mode", comment: "Settings section header and navigation link for kiosk mode (stay awake, screensaver)")
         static let on = String(localized: "On", comment: "Status label indicating a setting is enabled")
         static let off = String(localized: "Off", comment: "Status label indicating a setting is disabled")
 

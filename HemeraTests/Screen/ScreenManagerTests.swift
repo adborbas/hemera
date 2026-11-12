@@ -29,12 +29,12 @@ struct ScreenManagerTests {
         #expect(screenManager.clockFormat == .system)
     }
 
-    @Test func resetToDefaults_resetsDimTimeoutToThirtySeconds() {
-        screenManager.dimTimeout = .fiveMinutes
+    @Test func resetToDefaults_resetsScreensaverTimeoutToThirtySeconds() {
+        screenManager.screensaverTimeout = .fiveMinutes
 
         screenManager.resetToDefaults()
 
-        #expect(screenManager.dimTimeout == .thirtySeconds)
+        #expect(screenManager.screensaverTimeout == .thirtySeconds)
     }
 
     /// Logout calls `resetToDefaults()`; it must stay kiosk-only.
@@ -54,44 +54,44 @@ struct ScreenManagerTests {
         #expect(screenManager.stayAwake == false)
     }
 
-    // MARK: - Preview Dim
+    // MARK: - Screensaver Preview
 
-    @Test func executePreviewDim_dims() {
+    @Test func executeScreensaverPreview_showsScreensaver() {
         screenManager.stayAwake = true
 
-        screenManager.executePreviewDim()
+        screenManager.executeScreensaverPreview()
 
-        #expect(screenManager.isDimmed == true)
+        #expect(screenManager.isScreensaverShown == true)
     }
 
-    @Test func executePreviewDim_withoutStayAwake_dims() {
+    @Test func executeScreensaverPreview_withoutStayAwake_showsScreensaver() {
         screenManager.stayAwake = false
 
-        screenManager.executePreviewDim()
+        screenManager.executeScreensaverPreview()
 
-        #expect(screenManager.isDimmed == true)
+        #expect(screenManager.isScreensaverShown == true)
     }
 
     // MARK: - Scene Phase
 
-    @Test func handleScenePhase_inactive_whileDimmed_keepsDim() {
+    @Test func handleScenePhase_inactive_whileScreensaverShown_keepsScreensaver() {
         screenManager.stayAwake = true
-        screenManager.executePreviewDim()
-        #expect(screenManager.isDimmed == true)
+        screenManager.executeScreensaverPreview()
+        #expect(screenManager.isScreensaverShown == true)
 
         screenManager.handleScenePhase(.inactive)
 
-        #expect(screenManager.isDimmed == true)
+        #expect(screenManager.isScreensaverShown == true)
     }
 
-    @Test func handleScenePhase_background_whileDimmed_clearsDim() {
+    @Test func handleScenePhase_background_whileScreensaverShown_hidesScreensaver() {
         screenManager.stayAwake = true
-        screenManager.executePreviewDim()
-        #expect(screenManager.isDimmed == true)
+        screenManager.executeScreensaverPreview()
+        #expect(screenManager.isScreensaverShown == true)
 
         screenManager.handleScenePhase(.background)
 
-        #expect(screenManager.isDimmed == false)
+        #expect(screenManager.isScreensaverShown == false)
     }
 
 }

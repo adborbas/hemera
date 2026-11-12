@@ -1,7 +1,7 @@
 import SwiftUI
 import Mortar
 
-struct DimOverlay: View {
+struct Screensaver: View {
 
     let clockFormat: ClockFormat
     @State private var showHint = true
@@ -59,14 +59,14 @@ struct DimOverlay: View {
     }
 }
 
-private extension DimOverlay {
+private extension Screensaver {
     enum Localization {
-        static let tapToWake = String(localized: "Tap to wake", comment: "Hint shown briefly on the dimmed screen to indicate the user can tap to wake the display")
+        static let tapToWake = String(localized: "Tap to wake", comment: "Hint shown briefly on the screensaver to indicate the user can tap to wake the display")
     }
 }
 
 #if DEBUG
 #Preview {
-    DimOverlay(clockFormat: .system)
+    Screensaver(clockFormat: .system)
 }
 #endif

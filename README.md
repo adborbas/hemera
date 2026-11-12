@@ -12,7 +12,7 @@
 
 **Dashboard** — Customizable tile grid with drag-and-drop reordering. Curated Home for your favorite entities and area-based browsing for everything else. Real-time state sync over WebSocket.
 
-**Display** — Stay-awake mode with configurable inactivity dimming. Full-screen clock for wall-mounted or bedside use. Configurable 12/24-hour time format.
+**Display** — Stay-awake mode with a screensaver after configurable inactivity. Full-screen clock for wall-mounted or bedside use. Configurable 12/24-hour time format.
 
 **Try before you connect** — Built-in demo mode with realistic entities across multiple rooms. No Home Assistant server required.
 

@@ -23,7 +23,7 @@ enum ClockFormat: Int, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum DimTimeout: Int, CaseIterable, Identifiable, Codable {
+enum ScreensaverTimeout: Int, CaseIterable, Identifiable, Codable {
     case thirtySeconds = 30
     case oneMinute = 60
     case fiveMinutes = 300
@@ -33,11 +33,11 @@ enum DimTimeout: Int, CaseIterable, Identifiable, Codable {
     var label: String {
         switch self {
         case .thirtySeconds:
-            String(localized: "30 Seconds", comment: "Dim timeout option for 30 seconds")
+            String(localized: "30 Seconds", comment: "Screensaver timeout option for 30 seconds")
         case .oneMinute:
-            String(localized: "1 Minute", comment: "Dim timeout option for 1 minute")
+            String(localized: "1 Minute", comment: "Screensaver timeout option for 1 minute")
         case .fiveMinutes:
-            String(localized: "5 Minutes", comment: "Dim timeout option for 5 minutes")
+            String(localized: "5 Minutes", comment: "Screensaver timeout option for 5 minutes")
         }
     }
 }
@@ -59,14 +59,14 @@ final class ScreenManager {
                 resetInactivityTimer()
             } else {
                 cancelInactivityTimer()
-                if isDimmed { wake() }
+                if isScreensaverShown { wake() }
             }
         }
     }
 
-    var dimTimeout: DimTimeout {
+    var screensaverTimeout: ScreensaverTimeout {
         didSet {
-            store.settings.dimTimeout = dimTimeout
+            store.settings.dimTimeout = screensaverTimeout
             resetInactivityTimer()
         }
     }
@@ -77,11 +77,11 @@ final class ScreenManager {
 
     // MARK: - Runtime State
 
-    private(set) var isDimmed = false
+    private(set) var isScreensaverShown = false
 
-    /// Choreography signal for the settings sheet during the preview-dim
-    /// flow. The view binds settings presentation to this signal:
-    /// - `.close`: the sheet should dismiss so a pending dim can fire.
+    /// Choreography signal for the settings sheet during the screensaver
+    /// preview flow. The view binds settings presentation to this signal:
+    /// - `.close`: the sheet should dismiss so a pending preview can fire.
     /// - `.openKioskMode`: the sheet should reopen on the kiosk route after
     ///   wake.
     /// - `.none`: no override; user-driven sheet state applies normally.
@@ -106,7 +106,7 @@ final class ScreenManager {
     init(store: any SettingsStoring) {
         self.store = store
         self.stayAwake = store.settings.stayAwake
-        self.dimTimeout = store.settings.dimTimeout
+        self.screensaverTimeout = store.settings.dimTimeout
         self.clockFormat = store.settings.clockFormat
 
         applyStayAwake()
@@ -119,25 +119,25 @@ final class ScreenManager {
 
     func resetToDefaults() {
         cancelInactivityTimer()
-        if isDimmed { wake() }
+        if isScreensaverShown { wake() }
         stayAwake = false
-        dimTimeout = .thirtySeconds
+        screensaverTimeout = .thirtySeconds
         clockFormat = .system
     }
 
-    /// Asks the view to dismiss the settings sheet so a preview-dim can
-    /// fire. The actual dim happens once the view acknowledges via
+    /// Asks the view to dismiss the settings sheet so a screensaver preview can
+    /// fire. The screensaver starts once the view acknowledges via
     /// `acknowledgeSettingsDismissed()`.
-    func requestPreviewDim() {
+    func requestScreensaverPreview() {
         settingsRequest = .close
     }
 
     /// Called by the view after the settings sheet has actually closed. If
-    /// a preview-dim was pending, it fires here.
+    /// a screensaver preview was pending, it fires here.
     func acknowledgeSettingsDismissed() {
         guard settingsRequest == .close else { return }
         settingsRequest = .none
-        executePreviewDim()
+        executeScreensaverPreview()
     }
 
     /// Called by the view after it has reopened the settings sheet for the
@@ -148,17 +148,17 @@ final class ScreenManager {
         }
     }
 
-    /// Direct entrypoint used by tests and the dim-on-wake state machine.
-    /// In production the choreography goes through `requestPreviewDim()` +
-    /// `acknowledgeSettingsDismissed()` so the sheet closes before the dim.
-    func executePreviewDim() {
+    /// Direct entrypoint used by tests and the screensaver state machine.
+    /// In production the choreography goes through `requestScreensaverPreview()` +
+    /// `acknowledgeSettingsDismissed()` so the sheet closes before the screensaver starts.
+    func executeScreensaverPreview() {
         shouldReopenSettings = true
         cancelInactivityTimer()
-        dim()
+        showScreensaver()
     }
 
     func registerUserActivity() {
-        if isDimmed {
+        if isScreensaverShown {
             wake()
         } else if stayAwake {
             resetInactivityTimer()
@@ -169,19 +169,19 @@ final class ScreenManager {
         switch phase {
         case .active:
             applyStayAwake()
-            if stayAwake && !isDimmed {
+            if stayAwake && !isScreensaverShown {
                 resetInactivityTimer()
             }
         case .background:
             cancelInactivityTimer()
-            if isDimmed {
-                isDimmed = false
+            if isScreensaverShown {
+                isScreensaverShown = false
             }
         case .inactive:
             /**
              Transient interruptions (Control Center, Notification Center,
              incoming calls) yield `.inactive` without backgrounding the app.
-             Keep the current dim state so it survives them.
+             Keep the screensaver up so it survives them.
              */
             break
         @unknown default:
@@ -189,16 +189,16 @@ final class ScreenManager {
         }
     }
 
-    // MARK: - Dim / Wake
+    // MARK: - Screensaver / Wake
 
-    private func dim() {
-        guard !isDimmed else { return }
-        isDimmed = true
+    private func showScreensaver() {
+        guard !isScreensaverShown else { return }
+        isScreensaverShown = true
     }
 
     private func wake() {
-        guard isDimmed else { return }
-        isDimmed = false
+        guard isScreensaverShown else { return }
+        isScreensaverShown = false
         if shouldReopenSettings {
             shouldReopenSettings = false
             settingsRequest = .openKioskMode
@@ -218,10 +218,10 @@ final class ScreenManager {
         cancelInactivityTimer()
         guard stayAwake else { return }
 
-        let interval = TimeInterval(dimTimeout.rawValue)
+        let interval = TimeInterval(screensaverTimeout.rawValue)
         inactivityTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
             Task { @MainActor [weak self] in
-                self?.dim()
+                self?.showScreensaver()
             }
         }
     }
