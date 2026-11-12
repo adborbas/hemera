@@ -7,6 +7,8 @@ extension EnvironmentValues {
     @Entry var isSelectedFeed = true
     /// Selects another feed in place, e.g. from an empty state pointing elsewhere.
     @Entry var openFeed: (@MainActor (FeedID) -> Void)?
+    /// A change scrolls every feed that reports its scroll back to its top.
+    @Entry var scrollToTopRequest = 0
 }
 
 extension View {
@@ -31,8 +33,10 @@ struct FeedIsEditingKey: PreferenceKey {
 
 private struct FeedScrollReporter: ViewModifier {
     @Environment(\.feedHeaderScroll) private var headerScroll
+    @Environment(\.scrollToTopRequest) private var scrollToTopRequest
     /// How far the content alone overflows, without the room added here.
     @State private var overflow: CGFloat = 0
+    @State private var position = ScrollPosition()
 
     private var extraRoom: CGFloat {
         HeaderLayout.extraScrollRoom(overflow: overflow, collapseRange: headerScroll?.snapRange ?? 0)
@@ -42,6 +46,8 @@ private struct FeedScrollReporter: ViewModifier {
         content
             .safeAreaPadding(.bottom, extraRoom)
             .scrollTargetBehavior(HeaderSnap(collapseRange: headerScroll?.snapRange ?? 0))
+            .scrollPosition($position)
+            .onChange(of: scrollToTopRequest) { position.scrollTo(edge: .top) }
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 // Top overscroll kept so a pull-down at the top reads as upward.
                 HeaderLayout.headerOffset(

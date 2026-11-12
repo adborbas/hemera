@@ -72,10 +72,11 @@ holds the exact JSON every released version writes; add a fixture per shipped sc
 an old one without a matching migration step.
 
 **Each setting has exactly one owner** — the view model or manager that exposes it to the UI
-(`ScreenManager` owns the kiosk settings; `AreasViewModel` owns `areasGroupedByFloor`). The owner
-declares it as an observable stored property and writes through in `didSet`. Two owners holding
-their own copies would diverge; if something cross-cutting ever appears, route both through one
-owner rather than reading the store twice.
+(`ScreenManager` owns the kiosk settings; `ThemeManager` owns the theme and the screensaver's Show
+Theme; `AreasViewModel` owns `areasGroupedByFloor`). The owner declares it as an observable stored
+property and writes through in `didSet`, except the theme, which changes live while edited and is
+written once on Done. Two owners holding their own copies would diverge; if something
+cross-cutting ever appears, route both through one owner rather than reading the store twice.
 
 That ownership rule is why the store needs no observation: the UI observes the owners, which are
 already `@Observable`.
@@ -202,6 +203,7 @@ collapsing header through the environment, because a parent cannot observe a nes
 may omit it. Optional channels: `.feedIsEditing(_:)` removes the header and shows the system navigation
 bar for the feed's own toolbar (Home's undo/redo/Done; gate those items on `\.isSelectedFeed`, since
 neighbour pages stay alive and share the bar), and `\.openFeed` selects another feed in place.
+The reporter also scrolls the feed to its top whenever `\.scrollToTopRequest` changes; feeds need no code for it.
 
 ## Concurrency Model
 
@@ -253,7 +255,7 @@ SwiftUI Views
 
 ```
 HemeraApp
-  └─ AppEnvironment (SwiftData container, ScreenManager)
+  └─ AppEnvironment (SwiftData container, ScreenManager, ThemeManager)
   └─ AuthManager (Keychain, token refresh)
   └─ AppRouter (destination state)
   └─ SessionManager (connects AppEnvironment + AuthManager → session objects)

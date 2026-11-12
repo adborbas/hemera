@@ -1,9 +1,11 @@
 import SwiftUI
 import Mortar
 
-struct DimOverlay: View {
+struct Screensaver: View {
 
     let clockFormat: ClockFormat
+    /// The dimmed theme to paint behind the clock; `nil` is plain black.
+    let paint: ThemePaint?
     @State private var showHint = true
 
     var body: some View {
@@ -11,6 +13,16 @@ struct DimOverlay: View {
             ZStack {
                 Color.black
                     .ignoresSafeArea()
+                if let paint {
+                    MeshGradient(
+                        width: 3,
+                        height: 3,
+                        points: ThemeMaths.meshPoints,
+                        colors: ThemeMaths.meshColors(paint.color.swiftUIColor)
+                    )
+                    .opacity(paint.alpha)
+                    .ignoresSafeArea()
+                }
 
                 VStack(spacing: Mortar.Spacing.s) {
                     Text(context.date, format: timeFormat)
@@ -19,14 +31,14 @@ struct DimOverlay: View {
                     Text(context.date, format: .dateTime.weekday(.wide).month(.abbreviated).day())
                         .font(.system(size: 22, weight: .regular, design: .rounded))
                 }
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.white.opacity(paint == nil ? 0.6 : ThemeMaths.screensaverClockOpacity))
 
                 VStack {
                     Spacer()
                     if showHint {
                         Text(Localization.tapToWake)
                             .font(.system(size: 14, weight: .regular, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(.white.opacity(paint == nil ? 0.4 : 0.6))
                             .transition(.opacity)
                             .padding(.bottom, 40)
                     }
@@ -59,14 +71,14 @@ struct DimOverlay: View {
     }
 }
 
-private extension DimOverlay {
+private extension Screensaver {
     enum Localization {
-        static let tapToWake = String(localized: "Tap to wake", comment: "Hint shown briefly on the dimmed screen to indicate the user can tap to wake the display")
+        static let tapToWake = String(localized: "Tap to wake", comment: "Hint shown briefly on the screensaver to indicate the user can tap to wake the display")
     }
 }
 
 #if DEBUG
 #Preview {
-    DimOverlay(clockFormat: .system)
+    Screensaver(clockFormat: .system, paint: nil)
 }
 #endif

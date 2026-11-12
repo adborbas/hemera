@@ -10,15 +10,19 @@ extension Bundle {
 struct SettingsView: View {
 
     @Bindable var viewModel: SettingsViewModel
+    /// Closes Settings and opens the theme editor; without it there is no Theme row.
+    var editTheme: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(ScreenManager.self) private var screenManager
     @Environment(UpdateNudge.self) private var updateNudge
     @State private var presentedUpdate: AvailableUpdate?
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
         NavigationStack(path: $viewModel.path) {
             List {
                 accountSection
+                appearanceSection
                 kioskModeSection
                 aboutSection
             }
@@ -193,6 +197,30 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var appearanceSection: some View {
+        if let editTheme {
+            Section {
+                Button(action: editTheme) {
+                    LabeledContent(Localization.theme) {
+                        HStack(spacing: Mortar.Spacing.s) {
+                            ThemeSwatch(theme: themeManager.theme)
+                            DisclosureIndicator()
+                        }
+                    }
+                }
+                .tint(.primary)
+                .disabled(themeManager.settingsAreReadOnly)
+            } header: {
+                Text(Localization.appearance)
+            } footer: {
+                if themeManager.settingsAreReadOnly {
+                    Text(Localization.appearanceReadOnly)
+                }
+            }
+        }
+    }
+
     private var kioskModeSection: some View {
         Section(Localization.kioskMode) {
             NavigationLink(value: SettingsViewModel.Route.kioskMode) {
@@ -284,8 +312,16 @@ private extension SettingsView {
             String(localized: "Log out of \(host)? This will remove all local data including your Home layout.", comment: "Alert message explaining logout will delete local data, with the server hostname")
         }
 
+        // Appearance
+        static let appearance = String(localized: "Appearance", comment: "Settings section header for the app's theme")
+        static let theme = String(localized: "Theme", comment: "Settings row that opens the theme editor")
+        static let appearanceReadOnly = String(
+            localized: "These settings were saved by a newer version of Hemera, so they can't be changed here. Update Hemera to change them.",
+            comment: "Footer under the Theme row when stored settings came from a newer build, so changes cannot be saved"
+        )
+
         // Kiosk Mode
-        static let kioskMode = String(localized: "Kiosk Mode", comment: "Settings section header and navigation link for kiosk mode (stay awake, dimming)")
+        static let kioskMode = String(localized: "Kiosk Mode", comment: "Settings section header and navigation link for kiosk mode (stay awake, screensaver)")
         static let on = String(localized: "On", comment: "Status label indicating a setting is enabled")
         static let off = String(localized: "Off", comment: "Status label indicating a setting is disabled")
 

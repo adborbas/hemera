@@ -12,6 +12,7 @@ final class AppEnvironment {
     let container: ModelContainer
     let storage: Storage
     let screenManager: ScreenManager
+    let themeManager: ThemeManager
     let updateNudge: UpdateNudge
     let settingsStore: any SettingsStoring
 
@@ -43,6 +44,7 @@ final class AppEnvironment {
         self.storage = SwiftDataStorage(context: container.mainContext)
         self.settingsStore = UserDefaultsSettingsStore()
         self.screenManager = ScreenManager(store: settingsStore)
+        self.themeManager = ThemeManager(store: settingsStore)
         self.updateNudge = UpdateNudge(
             lookup: AppStoreClient(),
             screenManager: screenManager,

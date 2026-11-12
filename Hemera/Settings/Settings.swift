@@ -8,8 +8,14 @@ struct Settings: Codable, Equatable, Sendable {
     // MARK: - Kiosk
 
     var stayAwake = false
-    var dimTimeout: DimTimeout = .thirtySeconds
+    /// Keeps its pre-"screensaver" name: the property name is the stored JSON key.
+    var dimTimeout: ScreensaverTimeout = .thirtySeconds
     var clockFormat: ClockFormat = .system
+    var screensaverShowsTheme = true
+
+    // MARK: - Theme
+
+    var theme = Theme.none
 
     // MARK: - Areas
 

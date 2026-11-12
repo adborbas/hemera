@@ -39,9 +39,12 @@ struct HemeraApp: App {
         #endif
 
         let screen = env.screenManager
+        let theme = env.themeManager
         auth.addOnChangeHandler { state, _ in
             switch state {
-            case .unauthenticated: screen.resetToDefaults()
+            case .unauthenticated:
+                screen.resetToDefaults()
+                theme.resetToDefaults()
             case .authenticated: break
             }
         }
@@ -61,6 +64,7 @@ struct HemeraApp: App {
                 .scrollIndicators(.hidden)
                 .modelContainer(environment.container)
                 .environment(environment.screenManager)
+                .environment(environment.themeManager)
                 .environment(environment.updateNudge)
                 .task { await environment.updateNudge.checkDaily() }
                 .onChange(of: environment.screenManager.stayAwake) {
