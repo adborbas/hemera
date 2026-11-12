@@ -40,4 +40,33 @@ struct ThemeTests {
         #expect(abs(position.hue - hue) < 0.0001)
         #expect(abs(position.radius - 0.6) < 0.0001)
     }
+
+    @Test(arguments: [ThemeFamily.bright, .pastel, .muted])
+    func name_ofEachColourPreset_isTheHueItWasBuiltOn(family: ThemeFamily) {
+        // VoiceOver users tell presets apart by name, so each one on a page must sound different.
+        let names = family.presets.map { family.name(of: $0) }
+
+        #expect(names == HueName.allCases.map { .hue($0) })
+    }
+
+    @Test func name_ofGreyscalePresets_isEachOnesDistinctBrightness() {
+        // Greys share no hue, so their brightness is what tells them apart, from lightest to darkest.
+        let percents = ThemeFamily.greyscale.presets.map { color -> Int in
+            guard case .brightness(let percent) = ThemeFamily.greyscale.name(of: color) else { return -1 }
+            return percent
+        }
+
+        #expect(percents == percents.sorted(by: >))
+        #expect(Set(percents).count == 8)
+        #expect(percents.allSatisfy { (15...100).contains($0) })
+    }
+
+    @Test func nearestHueName_wrapsAroundTheWheel() {
+        // The hue control speaks red on both sides of 0, not pink just below 1.
+        #expect(HueName.nearest(to: 0) == .red)
+        #expect(HueName.nearest(to: 0.98) == .red)
+        #expect(HueName.nearest(to: 1) == .red)
+        #expect(HueName.nearest(to: 0.02) == .red)
+        #expect(HueName.nearest(to: 0.9) == .pink)
+    }
 }

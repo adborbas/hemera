@@ -51,6 +51,7 @@ struct WavySlider: View {
         .frame(height: 44)
         .accessibilityRepresentation {
             Slider(value: $value, in: 0...1) { Text(label) }
+                .accessibilityValue(value.formatted(.percent.precision(.fractionLength(0))))
         }
     }
 

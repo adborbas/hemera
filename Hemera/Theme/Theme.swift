@@ -56,6 +56,11 @@ enum ThemeFamily: String, Codable, CaseIterable, Sendable {
         return Self.presetHues.map { color(hue: $0, radius: 0.8) }
     }
 
+    /// How VoiceOver tells this family's presets apart: by hue, or in greyscale by brightness.
+    func name(of color: ThemeColor) -> ThemeColorName {
+        self == .greyscale ? .brightness(percent: Int((color.brightness * 100).rounded())) : .hue(.nearest(to: color.hue))
+    }
+
     /// Index into `presets` of the preset that is `color`, if any.
     func presetIndex(matching color: ThemeColor) -> Int? {
         presets.firstIndex {
@@ -71,7 +76,7 @@ enum ThemeFamily: String, Codable, CaseIterable, Sendable {
         return narrowestFirst.min { $0.distance(to: color) < $1.distance(to: color) - 0.0001 } ?? .bright
     }
 
-    private static let presetHues = [0.0, 0.07, 0.13, 0.36, 0.5, 0.6, 0.72, 0.86]
+    private static let presetHues = HueName.allCases.map(\.hue)
 
     /// Squared sRGB distance from `color` to the nearest colour on this family's field.
     private func distance(to color: ThemeColor) -> Double {
@@ -79,6 +84,39 @@ enum ThemeFamily: String, Codable, CaseIterable, Sendable {
         let nearest = self.color(hue: position.hue, radius: position.radius)
         return zip(nearest.rgb, color.rgb).map { ($0 - $1) * ($0 - $1) }.reduce(0, +)
     }
+}
+
+/// The hues the presets are built on, named as VoiceOver speaks them.
+enum HueName: CaseIterable, Sendable {
+    case red, orange, yellow, green, teal, blue, purple, pink
+
+    var hue: Double {
+        switch self {
+        case .red: 0
+        case .orange: 0.07
+        case .yellow: 0.13
+        case .green: 0.36
+        case .teal: 0.5
+        case .blue: 0.6
+        case .purple: 0.72
+        case .pink: 0.86
+        }
+    }
+
+    /// The name whose hue is nearest to `hue` around the wheel, so 0.98 is still red.
+    static func nearest(to hue: Double) -> HueName {
+        func distance(_ name: HueName) -> Double {
+            let gap = abs(name.hue - hue).truncatingRemainder(dividingBy: 1)
+            return min(gap, 1 - gap)
+        }
+        return allCases.min { distance($0) < distance($1) } ?? .red
+    }
+}
+
+/// What a preset is called, before it is put into words.
+enum ThemeColorName: Hashable, Sendable {
+    case hue(HueName)
+    case brightness(percent: Int)
 }
 
 // MARK: - Codable

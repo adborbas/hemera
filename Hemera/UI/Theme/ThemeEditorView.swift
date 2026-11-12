@@ -9,6 +9,8 @@ struct ThemeEditorView: View {
     let done: () -> Void
 
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var family: ThemeFamily
     /// Where the field's handle sits; kept across pages so the greyscale page doesn't lose the hue.
@@ -24,7 +26,7 @@ struct ThemeEditorView: View {
 
     private static let space = "themePanel"
 
-    private enum Control { case dotField, slider }
+    private enum Control: CaseIterable { case dotField, slider }
 
     /// `theme` is what the editor opens on: its family's page, or the nearest one when it has none.
     init(theme: Theme, isDrawer: Bool, cancel: @escaping () -> Void, done: @escaping () -> Void) {
@@ -64,26 +66,41 @@ struct ThemeEditorView: View {
     /// One shape that contracts from the whole panel to a plate around the held control, and back.
     private var panel: some View {
         GeometryReader { proxy in
-            let plate = active.flatMap { frames[$0] }.map { $0.insetBy(dx: -Self.inset($0), dy: -Self.inset($0)) }
-            let rect = plate ?? CGRect(origin: .zero, size: proxy.size)
-            let round = plate.map { min($0.width, $0.height) / 2 } ?? Mortar.Radii.xl
-            UnevenRoundedRectangle(
-                topLeadingRadius: round,
-                bottomLeadingRadius: isDrawer && plate == nil ? 0 : round,
-                bottomTrailingRadius: isDrawer && plate == nil ? 0 : round,
-                topTrailingRadius: round,
-                style: .continuous
-            )
-            .fill(Self.panelBackground)
-            .shadow(color: .black.opacity(plate == nil ? 0 : 0.18), radius: 16, y: 4)
-            .frame(width: rect.width, height: rect.height)
-            .position(x: rect.midX, y: rect.midY)
+            let whole = CGRect(origin: .zero, size: proxy.size)
+            if reduceMotion {
+                // Cross-fades the panel and each control's plate instead of morphing between them.
+                panelShape(whole, isPlate: false).opacity(active == nil ? 1 : 0)
+                ForEach(Control.allCases, id: \.self) { control in
+                    if let frame = frames[control] {
+                        panelShape(Self.plate(around: frame), isPlate: true).opacity(active == control ? 1 : 0)
+                    }
+                }
+            } else {
+                let plate = active.flatMap { frames[$0] }.map(Self.plate(around:))
+                panelShape(plate ?? whole, isPlate: plate != nil)
+            }
         }
     }
 
+    private func panelShape(_ rect: CGRect, isPlate: Bool) -> some View {
+        let round = isPlate ? min(rect.width, rect.height) / 2 : Mortar.Radii.xl
+        return UnevenRoundedRectangle(
+            topLeadingRadius: round,
+            bottomLeadingRadius: isDrawer && !isPlate ? 0 : round,
+            bottomTrailingRadius: isDrawer && !isPlate ? 0 : round,
+            topTrailingRadius: round,
+            style: .continuous
+        )
+        .fill(Self.panelBackground)
+        .shadow(color: .black.opacity(isPlate ? 0.18 : 0), radius: 16, y: 4)
+        .frame(width: rect.width, height: rect.height)
+        .position(x: rect.midX, y: rect.midY)
+    }
+
     /// The slider's plate hugs it more tightly than the round field's.
-    private static func inset(_ frame: CGRect) -> CGFloat {
-        frame.height < 100 ? Mortar.Spacing.s : Mortar.Spacing.m
+    private static func plate(around frame: CGRect) -> CGRect {
+        let inset = frame.height < 100 ? Mortar.Spacing.s : Mortar.Spacing.m
+        return frame.insetBy(dx: -inset, dy: -inset)
     }
 
     private var controls: some View {
@@ -112,6 +129,7 @@ struct ThemeEditorView: View {
                 onActive: { setActive(.dotField, $0) }
             )
             .frame(width: 220, height: 220)
+            .accessibilityRepresentation { fieldAdjustables }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.space)) } action: { frames[.dotField] = $0 }
             .opacity(opacity(for: .dotField))
             .animation(contentFade, value: active)
@@ -150,6 +168,7 @@ struct ThemeEditorView: View {
                 Button { themeManager.chooseNone() } label: { ThemeSwatch(color: nil, isSelected: gradient == nil) }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Localization.none)
+                    .accessibilityAddTraits(gradient == nil ? .isSelected : [])
                 Divider().frame(height: 26)
                 TabView(selection: $family) {
                     ForEach(ThemeFamily.allCases, id: \.self) { family in
@@ -166,6 +185,14 @@ struct ThemeEditorView: View {
                         .frame(width: 6, height: 6)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Localization.colourFamily)
+            .accessibilityValue(Localization.name(of: family))
+            .accessibilityAdjustableAction { direction in
+                let all = ThemeFamily.allCases, index = all.firstIndex(of: family) ?? 0
+                let next = direction == .increment ? index + 1 : index - 1
+                if all.indices.contains(next) { withAnimation { family = all[next] } }
+            }
         }
         .padding(.horizontal, Mortar.Spacing.l)
     }
@@ -180,6 +207,42 @@ struct ThemeEditorView: View {
                     ThemeSwatch(color: preset.swiftUIColor, isSelected: index == selected)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Localization.preset(family: family, name: family.name(of: preset)))
+                .accessibilityAddTraits(index == selected ? .isSelected : [])
+            }
+        }
+    }
+
+    /// The field as VoiceOver meets it: Hue and Saturation, or one Brightness in greyscale.
+    @ViewBuilder private var fieldAdjustables: some View {
+        let hue = position.hue, radius = position.radius
+        VStack {
+            if family == .greyscale {
+                let brightness = family.color(hue: hue, radius: radius).brightness
+                Color.clear
+                    .accessibilityElement()
+                    .accessibilityLabel(Localization.brightness)
+                    .accessibilityValue(brightness.formatted(.percent.precision(.fractionLength(0))))
+                    .accessibilityAdjustableAction { direction in
+                        // Brightness rises towards the centre of the greyscale field.
+                        pick((hue, min(max(radius + (direction == .increment ? -0.1 : 0.1), 0), 1)), select: true)
+                    }
+            } else {
+                Color.clear
+                    .accessibilityElement()
+                    .accessibilityLabel(Localization.hue)
+                    .accessibilityValue(Localization.hueValue(hue))
+                    .accessibilityAdjustableAction { direction in
+                        let step = direction == .increment ? 1.0 / 24 : -1.0 / 24
+                        pick(((hue + step + 1).truncatingRemainder(dividingBy: 1), radius), select: true)
+                    }
+                Color.clear
+                    .accessibilityElement()
+                    .accessibilityLabel(Localization.saturation)
+                    .accessibilityValue(radius.formatted(.percent.precision(.fractionLength(0))))
+                    .accessibilityAdjustableAction { direction in
+                        pick((hue, min(max(radius + (direction == .increment ? 0.1 : -0.1), 0), 1)), select: true)
+                    }
             }
         }
     }
@@ -200,7 +263,7 @@ struct ThemeEditorView: View {
     private func setActive(_ control: Control, _ isTouching: Bool) {
         activation?.cancel()
         // iPad has room to spare, so its card never hides.
-        guard isTouching, isDrawer else { return active = nil }
+        guard isTouching, isDrawer, !voiceOverEnabled else { return active = nil }
         activation = Task {
             try? await Task.sleep(for: .milliseconds(200))
             if !Task.isCancelled { active = control }
@@ -219,5 +282,57 @@ private extension ThemeEditorView {
         static let done = String(localized: "Done", comment: "Keeps theme changes and leaves the theme editor")
         static let none = String(localized: "None", comment: "Swatch that turns the theme background off")
         static let intensity = String(localized: "Intensity", comment: "Slider for how strong the theme colours are")
+        static let hue = String(localized: "Hue", comment: "VoiceOver label of the theme colour's hue control")
+        static let saturation = String(
+            localized: "Saturation",
+            comment: "VoiceOver label of the theme colour's saturation control"
+        )
+        static let brightness = String(
+            localized: "Brightness",
+            comment: "VoiceOver label of the greyscale theme colour's brightness control"
+        )
+        static let colourFamily = String(
+            localized: "Colour family",
+            comment: "VoiceOver label of the theme editor's page control; its value is a family such as Pastel"
+        )
+
+        static func hueValue(_ hue: Double) -> String {
+            let colour = name(of: .hue(.nearest(to: hue)))
+            let degrees = Int((hue * 360).rounded()) % 360
+            return String(
+                localized: "\(colour), \(degrees) degrees",
+                comment: "VoiceOver value of the theme hue control: nearest colour name, then the angle, e.g. Orange, 25 degrees"
+            )
+        }
+
+        static func preset(family: ThemeFamily, name colorName: ThemeColorName) -> String {
+            String(
+                localized: "\(name(of: family)) \(name(of: colorName))",
+                comment: "VoiceOver label of a theme preset swatch: family, then colour, e.g. Pastel Blue or Greyscale 44%"
+            )
+        }
+
+        static func name(of colorName: ThemeColorName) -> String {
+            switch colorName {
+            case .hue(.red): String(localized: "Red", comment: "Name of a theme colour hue")
+            case .hue(.orange): String(localized: "Orange", comment: "Name of a theme colour hue")
+            case .hue(.yellow): String(localized: "Yellow", comment: "Name of a theme colour hue")
+            case .hue(.green): String(localized: "Green", comment: "Name of a theme colour hue")
+            case .hue(.teal): String(localized: "Teal", comment: "Name of a theme colour hue")
+            case .hue(.blue): String(localized: "Blue", comment: "Name of a theme colour hue")
+            case .hue(.purple): String(localized: "Purple", comment: "Name of a theme colour hue")
+            case .hue(.pink): String(localized: "Pink", comment: "Name of a theme colour hue")
+            case .brightness(let percent): (Double(percent) / 100).formatted(.percent.precision(.fractionLength(0)))
+            }
+        }
+
+        static func name(of family: ThemeFamily) -> String {
+            switch family {
+            case .bright: String(localized: "Bright", comment: "Family of vivid theme colours")
+            case .pastel: String(localized: "Pastel", comment: "Family of pale theme colours")
+            case .muted: String(localized: "Muted", comment: "Family of dark, subdued theme colours")
+            case .greyscale: String(localized: "Greyscale", comment: "Family of grey theme colours")
+            }
+        }
     }
 }
