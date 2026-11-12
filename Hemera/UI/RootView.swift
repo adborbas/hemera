@@ -6,6 +6,7 @@ struct RootView: View {
     let router: AppRouter
     let authManager: AuthManager
     @Environment(ScreenManager.self) private var screenManager
+    @Environment(ThemeManager.self) private var themeManager
     #if DEBUG
     @State private var showDebugPanel = false
     #endif
@@ -43,7 +44,11 @@ struct RootView: View {
             WindowActivityTracker {
                 screenManager.registerUserActivity()
             }
-            ScreensaverWindowInstaller(screenManager: screenManager, isScreensaverShown: screenManager.isScreensaverShown)
+            ScreensaverWindowInstaller(
+                screenManager: screenManager,
+                themeManager: themeManager,
+                isScreensaverShown: screenManager.isScreensaverShown
+            )
         }
         .statusBarHidden(screenManager.isScreensaverShown)
         .animation(.easeInOut(duration: 0.3), value: screenManager.isScreensaverShown)
@@ -132,11 +137,13 @@ private class ActivityTrackingGestureRecognizer: UIGestureRecognizer, UIGestureR
 /// it renders on top of sheets and other modal presentations.
 private struct ScreensaverWindowInstaller: UIViewRepresentable {
     let screenManager: ScreenManager
+    let themeManager: ThemeManager
     let isScreensaverShown: Bool
 
     func makeUIView(context: Context) -> ScreensaverInstallerView {
         let view = ScreensaverInstallerView()
         view.screenManager = screenManager
+        view.themeManager = themeManager
         view.isUserInteractionEnabled = false
         return view
     }
@@ -148,19 +155,20 @@ private struct ScreensaverWindowInstaller: UIViewRepresentable {
 
 private class ScreensaverInstallerView: UIView {
     var screenManager: ScreenManager?
+    var themeManager: ThemeManager?
     private var screensaverWindow: ScreensaverWindow?
     private var hostingController: ScreensaverHostingController?
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if let windowScene = window?.windowScene, screensaverWindow == nil, let screenManager {
+        if let windowScene = window?.windowScene, screensaverWindow == nil, let screenManager, let themeManager {
             let w = ScreensaverWindow(windowScene: windowScene)
             w.screenManager = screenManager
             w.windowLevel = .alert + 1
             w.backgroundColor = .clear
 
             let host = ScreensaverHostingController(
-                rootView: ScreensaverWindowContent(screenManager: screenManager)
+                rootView: ScreensaverWindowContent(screenManager: screenManager, themeManager: themeManager)
             )
             host.view.backgroundColor = .clear
             w.rootViewController = host
@@ -204,11 +212,12 @@ private final class ScreensaverWindow: UIWindow {
 
 private struct ScreensaverWindowContent: View {
     let screenManager: ScreenManager
+    let themeManager: ThemeManager
 
     var body: some View {
         ZStack {
             if screenManager.isScreensaverShown {
-                Screensaver(clockFormat: screenManager.clockFormat)
+                Screensaver(clockFormat: screenManager.clockFormat, paint: paint)
                     .transition(.opacity)
                     .onTapGesture {
                         screenManager.registerUserActivity()
@@ -216,5 +225,10 @@ private struct ScreensaverWindowContent: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: screenManager.isScreensaverShown)
+    }
+
+    private var paint: ThemePaint? {
+        guard themeManager.screensaverShowsTheme, case .gradient(let gradient) = themeManager.theme else { return nil }
+        return gradient.screensaverPainted
     }
 }
