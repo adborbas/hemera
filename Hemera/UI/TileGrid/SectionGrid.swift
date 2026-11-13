@@ -52,6 +52,7 @@ struct SectionGrid<Content: View>: View {
                 }
             }
         }
+        .sensoryFeedback(.impact(weight: .medium), trigger: snapshot.draggingID) { _, new in new != nil }
         .onChange(of: columns) { _, newColumns in
             engine = TileGridEngine(columns: newColumns, tiles: tiles)
         }
@@ -138,7 +139,7 @@ struct SectionGrid<Content: View>: View {
                 .scaleEffect(isDragging ? 1.03 : 1.0)
                 .shadow(radius: isDragging ? 8 : 0)
                 .zIndex(isDragging ? 1 : 0)
-                .highPriorityGesture(dragGesture(for: placement.id, metrics: metrics))
+                .gesture(dragGesture(for: placement.id, metrics: metrics))
                 .allowsHitTesting(snapshot.draggingID == nil || isDragging)
                 .transition(animatesTileChanges ? .opacity : .identity)
         }
@@ -159,77 +160,75 @@ struct SectionGrid<Content: View>: View {
 
     // MARK: - Drag Handling
 
-    private func dragGesture(for tileID: Tile.ID, metrics: GridMetrics) -> some Gesture {
-        DragGesture(minimumDistance: isEditing ? 10 : .infinity)
-            .onChanged { value in
-                guard isEditing else { return }
-                if engine?.draggingID == nil {
-                    // Begin drag - capture original placements for hit-testing
-                    let snapshot = engine?.snapshot()
-                    hitTestPlacements = snapshot?.placements
-                    engine?.beginDrag(tileID: tileID)
+    private func dragGesture(for tileID: Tile.ID, metrics: GridMetrics) -> PressThenDragGesture {
+        PressThenDragGesture(isEnabled: isEditing) {
+            guard isEditing else { return }
+            // Begin drag - capture original placements for hit-testing
+            let snapshot = engine?.snapshot()
+            hitTestPlacements = snapshot?.placements
+            engine?.beginDrag(tileID: tileID)
 
-                    // Compute initial center for the dragged tile
-                    if let placement = snapshot?.placements.first(where: { $0.id == tileID }) {
-                        let origin = metrics.origin(for: placement)
-                        let size = metrics.size(for: placement)
-                        dragStartCenter = CGPoint(
-                            x: origin.x + size.width / 2,
-                            y: origin.y + size.height / 2
-                        )
+            // Compute initial center for the dragged tile
+            if let placement = snapshot?.placements.first(where: { $0.id == tileID }) {
+                let origin = metrics.origin(for: placement)
+                let size = metrics.size(for: placement)
+                dragStartCenter = CGPoint(
+                    x: origin.x + size.width / 2,
+                    y: origin.y + size.height / 2
+                )
+            }
+        } onMove: { translation in
+            guard isEditing else { return }
+
+            dragOffset = translation
+
+            // Find which tile we're hovering over
+            if let dragStartCenter {
+                let dragCenter = CGPoint(
+                    x: dragStartCenter.x + translation.width,
+                    y: dragStartCenter.y + translation.height
+                )
+
+                let targetID = findTileAt(point: dragCenter, excluding: tileID, metrics: metrics)
+
+                // Only call hover when target actually changes
+                if targetID != lastHoverTargetID {
+                    lastHoverTargetID = targetID
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        engine?.hover(over: targetID)
                     }
-                }
 
-                dragOffset = value.translation
-
-                // Find which tile we're hovering over
-                if let dragStartCenter {
-                    let dragCenter = CGPoint(
-                        x: dragStartCenter.x + value.translation.width,
-                        y: dragStartCenter.y + value.translation.height
-                    )
-
-                    let targetID = findTileAt(point: dragCenter, excluding: tileID, metrics: metrics)
-
-                    // Only call hover when target actually changes
-                    if targetID != lastHoverTargetID {
-                        lastHoverTargetID = targetID
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            engine?.hover(over: targetID)
-                        }
-
-                        // Update hit-test positions to match new layout
-                        if let newSnapshot = engine?.snapshot() {
-                            hitTestPlacements = newSnapshot.placements
-                        }
+                    // Update hit-test positions to match new layout
+                    if let newSnapshot = engine?.snapshot() {
+                        hitTestPlacements = newSnapshot.placements
                     }
                 }
             }
-            .onEnded { _ in
-                guard isEditing else { return }
+        } onDrop: {
+            guard engine?.draggingID != nil else { return }
 
-                // Capture pre-reorder order for undo
-                let previousOrder = tiles.map(\.id)
+            // Capture pre-reorder order for undo
+            let previousOrder = tiles.map(\.id)
 
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-                    // Commit the reorder
-                    engine?.endDrag(commit: true)
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                // Commit the reorder
+                engine?.endDrag(commit: true)
 
-                    // Sync back to binding
-                    if let newTiles = engine?.tiles {
-                        let reordered = newTiles.map(\.id) != previousOrder
-                        tiles = newTiles
-                        if reordered {
-                            onReorder?(previousOrder)
-                        }
+                // Sync back to binding
+                if let newTiles = engine?.tiles {
+                    let reordered = newTiles.map(\.id) != previousOrder
+                    tiles = newTiles
+                    if reordered {
+                        onReorder?(previousOrder)
                     }
                 }
-
-                dragOffset = .zero
-                dragStartCenter = nil
-                hitTestPlacements = nil
-                lastHoverTargetID = nil
             }
+
+            dragOffset = .zero
+            dragStartCenter = nil
+            hitTestPlacements = nil
+            lastHoverTargetID = nil
+        }
     }
 
     /// Find which tile (if any) is at the given point.
@@ -250,6 +249,50 @@ struct SectionGrid<Content: View>: View {
         }
 
         return nil
+    }
+}
+
+// MARK: - Press Then Drag
+
+/// A UIKit long press, so the scroll view pans when the finger moves before the press is held.
+struct PressThenDragGesture: UIGestureRecognizerRepresentable {
+    let isEnabled: Bool
+    let onLift: () -> Void
+    let onMove: (CGSize) -> Void
+    let onDrop: () -> Void
+
+    final class Coordinator {
+        var start: CGPoint = .zero
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+        let recognizer = UILongPressGestureRecognizer()
+        recognizer.minimumPressDuration = 0.25
+        return recognizer
+    }
+
+    func updateUIGestureRecognizer(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        recognizer.isEnabled = isEnabled
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        let location = context.converter.location(in: .global)
+        switch recognizer.state {
+        case .began:
+            context.coordinator.start = location
+            onLift()
+        case .changed:
+            let start = context.coordinator.start
+            onMove(CGSize(width: location.x - start.x, height: location.y - start.y))
+        case .ended, .cancelled, .failed:
+            onDrop()
+        default:
+            break
+        }
     }
 }
 
