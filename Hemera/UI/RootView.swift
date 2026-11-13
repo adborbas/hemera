@@ -15,7 +15,7 @@ struct RootView: View {
         Group {
             switch router.destination {
             case .onboarding:
-                OnboardingFlow(sessionExpiredMessage: router.sessionExpiredMessage)
+                OnboardingFlow()
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             case .connecting:
                 ConnectingView(viewModel: ConnectingViewModel())
