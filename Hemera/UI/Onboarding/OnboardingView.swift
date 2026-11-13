@@ -9,11 +9,20 @@ struct OnboardingView: View {
     init() {
         let serverSelection = ServerSelectionViewModel()
         _serverSelection = State(initialValue: serverSelection)
-        _coordinator = State(initialValue: OnboardingCoordinator(connection: serverSelection))
+        _coordinator = State(initialValue: OnboardingCoordinator(
+            connection: serverSelection,
+            authManager: ServiceLocator.shared.authManager,
+            router: ServiceLocator.shared.router
+        ))
     }
 
     var body: some View {
-        OnboardingContainer(coordinator: coordinator, title: title, subtitle: subtitle) {
+        OnboardingContainer(
+            coordinator: coordinator,
+            title: title,
+            subtitle: subtitle,
+            fillsWidth: coordinator.contentPage == .home
+        ) {
             switch coordinator.contentPage {
             case .server, .login:
                 ServerListView(
@@ -23,6 +32,14 @@ struct OnboardingView: View {
                 )
             case .manualAddress:
                 ServerAddressView(handler: serverSelection, placement: .external)
+            case .home:
+                if let home = coordinator.home {
+                    OnboardingHomeStep(home: home, isLoaded: coordinator.isHomeLoaded)
+                }
+            }
+        } titleAccessory: {
+            if coordinator.contentPage == .home, let home = coordinator.home {
+                OnboardingHomeHistory(home: home)
             }
         }
         // Every way of connecting (a server, Connect, Return, the HTTP warning) ends here.
@@ -38,7 +55,16 @@ struct OnboardingView: View {
                     session: session,
                     onCallback: { callbackURL in
                         await serverSelection.handleOAuthCallback(url: callbackURL, session: session)
-                        if serverSelection.errorMessage != nil { coordinator.loginCancelled() }
+                        if serverSelection.errorMessage != nil {
+                            coordinator.loginCancelled()
+                        } else if let session = ServiceLocator.shared.session {
+                            coordinator.loggedIn(home: CuratedHomeViewModel(
+                                homeTileRepository: session.homeTileRepository,
+                                viewModelFactory: session.viewModelFactory,
+                                authManager: ServiceLocator.shared.authManager,
+                                demoCoordinator: ServiceLocator.shared.demoCoordinator
+                            ))
+                        }
                     },
                     onFailure: {
                         serverSelection.authSessionFailed()
@@ -64,6 +90,14 @@ struct OnboardingView: View {
         } message: { url in
             Text(Localization.unencryptedMessage(url.absoluteString))
         }
+        .alert(
+            Localization.logOutTitle(coordinator.serverHost),
+            isPresented: Binding(get: { coordinator.isConfirmingLogOut }, set: { if !$0 { coordinator.cancelLogOut() } })
+        ) {
+            Button(Localization.logOut, role: .destructive, action: coordinator.logOut)
+                .accessibilityIdentifier("onboardingLogOut")
+            Button(Localization.cancel, role: .cancel, action: coordinator.cancelLogOut)
+        }
         // The address page shows its own errors under the field.
         .alert(
             Localization.connectionFailedTitle,
@@ -82,6 +116,7 @@ struct OnboardingView: View {
         switch coordinator.contentPage {
         case .server, .login: Localization.serverTitle
         case .manualAddress: Localization.manualAddressTitle
+        case .home: Localization.homeTitle
         }
     }
 
@@ -89,6 +124,7 @@ struct OnboardingView: View {
         switch coordinator.contentPage {
         case .server, .login: Localization.serverSubtitle
         case .manualAddress: Localization.manualAddressSubtitle
+        case .home: Localization.homeSubtitle
         }
     }
 }
@@ -110,6 +146,18 @@ private extension OnboardingView {
             localized: "The address you use to open Home Assistant, like homeassistant.local:8123.",
             comment: "Subtitle of the onboarding page for typing a Home Assistant address"
         )
+        static let homeTitle = String(localized: "Your Home", comment: "Title of the onboarding step for arranging Home")
+        static let homeSubtitle = String(
+            localized: "We've picked a few to get you started. Remove, resize or rearrange them.",
+            comment: "Subtitle of the onboarding step for arranging Home, which starts with suggested tiles"
+        )
+        static func logOutTitle(_ host: String) -> String {
+            String(
+                localized: "Log out of \(host)?",
+                comment: "Title of the alert shown on Back from the onboarding Home step. The placeholder is a server host name"
+            )
+        }
+        static let logOut = String(localized: "Log Out", comment: "Alert button logging out and returning to the onboarding server list")
         static let connectionFailedTitle = String(localized: "Couldn’t Connect", comment: "Alert title shown when connecting to a Home Assistant server fails during onboarding")
         static let ok = String(localized: "OK", comment: "Button dismissing the connection-failure alert")
         static let cancel = String(localized: "Cancel", comment: "Button to cancel the current action")

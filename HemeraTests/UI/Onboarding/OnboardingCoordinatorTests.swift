@@ -1,15 +1,28 @@
 import Foundation
+import SwiftData
 import Testing
+import TileGridEngine
 @testable import Hemera
 
 @MainActor
 struct OnboardingCoordinatorTests {
 
     private let connection = SpyServerConnection()
+    private let authManager = MockAuthManager()
+    private let router = SpyOnboardingRouter()
+    private let tileRepository = MockHomeTileRepository()
+    private let home: CuratedHomeViewModel
     private let coordinator: OnboardingCoordinator
 
-    init() {
-        coordinator = OnboardingCoordinator(connection: connection)
+    init() throws {
+        let container = try ModelContainer(for: HomeTile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        home = CuratedHomeViewModel(
+            homeTileRepository: tileRepository,
+            viewModelFactory: ViewModelFactory(context: container.mainContext, container: container),
+            authManager: authManager,
+            demoCoordinator: MockDemoCoordinator()
+        )
+        coordinator = OnboardingCoordinator(connection: connection, authManager: authManager, router: router)
     }
 
     // MARK: - Page Order
@@ -18,6 +31,7 @@ struct OnboardingCoordinatorTests {
     func pages_areOrderedAsTheUserMeetsThem() {
         #expect(OnboardingCoordinator.Page.server < .manualAddress)
         #expect(OnboardingCoordinator.Page.manualAddress < .login)
+        #expect(OnboardingCoordinator.Page.login < .home)
     }
 
     @Test
@@ -25,11 +39,12 @@ struct OnboardingCoordinatorTests {
         #expect(OnboardingCoordinator.Page.server.progress == 1)
         #expect(OnboardingCoordinator.Page.manualAddress.progress == 1.5)
         #expect(OnboardingCoordinator.Page.login.progress == 2)
+        #expect(OnboardingCoordinator.Page.home.progress == 3)
     }
 
     @Test
-    func progress_login_fillsTheBar() {
-        #expect(OnboardingCoordinator.Page.login.progress == Double(OnboardingCoordinator.stepCount))
+    func progress_home_fillsTheBar() {
+        #expect(OnboardingCoordinator.Page.home.progress == Double(OnboardingCoordinator.stepCount))
     }
 
     // MARK: - Server
@@ -190,7 +205,139 @@ struct OnboardingCoordinatorTests {
     }
 }
 
+// MARK: - Home
+
+extension OnboardingCoordinatorTests {
+
+    private func loggedInFromServer() {
+        coordinator.loginOpened()
+        coordinator.loggedIn(home: home)
+    }
+
+    private func seedTwoTiles() -> [Tile] {
+        let tiles = [Tile(id: UUID(), title: "Lamp", size: .small), Tile(id: UUID(), title: "Blind", size: .small)]
+        home.enterEditMode(seed: [(tiles[0], "light.lamp"), (tiles[1], "cover.blind")])
+        return tiles
+    }
+
+    @Test
+    func loggedIn_pushesTheHomeStepAndClosesTheSheet() {
+        loggedInFromServer()
+        #expect(coordinator.page == .home)
+        #expect(coordinator.contentPage == .home)
+        #expect(coordinator.progress == 3)
+        #expect(coordinator.isForward)
+        #expect(coordinator.home === home)
+    }
+
+    @Test
+    func loggedIn_fromManualAddress_pushesTheHomeStep() {
+        coordinator.enterAddressManually()
+        coordinator.loginOpened()
+        coordinator.loggedIn(home: home)
+        #expect(coordinator.page == .home)
+        #expect(coordinator.canGoBack)
+    }
+
+    /// Finishing before the sync would land on an empty Home that then fills on its own.
+    @Test
+    func bottomButton_onHome_isFinishAndWaitsForTheSync() {
+        loggedInFromServer()
+        #expect(coordinator.bottomButton?.title == "Finish")
+        #expect(coordinator.bottomButton?.isEnabled == false)
+        router.isSessionReady = true
+        #expect(coordinator.bottomButton?.isEnabled == true)
+    }
+
+    @Test
+    func bottomButtonTapped_onHomeBeforeTheSync_staysOnTheStep() async {
+        loggedInFromServer()
+        await coordinator.bottomButtonTapped()
+        #expect(router.navigations.isEmpty)
+        #expect(tileRepository.commitLayoutCalls.isEmpty)
+    }
+
+    @Test
+    func bottomButtonTapped_onHome_savesTheEditsAndOpensTheApp() async {
+        loggedInFromServer()
+        let tiles = seedTwoTiles()
+        home.removeTile(tiles[0])
+        home.resizeTile(tiles[1], to: .medium)
+        router.isSessionReady = true
+
+        await coordinator.bottomButtonTapped()
+
+        #expect(tileRepository.removeFromHomeCalls == ["light.lamp"])
+        #expect(tileRepository.commitLayoutCalls.first?.map(\.entityId) == ["cover.blind"])
+        #expect(tileRepository.commitLayoutCalls.first?.first?.size == .medium)
+        #expect(router.navigations == [.authenticated])
+        #expect(connection.submitCallCount == 0)
+    }
+
+    @Test
+    func back_onHome_asksBeforeLoggingOut() {
+        loggedInFromServer()
+        coordinator.back()
+        #expect(coordinator.isConfirmingLogOut)
+        #expect(coordinator.page == .home)
+        #expect(authManager.logoutCallCount == 0)
+    }
+
+    @Test
+    func cancelLogOut_staysOnHome() {
+        loggedInFromServer()
+        coordinator.back()
+        coordinator.cancelLogOut()
+        #expect(coordinator.isConfirmingLogOut == false)
+        #expect(coordinator.page == .home)
+        #expect(authManager.logoutCallCount == 0)
+    }
+
+    @Test
+    func logOut_logsOutAndStartsAgainOnServer() {
+        coordinator.enterAddressManually()
+        coordinator.loginOpened()
+        coordinator.loggedIn(home: home)
+        _ = seedTwoTiles()
+        coordinator.back()
+
+        coordinator.logOut()
+
+        #expect(authManager.logoutCallCount == 1)
+        #expect(coordinator.isConfirmingLogOut == false)
+        #expect(coordinator.page == .server)
+        #expect(coordinator.contentPage == .server)
+        #expect(coordinator.progress == 1)
+        #expect(coordinator.isForward == false)
+        #expect(coordinator.home == nil)
+        #expect(connection.cancelAuthCallCount == 1)
+        #expect(connection.abandonConnectionCallCount == 1)
+        #expect(tileRepository.commitLayoutCalls.isEmpty)
+        #expect(router.navigations.isEmpty)
+    }
+
+    @Test
+    func serverHost_namesTheLoggedInServer() {
+        authManager.credentials = ServerCredentials(
+            serverURL: URL(string: "https://ha.example.com:8123")!,
+            accessToken: "token",
+            refreshToken: "refresh",
+            tokenExpiresAt: .distantFuture,
+            clientId: "client"
+        )
+        #expect(coordinator.serverHost == "ha.example.com")
+    }
+}
+
 // MARK: - Spy
+
+@MainActor
+private final class SpyOnboardingRouter: OnboardingRouting {
+    var isSessionReady = false
+    var navigations: [AppRouter.Destination] = []
+
+    func navigate(to destination: AppRouter.Destination) { navigations.append(destination) }
+}
 
 @Observable
 @MainActor

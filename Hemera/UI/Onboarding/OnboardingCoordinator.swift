@@ -10,6 +10,15 @@ protocol OnboardingServerConnecting: ServerAddressHandling {
 
 extension ServerSelectionViewModel: OnboardingServerConnecting {}
 
+/// How onboarding learns the first sync finished, and hands the root to the main app.
+@MainActor
+protocol OnboardingRouting: AnyObject {
+    var isSessionReady: Bool { get }
+    func navigate(to destination: AppRouter.Destination)
+}
+
+extension AppRouter: OnboardingRouting {}
+
 /// Owns onboarding's flow: which page shows, the progress, Back and the bottom button.
 @Observable
 @MainActor
@@ -20,6 +29,7 @@ final class OnboardingCoordinator {
         case server
         case manualAddress
         case login
+        case home
 
         static func < (lhs: Page, rhs: Page) -> Bool { lhs.rawValue < rhs.rawValue }
 
@@ -29,6 +39,7 @@ final class OnboardingCoordinator {
             case .server: 1
             case .manualAddress: 1.5
             case .login: 2
+            case .home: 3
             }
         }
     }
@@ -39,7 +50,7 @@ final class OnboardingCoordinator {
         let isLoading: Bool
     }
 
-    static let stepCount = 2
+    static let stepCount = 3
 
     // MARK: - Properties
 
@@ -47,13 +58,20 @@ final class OnboardingCoordinator {
     /// The page behind the login sheet while it is open, otherwise `page`.
     private(set) var contentPage: Page = .server
     private(set) var isForward = true
+    /// The Home step's editor, set by the login that opens the step.
+    private(set) var home: CuratedHomeViewModel?
+    private(set) var isConfirmingLogOut = false
 
     private let connection: any OnboardingServerConnecting
+    private let authManager: any AuthManaging
+    private let router: any OnboardingRouting
 
     // MARK: - Init
 
-    init(connection: any OnboardingServerConnecting) {
+    init(connection: any OnboardingServerConnecting, authManager: any AuthManaging, router: any OnboardingRouting) {
         self.connection = connection
+        self.authManager = authManager
+        self.router = router
     }
 
     // MARK: - Public Methods
@@ -62,19 +80,30 @@ final class OnboardingCoordinator {
 
     var canGoBack: Bool { contentPage != .server }
 
+    var isHomeLoaded: Bool { router.isSessionReady }
+
+    var serverHost: String { authManager.credentials?.serverURL.host() ?? "" }
+
     /// `nil` hides the button.
     var bottomButton: BottomButton? {
-        guard contentPage == .manualAddress else { return nil }
-        return BottomButton(
-            title: connection.mode.actionTitle,
-            isEnabled: connection.canSubmit,
-            isLoading: connection.isBusy
-        )
+        switch contentPage {
+        case .manualAddress:
+            BottomButton(title: connection.mode.actionTitle, isEnabled: connection.canSubmit, isLoading: connection.isBusy)
+        case .home:
+            BottomButton(title: Localization.finish, isEnabled: isHomeLoaded, isLoading: false)
+        case .server, .login:
+            nil
+        }
     }
 
     func bottomButtonTapped() async {
         guard bottomButton?.isEnabled == true else { return }
-        _ = await connection.submit()
+        if contentPage == .home {
+            home?.exitEditMode(commit: true)
+            router.navigate(to: .authenticated)
+        } else {
+            _ = await connection.submit()
+        }
     }
 
     func enterAddressManually() {
@@ -95,6 +124,25 @@ final class OnboardingCoordinator {
         page = contentPage
     }
 
+    func loggedIn(home: CuratedHomeViewModel) {
+        self.home = home
+        show(.home)
+    }
+
+    /// Logging out wipes the Home, so nothing is saved.
+    func logOut() {
+        isConfirmingLogOut = false
+        home = nil
+        connection.cancelAuth()
+        connection.abandonConnection()
+        authManager.logout()
+        show(.server)
+    }
+
+    func cancelLogOut() {
+        isConfirmingLogOut = false
+    }
+
     func back() {
         switch page {
         case .server:
@@ -104,6 +152,8 @@ final class OnboardingCoordinator {
             show(.server)
         case .login:
             loginCancelled()
+        case .home:
+            isConfirmingLogOut = true
         }
     }
 }
@@ -115,5 +165,13 @@ private extension OnboardingCoordinator {
         isForward = next > page
         page = next
         contentPage = next
+    }
+}
+
+// MARK: - Localization
+
+private extension OnboardingCoordinator {
+    enum Localization {
+        static let finish = String(localized: "Finish", comment: "Button ending onboarding and opening the app")
     }
 }

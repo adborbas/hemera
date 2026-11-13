@@ -9,13 +9,16 @@ enum OnboardingLayout {
 }
 
 /// The frame every onboarding page shares. Only the title, subtitle and content move between pages.
-struct OnboardingContainer<Content: View>: View {
+struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
 
     let coordinator: OnboardingCoordinator
     let title: String
     let subtitle: String
     var trailingAction: OnboardingHeader.Action?
+    /// Grid steps span the screen, so they show what Home will look like.
+    var fillsWidth = false
     @ViewBuilder let content: Content
+    @ViewBuilder let titleAccessory: TitleAccessory
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var width: CGFloat = 0
@@ -24,8 +27,12 @@ struct OnboardingContainer<Content: View>: View {
         ZStack {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
-                    Text(title)
-                        .font(.title2.bold())
+                    HStack {
+                        Text(title)
+                            .font(.title2.bold())
+                        Spacer()
+                        titleAccessory
+                    }
                     Text(subtitle)
                         .foregroundStyle(.secondary)
                 }
@@ -36,7 +43,7 @@ struct OnboardingContainer<Content: View>: View {
                 content
                     .frame(maxHeight: .infinity, alignment: .top)
             }
-            .frame(maxWidth: OnboardingLayout.maxContentWidth)
+            .frame(maxWidth: fillsWidth ? .infinity : OnboardingLayout.maxContentWidth)
             .frame(maxWidth: .infinity)
             .id(coordinator.contentPage)
             .transition(pageTransition)

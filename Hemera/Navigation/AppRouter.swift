@@ -16,6 +16,8 @@ final class AppRouter {
     }
 
     private(set) var destination: Destination
+    /// Whether the current login's first sync has finished.
+    private(set) var isSessionReady = false
 
     init(authManager: some AuthManaging) {
         switch authManager.state {
@@ -26,6 +28,7 @@ final class AppRouter {
 
         authManager.addOnChangeHandler { [weak self] state, _ in
             guard let self else { return }
+            self.isSessionReady = false
             switch state {
             case .unauthenticated:
                 withAnimation(Mortar.Motion.springSnappy) {
@@ -36,6 +39,8 @@ final class AppRouter {
                     self.destination = .sessionExpired
                 }
             case .authenticated:
+                // A login from onboarding keeps it on screen for the Home step.
+                guard self.destination != .onboarding else { return }
                 withAnimation(Mortar.Motion.springSnappy) {
                     self.destination = .connecting
                 }
@@ -45,6 +50,7 @@ final class AppRouter {
 
     /// Called by SessionManager once the WebSocket connection is established.
     func sessionReady() {
+        isSessionReady = true
         if destination == .connecting {
             withAnimation(Mortar.Motion.springSnappy) {
                 destination = .authenticated
