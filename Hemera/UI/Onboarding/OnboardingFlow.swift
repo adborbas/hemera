@@ -6,11 +6,11 @@ struct OnboardingFlow: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            WelcomeView()
+            WelcomeView { path.append(OnboardingDestination.serverSelection) }
                 .navigationDestination(for: OnboardingDestination.self) { destination in
                     switch destination {
                     case .serverSelection:
-                        OnboardingView()
+                        ServerSelectionView(viewModel: ServerSelectionViewModel())
                     }
                 }
         }
