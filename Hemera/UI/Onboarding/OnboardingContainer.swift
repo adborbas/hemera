@@ -14,7 +14,6 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
     let coordinator: OnboardingCoordinator
     let title: String
     let subtitle: String
-    var trailingAction: OnboardingHeader.Action?
     /// Grid steps span the screen, so they show what Home will look like.
     var fillsWidth = false
     @ViewBuilder let content: Content
@@ -64,7 +63,7 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
             stepCount: OnboardingCoordinator.stepCount,
             width: width,
             onBack: coordinator.canGoBack ? { coordinator.back() } : nil,
-            trailingAction: trailingAction
+            trailingAction: coordinator.trailingAction
         )
     }
 

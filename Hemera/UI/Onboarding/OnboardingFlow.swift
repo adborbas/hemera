@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingFlow: View {
 
     @State private var path = NavigationPath()
+    @Environment(ThemeManager.self) private var themeManager
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -10,7 +11,7 @@ struct OnboardingFlow: View {
                 .navigationDestination(for: OnboardingDestination.self) { destination in
                     switch destination {
                     case .serverSelection:
-                        OnboardingView()
+                        OnboardingView(theme: themeManager)
                     }
                 }
         }

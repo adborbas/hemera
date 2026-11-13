@@ -7,6 +7,7 @@ struct OnboardingHeader: ToolbarContent {
     struct Action {
         let title: String
         let systemImage: String
+        let isEnabled: Bool
         let perform: () -> Void
     }
 
@@ -43,6 +44,7 @@ struct OnboardingHeader: ToolbarContent {
                     Label(trailingAction.title, systemImage: trailingAction.systemImage)
                         .labelStyle(.iconOnly)
                 }
+                .disabled(!trailingAction.isEnabled)
             }
         }
     }

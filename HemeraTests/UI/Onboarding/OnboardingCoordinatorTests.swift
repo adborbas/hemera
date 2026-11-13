@@ -13,6 +13,7 @@ struct OnboardingCoordinatorTests {
     private let tileRepository = MockHomeTileRepository()
     private let retrier = MockConnectionRetrier()
     private let clock = ManualSleep()
+    private let theme = SpyTheme()
     private let home: CuratedHomeViewModel
     private let coordinator: OnboardingCoordinator
 
@@ -29,6 +30,7 @@ struct OnboardingCoordinatorTests {
             authManager: authManager,
             router: router,
             connectionRetrier: retrier,
+            theme: theme,
             sleep: clock.sleep
         )
     }
@@ -40,6 +42,7 @@ struct OnboardingCoordinatorTests {
         #expect(OnboardingCoordinator.Page.server < .manualAddress)
         #expect(OnboardingCoordinator.Page.manualAddress < .login)
         #expect(OnboardingCoordinator.Page.login < .home)
+        #expect(OnboardingCoordinator.Page.home < .theme)
     }
 
     @Test
@@ -48,11 +51,12 @@ struct OnboardingCoordinatorTests {
         #expect(OnboardingCoordinator.Page.manualAddress.progress == 1.5)
         #expect(OnboardingCoordinator.Page.login.progress == 2)
         #expect(OnboardingCoordinator.Page.home.progress == 3)
+        #expect(OnboardingCoordinator.Page.theme.progress == 4)
     }
 
     @Test
-    func progress_home_fillsTheBar() {
-        #expect(OnboardingCoordinator.Page.home.progress == Double(OnboardingCoordinator.stepCount))
+    func progress_theme_fillsTheBar() {
+        #expect(OnboardingCoordinator.Page.theme.progress == Double(OnboardingCoordinator.stepCount))
     }
 
     // MARK: - Server
@@ -249,9 +253,9 @@ extension OnboardingCoordinatorTests {
 
     /// Finishing before the sync would land on an empty Home that then fills on its own.
     @Test
-    func bottomButton_onHome_isFinishAndWaitsForTheSync() {
+    func bottomButton_onHome_isContinueAndWaitsForTheSync() {
         loggedInFromServer()
-        #expect(coordinator.bottomButton?.title == "Finish")
+        #expect(coordinator.bottomButton?.title == "Continue")
         #expect(coordinator.bottomButton?.isEnabled == false)
         router.sessionSync = .succeeded
         #expect(coordinator.bottomButton?.isEnabled == true)
@@ -265,22 +269,6 @@ extension OnboardingCoordinatorTests {
         #expect(tileRepository.commitLayoutCalls.isEmpty)
     }
 
-    @Test
-    func bottomButtonTapped_onHome_savesTheEditsAndOpensTheApp() async {
-        loggedInFromServer()
-        let tiles = seedTwoTiles()
-        home.removeTile(tiles[0])
-        home.resizeTile(tiles[1], to: .medium)
-        router.sessionSync = .succeeded
-
-        await coordinator.bottomButtonTapped()
-
-        #expect(tileRepository.removeFromHomeCalls == ["light.lamp"])
-        #expect(tileRepository.commitLayoutCalls.first?.map(\.entityId) == ["cover.blind"])
-        #expect(tileRepository.commitLayoutCalls.first?.first?.size == .medium)
-        #expect(router.navigations == [.authenticated])
-        #expect(connection.submitCallCount == 0)
-    }
 
     @Test
     func back_onHome_asksBeforeLoggingOut() {
@@ -417,7 +405,7 @@ extension OnboardingCoordinatorTests {
         router.sessionSync = .succeeded
         #expect(coordinator.homeState == .loaded)
         #expect(coordinator.isHomeEmpty == false)
-        #expect(coordinator.bottomButton == .init(title: "Finish", isEnabled: true, isLoading: false))
+        #expect(coordinator.bottomButton == .init(title: "Continue", isEnabled: true, isLoading: false))
     }
 
     /// The steps after Home are skipped when there is nothing on it, so the bar must read as done.
@@ -433,6 +421,8 @@ extension OnboardingCoordinatorTests {
 
         await coordinator.bottomButtonTapped()
         #expect(router.navigations == [.authenticated])
+        #expect(coordinator.page == .home)
+        #expect(theme.beginEditingCallCount == 0)
     }
 
     @Test
@@ -466,7 +456,164 @@ extension OnboardingCoordinatorTests {
     }
 }
 
+// MARK: - Theme
+
+extension OnboardingCoordinatorTests {
+
+    private static let red = Theme.gradient(.init(color: ThemeColor(hue: 0, saturation: 0.8, brightness: 1), intensity: 0.5))
+
+    /// Logged in with an edited Suggested Home, and moved on to the Theme step.
+    private func onTheThemeStep() async -> [Tile] {
+        loggedInFromServer()
+        let tiles = seedTwoTiles()
+        home.removeTile(tiles[0])
+        home.resizeTile(tiles[1], to: .medium)
+        tileRepository.stubbedHasAnyHomeTile = true
+        router.sessionSync = .succeeded
+        await coordinator.bottomButtonTapped()
+        return tiles
+    }
+
+    /// The Home edits wait for Finish, so Back can still undo them.
+    @Test
+    func bottomButtonTapped_onHomeWithTiles_showsTheThemeStepWithoutSavingTheHome() async {
+        _ = await onTheThemeStep()
+
+        #expect(coordinator.page == .theme)
+        #expect(coordinator.contentPage == .theme)
+        #expect(coordinator.progress == 4)
+        #expect(coordinator.isForward)
+        #expect(theme.beginEditingCallCount == 1)
+        #expect(home.isEditing)
+        #expect(tileRepository.commitLayoutCalls.isEmpty)
+        #expect(tileRepository.removeFromHomeCalls.isEmpty)
+        #expect(router.navigations.isEmpty)
+    }
+
+    @Test
+    func bottomButton_onTheme_isFinish() async {
+        _ = await onTheThemeStep()
+        #expect(coordinator.bottomButton == .init(title: "Finish", isEnabled: true, isLoading: false))
+    }
+
+    @Test
+    func bottomButtonTapped_onTheme_savesTheThemeAndTheHomeAndOpensTheApp() async {
+        _ = await onTheThemeStep()
+
+        await coordinator.bottomButtonTapped()
+
+        #expect(theme.committedThemes.count == 1)
+        #expect(theme.cancelCallCount == 0)
+        #expect(tileRepository.removeFromHomeCalls == ["light.lamp"])
+        #expect(tileRepository.commitLayoutCalls.first?.map(\.entityId) == ["cover.blind"])
+        #expect(tileRepository.commitLayoutCalls.first?.first?.size == .medium)
+        #expect(router.navigations == [.authenticated])
+        #expect(connection.submitCallCount == 0)
+    }
+
+    @Test
+    func resetTheme_choosesNoneAndStaysOnTheStep() async {
+        _ = await onTheThemeStep()
+        theme.theme = Self.red
+
+        coordinator.trailingAction?.perform()
+
+        #expect(theme.theme == .none)
+        #expect(coordinator.themeResetCount == 1)
+        #expect(coordinator.page == .theme)
+        #expect(theme.committedThemes.isEmpty)
+        #expect(theme.cancelCallCount == 0)
+    }
+
+    @Test
+    func bottomButtonTapped_afterReset_savesNone() async {
+        _ = await onTheThemeStep()
+        theme.theme = Self.red
+        coordinator.resetTheme()
+
+        await coordinator.bottomButtonTapped()
+
+        #expect(theme.committedThemes == [.none])
+    }
+
+    /// None is what Reset gives, so there is nothing to reset.
+    @Test
+    func trailingAction_onTheme_isResetEnabledOnlyForAGradient() async {
+        _ = await onTheThemeStep()
+        #expect(coordinator.trailingAction?.isEnabled == false)
+        theme.theme = Self.red
+        #expect(coordinator.trailingAction?.isEnabled == true)
+    }
+
+    @Test
+    func trailingAction_existsOnlyOnTheThemeStep() async {
+        #expect(coordinator.trailingAction == nil)
+        coordinator.enterAddressManually()
+        #expect(coordinator.trailingAction == nil)
+        coordinator.loginOpened()
+        #expect(coordinator.trailingAction == nil)
+        coordinator.loggedIn(home: home)
+        #expect(coordinator.trailingAction == nil)
+        tileRepository.stubbedHasAnyHomeTile = true
+        router.sessionSync = .succeeded
+        await coordinator.bottomButtonTapped()
+        #expect(coordinator.trailingAction != nil)
+        coordinator.back()
+        #expect(coordinator.trailingAction == nil)
+    }
+
+    @Test
+    func back_onTheme_cancelsTheThemeAndKeepsTheHomeDraft() async {
+        let tiles = await onTheThemeStep()
+
+        coordinator.back()
+
+        #expect(theme.cancelCallCount == 1)
+        #expect(coordinator.page == .home)
+        #expect(coordinator.contentPage == .home)
+        #expect(coordinator.progress == 3)
+        #expect(coordinator.isForward == false)
+        #expect(coordinator.isConfirmingLogOut == false)
+        #expect(home.isEditing)
+        #expect(home.draftTiles?.map(\.id) == [tiles[1].id])
+        #expect(home.canUndo)
+        #expect(tileRepository.commitLayoutCalls.isEmpty)
+    }
+
+    @Test
+    func bottomButtonTapped_afterBackFromTheme_beginsANewThemeEdit() async {
+        _ = await onTheThemeStep()
+        coordinator.back()
+
+        await coordinator.bottomButtonTapped()
+
+        #expect(coordinator.page == .theme)
+        #expect(theme.beginEditingCallCount == 2)
+    }
+
+    /// A session expiry removes onboarding mid-edit; the app must show the saved theme.
+    @Test
+    func disappeared_cancelsTheThemeEdit() async {
+        _ = await onTheThemeStep()
+        coordinator.disappeared()
+        #expect(theme.cancelCallCount == 1)
+    }
+}
+
 // MARK: - Spy
+
+@MainActor
+private final class SpyTheme: OnboardingTheming {
+    var theme = Theme.none
+    private(set) var beginEditingCallCount = 0
+    private(set) var committedThemes: [Theme] = []
+    private(set) var cancelCallCount = 0
+
+    func beginEditing() { beginEditingCallCount += 1 }
+    func chooseNone() { theme = .none }
+    func commit() { committedThemes.append(theme) }
+    func cancel() { cancelCallCount += 1 }
+}
 
 /// Sleeps until the test says the time has passed.
 @MainActor

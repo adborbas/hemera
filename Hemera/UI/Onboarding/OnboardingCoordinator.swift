@@ -20,6 +20,18 @@ protocol OnboardingRouting: AnyObject {
 
 extension AppRouter: OnboardingRouting {}
 
+/// The theme edit the Theme step drives.
+@MainActor
+protocol OnboardingTheming: AnyObject {
+    var theme: Theme { get }
+    func beginEditing()
+    func chooseNone()
+    func commit()
+    func cancel()
+}
+
+extension ThemeManager: OnboardingTheming {}
+
 /// Owns onboarding's flow: which page shows, the progress, Back and the bottom button.
 @Observable
 @MainActor
@@ -31,6 +43,7 @@ final class OnboardingCoordinator {
         case manualAddress
         case login
         case home
+        case theme
 
         static func < (lhs: Page, rhs: Page) -> Bool { lhs.rawValue < rhs.rawValue }
 
@@ -41,6 +54,7 @@ final class OnboardingCoordinator {
             case .manualAddress: 1.5
             case .login: 2
             case .home: 3
+            case .theme: 4
             }
         }
     }
@@ -58,7 +72,7 @@ final class OnboardingCoordinator {
         let isLoading: Bool
     }
 
-    static let stepCount = 3
+    static let stepCount = 4
     static let connectionTimeout = Duration.seconds(15)
 
     // MARK: - Properties
@@ -70,6 +84,8 @@ final class OnboardingCoordinator {
     /// The Home step's editor, set by the login that opens the step.
     private(set) var home: CuratedHomeViewModel?
     private(set) var isConfirmingLogOut = false
+    /// Counts Resets, so the editor can start over on None's state.
+    private(set) var themeResetCount = 0
     private var hasTimedOut = false
     private var timeoutTask: Task<Void, Never>?
 
@@ -77,6 +93,7 @@ final class OnboardingCoordinator {
     private let authManager: any AuthManaging
     private let router: any OnboardingRouting
     private let connectionRetrier: any ConnectionRetrying
+    private let theme: any OnboardingTheming
     private let sleep: @MainActor (Duration) async throws -> Void
 
     // MARK: - Init
@@ -86,12 +103,14 @@ final class OnboardingCoordinator {
         authManager: any AuthManaging,
         router: any OnboardingRouting,
         connectionRetrier: any ConnectionRetrying,
+        theme: any OnboardingTheming,
         sleep: @escaping @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.connection = connection
         self.authManager = authManager
         self.router = router
         self.connectionRetrier = connectionRetrier
+        self.theme = theme
         self.sleep = sleep
     }
 
@@ -121,7 +140,13 @@ final class OnboardingCoordinator {
         case .manualAddress:
             BottomButton(title: connection.mode.actionTitle, isEnabled: connection.canSubmit, isLoading: connection.isBusy)
         case .home:
-            BottomButton(title: Localization.finish, isEnabled: homeState == .loaded || homeState == .empty, isLoading: false)
+            BottomButton(
+                title: isHomeEmpty ? Localization.finish : Localization.continueAction,
+                isEnabled: homeState == .loaded || homeState == .empty,
+                isLoading: false
+            )
+        case .theme:
+            BottomButton(title: Localization.finish, isEnabled: true, isLoading: false)
         case .server, .login:
             nil
         }
@@ -129,13 +154,38 @@ final class OnboardingCoordinator {
 
     func bottomButtonTapped() async {
         guard bottomButton?.isEnabled == true else { return }
-        if contentPage == .home {
+        switch contentPage {
+        case .home where !isHomeEmpty:
+            theme.beginEditing()
+            show(.theme)
+        case .home, .theme:
             timeoutTask?.cancel()
+            theme.commit()
             home?.exitEditMode(commit: true)
             router.navigate(to: .authenticated)
-        } else {
+        case .server, .manualAddress, .login:
             _ = await connection.submit()
         }
+    }
+
+    /// `nil` hides it; only the Theme step has one.
+    var trailingAction: OnboardingHeader.Action? {
+        guard contentPage == .theme else { return nil }
+        return OnboardingHeader.Action(
+            title: Localization.resetTheme,
+            systemImage: "arrow.counterclockwise",
+            isEnabled: theme.theme != .none
+        ) { [weak self] in self?.resetTheme() }
+    }
+
+    func resetTheme() {
+        theme.chooseNone()
+        themeResetCount += 1
+    }
+
+    /// Leaving without Finish, as a session expiry does, must not leave a half-edited theme showing.
+    func disappeared() {
+        theme.cancel()
     }
 
     func enterAddressManually() {
@@ -195,6 +245,9 @@ final class OnboardingCoordinator {
             loginCancelled()
         case .home:
             isConfirmingLogOut = true
+        case .theme:
+            theme.cancel()
+            show(.home)
         }
     }
 }
@@ -224,5 +277,13 @@ private extension OnboardingCoordinator {
 private extension OnboardingCoordinator {
     enum Localization {
         static let finish = String(localized: "Finish", comment: "Button ending onboarding and opening the app")
+        static let continueAction = String(
+            localized: "Continue",
+            comment: "Button on the onboarding Home step moving on to choosing a theme"
+        )
+        static let resetTheme = String(
+            localized: "Reset Theme",
+            comment: "Button on the onboarding theme step setting the theme back to None"
+        )
     }
 }

@@ -58,11 +58,16 @@ final class SmokeTests: XCTestCase {
                           "The Home step never showed \(entityId):\n\(app.debugDescription)")
         }
         XCTAssertEqual(seededEntityIds(in: app), suggestedHome, "Wrong Suggested Home in the Home step")
-        let finish = app.buttons["onboardingBottomButton"]
-        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: finish)
-        XCTAssertEqual(XCTWaiter().wait(for: [enabled], timeout: timeout), .completed, "Finish never enabled")
-        tap(finish)
-        let left = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: homeStep)
+        let bottomButton = app.buttons["onboardingBottomButton"]
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: bottomButton)
+        XCTAssertEqual(XCTWaiter().wait(for: [enabled], timeout: timeout), .completed, "Continue never enabled")
+        tap(bottomButton)
+
+        // Continue opens the Theme step; Finish keeps the theme as it is and opens the app.
+        let themeStep = app.descendants(matching: .any)["onboardingThemeStep"]
+        XCTAssertTrue(themeStep.waitForExistence(timeout: timeout), "No Theme step:\n\(app.debugDescription)")
+        tap(bottomButton)
+        let left = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: themeStep)
         XCTAssertEqual(XCTWaiter().wait(for: [left], timeout: timeout), .completed, "Finish never left onboarding")
 
         // Home shows the tiles the step left. The regular-width pager also holds the Areas page's cards.

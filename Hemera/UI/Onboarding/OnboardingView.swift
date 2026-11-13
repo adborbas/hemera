@@ -6,14 +6,15 @@ struct OnboardingView: View {
     @State private var serverSelection: ServerSelectionViewModel
     @State private var coordinator: OnboardingCoordinator
 
-    init() {
+    init(theme: any OnboardingTheming) {
         let serverSelection = ServerSelectionViewModel()
         _serverSelection = State(initialValue: serverSelection)
         _coordinator = State(initialValue: OnboardingCoordinator(
             connection: serverSelection,
             authManager: ServiceLocator.shared.authManager,
             router: ServiceLocator.shared.router,
-            connectionRetrier: ServiceLocator.shared.sessionManager
+            connectionRetrier: ServiceLocator.shared.sessionManager,
+            theme: theme
         ))
     }
 
@@ -22,7 +23,7 @@ struct OnboardingView: View {
             coordinator: coordinator,
             title: title,
             subtitle: subtitle,
-            fillsWidth: coordinator.contentPage == .home
+            fillsWidth: coordinator.contentPage >= .home
         ) {
             switch coordinator.contentPage {
             case .server, .login:
@@ -42,12 +43,18 @@ struct OnboardingView: View {
                         onRetry: coordinator.retryConnection
                     )
                 }
+            case .theme:
+                if let home = coordinator.home {
+                    OnboardingThemeStep(home: home, resetCount: coordinator.themeResetCount)
+                }
             }
         } titleAccessory: {
             if coordinator.contentPage == .home, let home = coordinator.home {
                 OnboardingHomeHistory(home: home)
             }
         }
+        .themedBackground(isShown: coordinator.contentPage == .theme)
+        .onDisappear(perform: coordinator.disappeared)
         // Every way of connecting (a server, Connect, Return, the HTTP warning) ends here.
         .onChange(of: serverSelection.authSession != nil) { _, isOpen in
             if isOpen { coordinator.loginOpened() }
@@ -123,6 +130,7 @@ struct OnboardingView: View {
         case .server, .login: Localization.serverTitle
         case .manualAddress: Localization.manualAddressTitle
         case .home: Localization.homeTitle
+        case .theme: Localization.themeTitle
         }
     }
 
@@ -131,6 +139,7 @@ struct OnboardingView: View {
         case .server, .login: Localization.serverSubtitle
         case .manualAddress: Localization.manualAddressSubtitle
         case .home: Localization.homeSubtitle
+        case .theme: Localization.themeSubtitle
         }
     }
 }
@@ -156,6 +165,11 @@ private extension OnboardingView {
         static let homeSubtitle = String(
             localized: "We've picked a few to get you started. Remove, resize or rearrange them.",
             comment: "Subtitle of the onboarding step for arranging Home, which starts with suggested tiles"
+        )
+        static let themeTitle = String(localized: "Choose a look", comment: "Title of the onboarding step for choosing a theme")
+        static let themeSubtitle = String(
+            localized: "Pick a colour for your Home. You can change it any time in Settings.",
+            comment: "Subtitle of the onboarding step for choosing a theme"
         )
         static func logOutTitle(_ host: String) -> String {
             String(
