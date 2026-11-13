@@ -43,8 +43,9 @@ final class MockAuthManager: AuthManaging {
     }
 
     func simulateSessionExpiry() {
-        credentials = nil
-        state = .unauthenticated
-        onChangeHandlers.forEach { $0(.unauthenticated, .sessionExpired) }
+        credentials?.accessToken = ""
+        credentials?.refreshToken = ""
+        state = .sessionExpired
+        onChangeHandlers.forEach { $0(.sessionExpired, .sessionExpired) }
     }
 }

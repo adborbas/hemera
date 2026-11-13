@@ -157,18 +157,117 @@ struct AuthManagerTests {
         #expect(manager.credentials?.refreshToken == creds.refreshToken)
         #expect(store.savedCredentials?.serverURL == newURL)
     }
+
+    // MARK: - Session Expiry
+
+    /// The server address must outlive the rejected token, so the user logs in again, not from scratch.
+    @Test
+    func validAccessToken_whenRefreshRejected_expiresSessionKeepingServerAddress() async {
+        let store = MockKeychainStore()
+        let manager = AuthManager(
+            keychainStore: store,
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in throw AuthError.sessionExpired }
+        )
+        let creds = makeCredentials(expiresAt: .distantPast)
+        manager.didAuthenticate(with: creds)
+        let clearsBefore = store.clearAllCallCount
+        var notified: [AuthState] = []
+        manager.addOnChangeHandler { state, _ in notified.append(state) }
+
+        await #expect(throws: AuthError.sessionExpired) {
+            try await manager.validAccessToken()
+        }
+
+        #expect(manager.state == .sessionExpired)
+        #expect(notified == [.sessionExpired])
+        #expect(manager.credentials?.serverURL == creds.serverURL)
+        #expect(store.savedCredentials?.serverURL == creds.serverURL)
+        #expect(store.savedCredentials?.refreshToken == "")
+        #expect(store.clearAllCallCount == clearsBefore)
+    }
+
+    /// Late token requests from the stopped session must not refresh with no token or re-notify.
+    @Test
+    func validAccessToken_whenSessionExpired_throwsWithoutNotifyingAgain() async {
+        let manager = AuthManager(
+            keychainStore: MockKeychainStore(),
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in throw AuthError.sessionExpired }
+        )
+        manager.didAuthenticate(with: makeCredentials(expiresAt: .distantPast))
+        _ = try? await manager.validAccessToken()
+        var notifyCount = 0
+        manager.addOnChangeHandler { _, _ in notifyCount += 1 }
+
+        await #expect(throws: AuthError.notAuthenticated) {
+            try await manager.validAccessToken()
+        }
+
+        #expect(manager.state == .sessionExpired)
+        #expect(notifyCount == 0)
+    }
+
+    @Test
+    func init_withExpiredSessionStored_restoresSessionExpired() {
+        var expired = makeCredentials()
+        expired.accessToken = ""
+        expired.refreshToken = ""
+        userDefaults.set(true, forKey: AuthManager.hasLaunchedKey)
+
+        let manager = AuthManager(keychainStore: MockKeychainStore(storedCredentials: expired), userDefaults: userDefaults)
+
+        #expect(manager.state == .sessionExpired)
+        #expect(manager.credentials?.serverURL == expired.serverURL)
+    }
+
+    @Test
+    func didAuthenticate_afterExpiry_authenticates() async {
+        let store = MockKeychainStore()
+        let manager = AuthManager(
+            keychainStore: store,
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in throw AuthError.sessionExpired }
+        )
+        manager.didAuthenticate(with: makeCredentials(expiresAt: .distantPast))
+        _ = try? await manager.validAccessToken()
+
+        manager.didAuthenticate(with: makeCredentials())
+
+        #expect(manager.state == .authenticated)
+        #expect(store.savedCredentials?.refreshToken == "refresh-token")
+    }
+
+    @Test
+    func logout_afterExpiry_clearsKeychain() async {
+        let store = MockKeychainStore()
+        let manager = AuthManager(
+            keychainStore: store,
+            userDefaults: userDefaults,
+            refreshToken: { _, _, _ in throw AuthError.sessionExpired }
+        )
+        manager.didAuthenticate(with: makeCredentials(expiresAt: .distantPast))
+        _ = try? await manager.validAccessToken()
+        let clearsBefore = store.clearAllCallCount
+
+        manager.logout()
+
+        #expect(manager.state == .unauthenticated)
+        #expect(manager.credentials == nil)
+        #expect(store.clearAllCallCount == clearsBefore + 1)
+    }
 }
 
 // MARK: - Helpers
 
 private extension AuthManagerTests {
 
-    func makeCredentials() -> ServerCredentials {
+    func makeCredentials(expiresAt: Date = Date().addingTimeInterval(3600)) -> ServerCredentials {
         ServerCredentials(
             serverURL: URL(string: "https://home.example.com:8123")!,
             accessToken: "access-token",
             refreshToken: "refresh-token",
-            tokenExpiresAt: Date().addingTimeInterval(3600),
+            tokenExpiresAt: expiresAt,
             clientId: "https://home.example.com:8123"
         )
     }

@@ -4,6 +4,8 @@ import HemeraLog
 enum AuthState {
     case unauthenticated
     case authenticated
+    /// The tokens were rejected; the server address and everything local stay for the next login.
+    case sessionExpired
 }
 
 enum AuthChangeReason {
@@ -49,7 +51,7 @@ final class AuthManager: AuthManaging {
 
         if let creds = keychainStore.loadCredentials() {
             credentials = creds
-            state = .authenticated
+            state = creds.refreshToken.isEmpty ? .sessionExpired : .authenticated
         }
     }
 
@@ -62,7 +64,7 @@ final class AuthManager: AuthManaging {
     }
 
     func validAccessToken() async throws -> String {
-        guard let creds = credentials else {
+        guard let creds = credentials, state == .authenticated else {
             Log.error("Token requested but no credentials available")
             throw AuthError.notAuthenticated
         }
@@ -71,8 +73,7 @@ final class AuthManager: AuthManaging {
             credentials = updatedCreds
             return token
         } catch AuthError.sessionExpired {
-            Log.warning("Session expired — forcing logout")
-            performLogout(reason: .sessionExpired)
+            expireSession()
             throw AuthError.sessionExpired
         }
     }
@@ -83,8 +84,8 @@ final class AuthManager: AuthManaging {
      Proves the candidate before persisting it by refreshing the token against it: a success
      means the address is reachable, serves the instance that issued this refresh token, and
      accepts auth. `TokenClient` is called directly rather than via `validAccessToken()` so an
-     `invalid_grant` is read as "wrong server" instead of reaching `performLogout`, which would
-     revoke the still-valid token and wipe the Keychain.
+     `invalid_grant` is read as "wrong server" instead of reaching `expireSession`, which would
+     drop the still-valid token.
 
      Validation deliberately never touches the current `serverURL` — the usual reason to change
      the address is that the old one is unreachable.
@@ -171,9 +172,25 @@ private extension AuthManager {
         }
     }
 
+    /// An empty refresh token in the Keychain is how the expired state survives a relaunch.
+    func expireSession() {
+        guard var expired = credentials, state == .authenticated else { return }
+        Log.warning("Session expired — keeping \(expired.serverURL.host() ?? "unknown") for a new login")
+        expired.accessToken = ""
+        expired.refreshToken = ""
+        do {
+            try keychainStore.saveCredentials(expired)
+        } catch {
+            Log.error("Failed to persist the expired session — relaunch will retry the rejected token", cause: error)
+        }
+        credentials = expired
+        state = .sessionExpired
+        onChangeHandlers.forEach { $0(.sessionExpired, .sessionExpired) }
+    }
+
     func performLogout(reason: AuthChangeReason) {
         Log.info("Logging out (reason: \(reason))")
-        if let creds = credentials {
+        if let creds = credentials, !creds.refreshToken.isEmpty {
             Task {
                 do {
                     try await TokenClient.revoke(refreshToken: creds.refreshToken, serverURL: creds.serverURL)

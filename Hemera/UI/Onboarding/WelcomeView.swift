@@ -3,7 +3,6 @@ import Mortar
 
 struct WelcomeView: View {
 
-    var sessionExpiredMessage: String?
     var onTryDemo: (() -> Void)?
 
     var body: some View {
@@ -19,13 +18,6 @@ struct WelcomeView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-
-            if let sessionExpiredMessage {
-                Text(sessionExpiredMessage)
-                    .font(.footnote)
-                    .foregroundStyle(Color.error)
-                    .multilineTextAlignment(.center)
-            }
 
             Spacer()
 
@@ -65,7 +57,7 @@ private extension WelcomeView {
 #if DEBUG
 #Preview {
     NavigationStack {
-        WelcomeView(sessionExpiredMessage: nil)
+        WelcomeView()
     }
 }
 #endif
