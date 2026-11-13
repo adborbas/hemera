@@ -6,8 +6,7 @@ struct VacuumCard: View {
 
     var body: some View {
         EntityCard(tintColor: viewModel.tintColor,
-                   isActive: viewModel.isActive,
-                   isWorking: viewModel.isWorking) {
+                   isActive: viewModel.isActive) {
             CardIcon(icon: viewModel.iconName,
                      backgroundColor: viewModel.iconBackgroundColor,
                      actionLabel: viewModel.iconActionLabel) {

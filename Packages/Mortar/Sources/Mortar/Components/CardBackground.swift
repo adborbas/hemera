@@ -32,6 +32,11 @@ private struct CardBackgroundModifier<BackgroundOverlay: View>: ViewModifier {
                     RoundedRectangle(cornerRadius: Mortar.Radii.l, style: .continuous)
                         .fill(fillColor)
                     backgroundOverlay()
+                    // Off wash cards barely differ from a white background in light mode.
+                    if surface == .wash, !isTintedOn, colorScheme == .light {
+                        RoundedRectangle(cornerRadius: Mortar.Radii.l, style: .continuous)
+                            .strokeBorder(PlatformColor.systemGray4, lineWidth: 0.5)
+                    }
                 }
             }
             .overlay {
