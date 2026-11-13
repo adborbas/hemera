@@ -16,6 +16,23 @@ struct OAuthWebView: UIViewRepresentable {
         config.websiteDataStore = .nonPersistent()
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
+
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.accessibilityLabel = Localization.loading
+        spinner.isUserInteractionEnabled = false
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinner.startAnimating()
+        webView.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: webView.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: webView.centerYAnchor)
+        ])
+        context.coordinator.loadingObservation = webView.observe(\.isLoading) { webView, _ in
+            MainActor.assumeIsolated {
+                if webView.isLoading { spinner.startAnimating() } else { spinner.stopAnimating() }
+            }
+        }
+
         webView.load(URLRequest(url: url))
         return webView
     }
@@ -30,6 +47,7 @@ struct OAuthWebView: UIViewRepresentable {
         let redirectURI: String
         let onCallback: (URL) -> Void
         let onFailure: () -> Void
+        var loadingObservation: NSKeyValueObservation?
         private var didFire = false
 
         init(redirectURI: String, onCallback: @escaping (URL) -> Void, onFailure: @escaping () -> Void) {
@@ -71,5 +89,14 @@ struct OAuthWebView: UIViewRepresentable {
             didFire = true
             onFailure()
         }
+    }
+}
+
+private extension OAuthWebView {
+    enum Localization {
+        static let loading = String(
+            localized: "Loading",
+            comment: "Accessibility label for the spinner shown while the Home Assistant sign-in page loads"
+        )
     }
 }
