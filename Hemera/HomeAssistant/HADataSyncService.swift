@@ -29,7 +29,8 @@ final class HADataSyncService {
     private let entityRegistry: EntityRegistry
     private let errorNotifier: ErrorNotifier?
     private let iconResolver: IconResolver
-    private let onSyncComplete: @MainActor () -> Void
+    /// Receives the applied payload, or `nil` when the sync failed.
+    private let onSyncComplete: @MainActor (SyncPayload?) -> Void
 
     private var stateChangedToken: HACancellable?
 
@@ -84,7 +85,7 @@ final class HADataSyncService {
         errorNotifier: ErrorNotifier? = nil,
         iconResolver: IconResolver,
         eventSaveDelay: Duration = HADataSyncService.defaultEventSaveDelay,
-        onSyncComplete: @MainActor @escaping () -> Void
+        onSyncComplete: @MainActor @escaping (SyncPayload?) -> Void
     ) {
         self.connectionManager = connectionManager
         self.mainContext = mainContext
@@ -136,7 +137,7 @@ final class HADataSyncService {
 
             errorNotifier?.clearSyncFailed()
             Log.info("Sync complete")
-            onSyncComplete()
+            onSyncComplete(payload)
         } catch {
             Log.error("Failed to sync data", cause: error)
             /**
@@ -146,7 +147,7 @@ final class HADataSyncService {
             flushBufferedEvents()
             errorNotifier?.showError(Localization.syncFailed)
             errorNotifier?.markSyncFailed()
-            onSyncComplete()
+            onSyncComplete(nil)
         }
     }
 
@@ -329,6 +330,8 @@ final class HADataSyncService {
         let areaFloorIds: [String: String]
         /// Home Assistant's icon translations, or `nil` when neither the server nor the cache had any.
         let iconTranslations: IconTranslations?
+        /// `nil` when the entity-registry fetch failed.
+        var entityRegistry: EntityRegistrySnapshot? = nil
     }
 
     private func fetchSyncPayload() async throws -> SyncPayload {
@@ -393,7 +396,8 @@ final class HADataSyncService {
             floors: floorRegistry,
             floorSortOrder: floorSortOrder,
             areaFloorIds: areaFloorIds,
-            iconTranslations: iconTranslations
+            iconTranslations: iconTranslations,
+            entityRegistry: entityRegistryResult
         )
     }
 

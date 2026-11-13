@@ -42,6 +42,12 @@ final class MockAuthManager: AuthManaging {
         onChangeHandlers.forEach { $0(.unauthenticated, .userInitiated) }
     }
 
+    /// A login with no credentials, so a real `SessionManager` reacts to it without opening a socket.
+    func simulateLogin() {
+        state = .authenticated
+        onChangeHandlers.forEach { $0(.authenticated, .userInitiated) }
+    }
+
     func simulateSessionExpiry() {
         credentials?.accessToken = ""
         credentials?.refreshToken = ""

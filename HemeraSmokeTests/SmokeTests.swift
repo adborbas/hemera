@@ -20,6 +20,11 @@ final class SmokeTests: XCTestCase {
             "sensor.smoke_temperature", "switch.smoke_fan",
         ]),
     ]
+    // The Suggested Home of that fixture: the template lamp and switches start unknown, so they are left out.
+    private let suggestedHome: Set<String> = [
+        "button.smoke_doorbell", "climate.smoke_thermostat", "cover.smoke_blind", "scene.smoke_evening",
+        "script.smoke_routine",
+    ]
 
     override func setUp() {
         continueAfterFailure = false
@@ -44,6 +49,14 @@ final class SmokeTests: XCTestCase {
         let password = app.webViews.secureTextFields.firstMatch
         tap(password)
         password.typeText(try environment("SMOKE_PASSWORD") + "\n")
+
+        // Login lands on Home, already filled. The regular-width pager also holds the Areas page's cards.
+        for entityId in suggestedHome {
+            XCTAssertTrue(app.descendants(matching: .any)[entityId].waitForExistence(timeout: timeout),
+                          "Home never showed \(entityId):\n\(app.debugDescription)")
+        }
+        XCTAssertEqual(seededEntityIds(in: app).filter { !$0.hasPrefix("area.") }, suggestedHome,
+                       "Wrong Suggested Home")
 
         assertOnAreasAfterSync(app)
         Self.loggedIn = true
@@ -260,7 +273,7 @@ final class SmokeTests: XCTestCase {
         try XCTSkipUnless(Self.loggedIn, "Login failed, so there is no session to switch feeds with")
         try XCTSkipUnless(isPad, "Pills are the regular-width header")
         let app = launchedApp()
-        let home = app.descendants(matching: .any)["homeEmpty"].firstMatch
+        let home = app.descendants(matching: .any)[homeTile].firstMatch
         let areas = app.scrollViews["areasGrid"]
         assertShowsFeed(home, in: app)
         XCTAssertTrue(areas.waitForExistence(timeout: timeout), "The Areas page was never built")
@@ -283,12 +296,14 @@ final class SmokeTests: XCTestCase {
         tap(app.buttons["screenClose"])
         let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: account)
         XCTAssertEqual(XCTWaiter().wait(for: [closed], timeout: timeout), .completed, "Settings never closed")
-        assertShowsFeed(app.descendants(matching: .any)["homeEmpty"].firstMatch, in: app)
+        assertShowsFeed(app.descendants(matching: .any)[homeTile].firstMatch, in: app)
     }
 
     // MARK: - Helpers
 
     private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    // Areas shows area cards, never entity tiles, so this tile is on Home only.
+    private let homeTile = "cover.smoke_blind"
 
     private func launchedApp() -> XCUIApplication {
         let app = XCUIApplication()

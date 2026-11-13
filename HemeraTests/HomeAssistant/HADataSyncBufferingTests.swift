@@ -32,7 +32,7 @@ struct HADataSyncBufferingTests {
             entityRegistry: EntityRegistry.shared,
             iconResolver: IconTranslationsFixture.resolver(),
             eventSaveDelay: .milliseconds(1),
-            onSyncComplete: {}
+            onSyncComplete: { _ in }
         )
     }
 
