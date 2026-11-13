@@ -234,6 +234,123 @@ struct CuratedHomeViewModelTests {
         #expect(vm.canRedo == true)
     }
 
+    // MARK: - Remove Tile
+
+    @Test
+    func removeTile_removesFromDraftWithoutTouchingRepository() {
+        let vm = makeViewModel()
+        let tileA = makeTile(entityId: "light.a")
+        let tileB = makeTile(entityId: "light.b")
+        vm.enterEditMode(seed: [(tileA, "light.a"), (tileB, "light.b")])
+
+        vm.removeTile(tileA)
+
+        #expect(vm.draftTiles?.map(\.id) == [tileB.id])
+        #expect(vm.canUndo == true)
+        #expect(tileRepo.removeFromHomeCalls.isEmpty)
+    }
+
+    @Test
+    func performUndo_afterRemove_restoresTileAtItsPositionAndSize() {
+        let vm = makeViewModel()
+        let tileA = makeTile(entityId: "light.a")
+        let tileB = makeTile(entityId: "light.b", size: .medium)
+        let tileC = makeTile(entityId: "light.c")
+        vm.enterEditMode(seed: [(tileA, "light.a"), (tileB, "light.b"), (tileC, "light.c")])
+        vm.removeTile(tileB)
+
+        vm.performUndo()
+
+        #expect(vm.draftTiles?.map(\.id) == [tileA.id, tileB.id, tileC.id])
+        #expect(vm.draftTiles?[1].size == .medium)
+        #expect(vm.canRedo == true)
+    }
+
+    @Test
+    func performRedo_afterUndoingRemove_removesTheTileAgain() {
+        let vm = makeViewModel()
+        let tileA = makeTile(entityId: "light.a")
+        let tileB = makeTile(entityId: "light.b")
+        vm.enterEditMode(seed: [(tileA, "light.a"), (tileB, "light.b")])
+        vm.removeTile(tileA)
+        vm.performUndo()
+
+        vm.performRedo()
+
+        #expect(vm.draftTiles?.map(\.id) == [tileB.id])
+        #expect(vm.canRedo == false)
+    }
+
+    @Test
+    func undo_removeMixedWithResizeAndReorder_unwindsEachStepInOrder() {
+        let vm = makeViewModel()
+        let tileA = makeTile(entityId: "light.a")
+        let tileB = makeTile(entityId: "light.b")
+        let tileC = makeTile(entityId: "light.c")
+        vm.enterEditMode(seed: [(tileA, "light.a"), (tileB, "light.b"), (tileC, "light.c")])
+        vm.resizeTile(tileB, to: .medium)
+        vm.recordReorderUndo(previousOrder: [tileA.id, tileB.id, tileC.id])
+        vm.applyReorder([tileC, tileA, vm.draftTiles![1]])
+        vm.removeTile(tileA)
+        #expect(vm.draftTiles?.map(\.id) == [tileC.id, tileB.id])
+
+        vm.performUndo()
+        #expect(vm.draftTiles?.map(\.id) == [tileC.id, tileA.id, tileB.id])
+        vm.performUndo()
+        #expect(vm.draftTiles?.map(\.id) == [tileA.id, tileB.id, tileC.id])
+        #expect(vm.draftTiles?[1].size == .medium)
+        vm.performUndo()
+        #expect(vm.draftTiles?[1].size == .small)
+
+        vm.performRedo()
+        vm.performRedo()
+        vm.performRedo()
+        #expect(vm.draftTiles?.map(\.id) == [tileC.id, tileB.id])
+        #expect(vm.draftTiles?[1].size == .medium)
+    }
+
+    @Test
+    func exitEditMode_withCommit_removesRemovedTilesAndLaysOutTheRest() {
+        let vm = makeViewModel()
+        let tileA = makeTile(entityId: "light.a")
+        let tileB = makeTile(entityId: "light.b")
+        vm.enterEditMode(seed: [(tileA, "light.a"), (tileB, "light.b")])
+        vm.removeTile(tileA)
+
+        vm.exitEditMode(commit: true)
+
+        #expect(tileRepo.removeFromHomeCalls == ["light.a"])
+        #expect(tileRepo.commitLayoutCalls.first?.map(\.entityId) == ["light.b"])
+        #expect(tileRepo.commitLayoutCalls.first?.first?.sortOrder == 0)
+    }
+
+    @Test
+    func exitEditMode_withoutCommit_removesNothing() {
+        let vm = makeViewModel()
+        let tile = makeTile(entityId: "light.a")
+        vm.enterEditMode(seed: [(tile, "light.a")])
+        vm.removeTile(tile)
+
+        vm.exitEditMode(commit: false)
+
+        #expect(tileRepo.removeFromHomeCalls.isEmpty)
+        #expect(tileRepo.commitLayoutCalls.isEmpty)
+    }
+
+    @Test
+    func exitEditMode_withCommit_afterUndoingRemove_keepsTheTile() {
+        let vm = makeViewModel()
+        let tile = makeTile(entityId: "light.a")
+        vm.enterEditMode(seed: [(tile, "light.a")])
+        vm.removeTile(tile)
+        vm.performUndo()
+
+        vm.exitEditMode(commit: true)
+
+        #expect(tileRepo.removeFromHomeCalls.isEmpty)
+        #expect(tileRepo.commitLayoutCalls.first?.map(\.entityId) == ["light.a"])
+    }
+
     // MARK: - Remove From Home
 
     @Test

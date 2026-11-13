@@ -112,6 +112,10 @@ final class CuratedHomeViewModel {
     /// `draftTiles` is cleared.
     func exitEditMode(commit: Bool) {
         if commit, let tiles = draftTiles {
+            let keptIds = Set(tiles.map(\.id))
+            for (tileId, entityId) in entityIdByTileId where !keptIds.contains(tileId) {
+                homeTileRepository.removeFromHome(entityId: entityId)
+            }
             let updates: [(entityId: String, sortOrder: Int, size: TileSize)] = tiles
                 .enumerated()
                 .compactMap { index, tile in
@@ -152,6 +156,12 @@ final class CuratedHomeViewModel {
         draftTiles = tiles
     }
 
+    func removeTile(_ tile: Tile) {
+        guard isEditing, let inverse = apply(.remove(tileID: tile.id)) else { return }
+        undoStack.append(inverse)
+        redoStack = []
+    }
+
     func performUndo() {
         guard let action = undoStack.popLast(), let inverse = apply(action) else { return }
         redoStack.append(inverse)
@@ -176,6 +186,12 @@ final class CuratedHomeViewModel {
             inverse = .reorder(previousOrder: tiles.map(\.id))
             let byID = Dictionary(uniqueKeysWithValues: tiles.map { ($0.id, $0) })
             tiles = previousOrder.compactMap { byID[$0] }
+        case .remove(let tileID):
+            guard let index = tiles.firstIndex(where: { $0.id == tileID }) else { return nil }
+            inverse = .restore(tile: tiles.remove(at: index), index: index)
+        case .restore(let tile, let index):
+            inverse = .remove(tileID: tile.id)
+            tiles.insert(tile, at: min(index, tiles.count))
         }
         draftTiles = tiles
         return inverse
