@@ -10,7 +10,7 @@ struct OnboardingFlow: View {
                 .navigationDestination(for: OnboardingDestination.self) { destination in
                     switch destination {
                     case .serverSelection:
-                        ServerSelectionView(viewModel: ServerSelectionViewModel())
+                        OnboardingView()
                     }
                 }
         }
