@@ -11,10 +11,6 @@ public enum CardSurface: Sendable {
 extension EnvironmentValues {
     /// The surface every card below draws on.
     @Entry public var cardSurface: CardSurface = .wash
-    /// Overrides the wash surface's off fill; `nil` keeps `secondarySystemBackground`.
-    @Entry public var cardOffFill: Color?
-    /// Outlines wash cards that are off, in light mode, where their fill barely differs from white.
-    @Entry public var cardOffOutline = false
 }
 
 private struct CardBackgroundModifier<BackgroundOverlay: View>: ViewModifier {
@@ -25,8 +21,6 @@ private struct CardBackgroundModifier<BackgroundOverlay: View>: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.cardSurface) private var surface
-    @Environment(\.cardOffFill) private var offFill
-    @Environment(\.cardOffOutline) private var offOutline
 
     func body(content: Content) -> some View {
         content
@@ -38,7 +32,8 @@ private struct CardBackgroundModifier<BackgroundOverlay: View>: ViewModifier {
                     RoundedRectangle(cornerRadius: Mortar.Radii.l, style: .continuous)
                         .fill(fillColor)
                     backgroundOverlay()
-                    if offOutline, surface == .wash, !isTintedOn, colorScheme == .light {
+                    // Off wash cards barely differ from a white background in light mode.
+                    if surface == .wash, !isTintedOn, colorScheme == .light {
                         RoundedRectangle(cornerRadius: Mortar.Radii.l, style: .continuous)
                             .strokeBorder(PlatformColor.systemGray4, lineWidth: 0.5)
                     }
@@ -56,9 +51,10 @@ private struct CardBackgroundModifier<BackgroundOverlay: View>: ViewModifier {
     private var fillColor: Color {
         switch surface {
         case .wash:
-            let off = offFill ?? PlatformColor.secondarySystemBackground
-            guard let tint else { return off }
-            return isActive ? Mortar.cardTintWash(tint, in: colorScheme) : off
+            guard let tint else {
+                return PlatformColor.secondarySystemBackground
+            }
+            return isActive ? Mortar.cardTintWash(tint, in: colorScheme) : PlatformColor.secondarySystemBackground
         case .frosted:
             return isActive ? tint?.opacity(0.55) ?? .clear : .clear
         }
