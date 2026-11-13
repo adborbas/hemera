@@ -30,7 +30,7 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
     private var isResyncing = false
     private var wasBackgrounded = false
     private var authState: AuthState
-    /// Set by a login from the Welcome screen, and spent by that session's first finished sync.
+    /// Set by a login from the Welcome screen, and spent by that session's first successful sync.
     private var suggestsHome = false
 
     private let authManager: any AuthManaging
@@ -173,10 +173,11 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
 
     /// Runs once per session, and only after a login from the Welcome screen onto an empty Home.
     func fillSuggestedHomeIfNeeded(_ payload: HADataSyncService.SyncPayload?) {
-        guard suggestsHome else { return }
+        // A failed sync has no payload and leaves the suggestion for the retry.
+        guard suggestsHome, let payload else { return }
         suggestsHome = false
         let homeTileRepository = SwiftDataHomeTileRepository(storage: storage)
-        guard let payload, let registry = payload.entityRegistry, !homeTileRepository.hasAnyHomeTile() else { return }
+        guard let registry = payload.entityRegistry, !homeTileRepository.hasAnyHomeTile() else { return }
 
         let states = Dictionary(payload.entities.map { ($0.entityId, $0.state) }, uniquingKeysWith: { _, new in new })
         let tiles = SuggestedHome.tiles(areas: storage.areas(), states: states, registry: registry)

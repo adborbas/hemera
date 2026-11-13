@@ -237,6 +237,18 @@ struct SessionManagerTests {
         #expect(homeTileIds().isEmpty)
     }
 
+    /// The first sync can time out; the retry that succeeds must still fill Home.
+    @Test
+    func fillSuggestedHome_afterAFailedSync_fillsOnTheNextOne() throws {
+        let payload = try syncedLamp()
+        authManager.simulateLogin()
+        sessionManager.fillSuggestedHomeIfNeeded(nil)
+
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds() == ["light.lamp"])
+    }
+
     // MARK: - Helpers
 
     /// Stores what a sync of one lamp leaves behind and returns the payload it fetched.
