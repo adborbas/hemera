@@ -50,7 +50,22 @@ final class SmokeTests: XCTestCase {
         tap(password)
         password.typeText(try environment("SMOKE_PASSWORD") + "\n")
 
-        // Login lands on Home, already filled. The regular-width pager also holds the Areas page's cards.
+        // Login opens the Home step, filled with the Suggested Home.
+        let homeStep = app.descendants(matching: .any)["onboardingHomeStep"]
+        XCTAssertTrue(homeStep.waitForExistence(timeout: timeout), "No Home step:\n\(app.debugDescription)")
+        for entityId in suggestedHome {
+            XCTAssertTrue(homeStep.descendants(matching: .any)[entityId].waitForExistence(timeout: timeout),
+                          "The Home step never showed \(entityId):\n\(app.debugDescription)")
+        }
+        XCTAssertEqual(seededEntityIds(in: app), suggestedHome, "Wrong Suggested Home in the Home step")
+        let finish = app.buttons["onboardingBottomButton"]
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: finish)
+        XCTAssertEqual(XCTWaiter().wait(for: [enabled], timeout: timeout), .completed, "Finish never enabled")
+        tap(finish)
+        let left = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: homeStep)
+        XCTAssertEqual(XCTWaiter().wait(for: [left], timeout: timeout), .completed, "Finish never left onboarding")
+
+        // Home shows the tiles the step left. The regular-width pager also holds the Areas page's cards.
         for entityId in suggestedHome {
             XCTAssertTrue(app.descendants(matching: .any)[entityId].waitForExistence(timeout: timeout),
                           "Home never showed \(entityId):\n\(app.debugDescription)")
