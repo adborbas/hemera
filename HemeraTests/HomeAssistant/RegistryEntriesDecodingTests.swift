@@ -138,6 +138,20 @@ struct RegistryEntriesDecodingTests {
         #expect(snapshot.entityAreaIds == ["light.lamp": "kitchen"])
     }
 
+    /// The Suggested Home leaves out settings, diagnostics and disabled entities, and spots a device's main one.
+    @Test func entitySnapshot_decodesSuggestedHomeFacts() throws {
+        let snapshot = try #require(EntityRegistrySnapshot.decode(HAData(value: [
+            ["entity_id": "switch.led", "entity_category": "config", "original_name": "LED"],
+            ["entity_id": "sensor.rssi", "entity_category": "diagnostic", "original_name": "RSSI"],
+            ["entity_id": "light.old", "disabled_by": "user", "original_name": "Old", "entity_category": NSNull()],
+            ["entity_id": "switch.plug", "original_name": NSNull(), "disabled_by": NSNull()]
+        ])))
+
+        #expect(snapshot.categorizedEntityIds == ["switch.led", "sensor.rssi"])
+        #expect(snapshot.disabledEntityIds == ["light.old"])
+        #expect(snapshot.mainEntityIds == ["switch.plug"])
+    }
+
     /// `nil` suppresses `applyHAHidden`; an empty snapshot clears it. Never collapse the two.
     @Test func entitySnapshot_nonListResponse_isFailureNotEmptySnapshot() {
         #expect(EntityRegistrySnapshot.decode(HAData(value: ["error": "nope"])) == nil)

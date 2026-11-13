@@ -1,4 +1,5 @@
 import Foundation
+import HAKit
 import SwiftData
 import SwiftUI
 import Testing
@@ -156,5 +157,126 @@ struct SessionManagerTests {
         authManager.simulateSessionExpiry()
 
         #expect(ServiceLocator.shared.session == nil)
+    }
+
+    // MARK: - Suggested Home
+
+    @Test
+    func fillSuggestedHome_afterLoginFromLoggedOut_fillsHome() throws {
+        let payload = try syncedLamp()
+
+        authManager.simulateLogin()
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds() == ["light.lamp"])
+    }
+
+    /// A returning user's Home is theirs; only a login can suggest one.
+    @Test
+    func fillSuggestedHome_onLaunchWhileLoggedIn_leavesHomeAlone() throws {
+        let payload = try syncedLamp()
+        let loggedIn = MockAuthManager()
+        loggedIn.state = .authenticated
+        let manager = SessionManager(
+            authManager: loggedIn,
+            router: AppRouter(authManager: loggedIn),
+            container: persistentContainer,
+            storage: SwiftDataStorage(context: persistentContainer.mainContext)
+        )
+
+        manager.startIfAuthenticated()
+        manager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds().isEmpty)
+    }
+
+    /// Logging back in after an expiry is not onboarding, so a Home the user emptied stays empty.
+    @Test
+    func fillSuggestedHome_afterLoginFromSessionExpired_leavesHomeAlone() throws {
+        let payload = try syncedLamp()
+        authManager.simulateLogin()
+        authManager.simulateSessionExpiry()
+
+        authManager.simulateLogin()
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds().isEmpty)
+    }
+
+    @Test
+    func fillSuggestedHome_inDemoMode_leavesHomeAlone() throws {
+        let payload = try syncedLamp()
+
+        sessionManager.startDemoSession()
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds().isEmpty)
+    }
+
+    @Test
+    func fillSuggestedHome_whenHomeHasTiles_addsNothing() throws {
+        let payload = try syncedLamp()
+        persistentContainer.mainContext.insert(HomeTile(entityId: "light.mine", sortOrder: 0))
+
+        authManager.simulateLogin()
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds() == ["light.mine"])
+    }
+
+    /// A resync or reconnect finishes another sync; Home must not refill behind a user who cleared it.
+    @Test
+    func fillSuggestedHome_onASecondSync_addsNothing() throws {
+        let payload = try syncedLamp()
+        authManager.simulateLogin()
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+        SwiftDataStorage(context: persistentContainer.mainContext).removeHomeTile(entityId: "light.lamp")
+
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds().isEmpty)
+    }
+
+    // MARK: - Helpers
+
+    /// Stores what a sync of one lamp leaves behind and returns the payload it fetched.
+    private func syncedLamp() throws -> HADataSyncService.SyncPayload {
+        let context = persistentContainer.mainContext
+        let area = AreaEntity(areaId: "area.lobby", name: "Lobby")
+        context.insert(area)
+        let lamp = LightEntity(entityId: "light.lamp", name: "Lamp", state: .on)
+        context.insert(lamp)
+        lamp.area = area
+        try context.save()
+
+        let state = try HAEntity(
+            entityId: "light.lamp",
+            domain: "light",
+            state: "on",
+            lastChanged: Date(),
+            lastUpdated: Date(),
+            attributes: [:],
+            context: .init(id: "", userId: nil, parentId: nil)
+        )
+        return HADataSyncService.SyncPayload(
+            entities: [state],
+            areaMappings: [],
+            deviceMappings: [],
+            hiddenEntityIds: [],
+            areaSortOrder: [:],
+            areaIcons: [:],
+            areaTemperatureEntityIds: [:],
+            areaHumidityEntityIds: [:],
+            areaMappingsFetchSucceeded: true,
+            floors: nil,
+            floorSortOrder: [:],
+            areaFloorIds: [:],
+            iconTranslations: nil,
+            entityRegistry: EntityRegistrySnapshot.decode(HAData(value: [["entity_id": "light.lamp", "original_name": "Lamp"]]))
+        )
+    }
+
+    private func homeTileIds() -> [String] {
+        SwiftDataStorage(context: persistentContainer.mainContext).homeTiles().map(\.entityId)
     }
 }

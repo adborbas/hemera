@@ -20,7 +20,7 @@ struct EntityNameSyncTests {
             mainContext: container.mainContext,
             entityRegistry: EntityRegistry.shared,
             iconResolver: IconResolver(translations: IconTranslationsFixture.translations),
-            onSyncComplete: {}
+            onSyncComplete: { _ in }
         )
     }
 

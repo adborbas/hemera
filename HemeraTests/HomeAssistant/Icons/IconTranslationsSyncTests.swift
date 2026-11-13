@@ -29,7 +29,7 @@ struct IconTranslationsSyncTests {
             mainContext: container.mainContext,
             entityRegistry: EntityRegistry.shared,
             iconResolver: resolver,
-            onSyncComplete: {}
+            onSyncComplete: { _ in }
         )
     }
 
