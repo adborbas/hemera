@@ -12,7 +12,8 @@ struct OnboardingView: View {
         _coordinator = State(initialValue: OnboardingCoordinator(
             connection: serverSelection,
             authManager: ServiceLocator.shared.authManager,
-            router: ServiceLocator.shared.router
+            router: ServiceLocator.shared.router,
+            connectionRetrier: ServiceLocator.shared.sessionManager
         ))
     }
 
@@ -34,7 +35,12 @@ struct OnboardingView: View {
                 ServerAddressView(handler: serverSelection, placement: .external)
             case .home:
                 if let home = coordinator.home {
-                    OnboardingHomeStep(home: home, isLoaded: coordinator.isHomeLoaded)
+                    OnboardingHomeStep(
+                        home: home,
+                        state: coordinator.homeState,
+                        serverHost: coordinator.serverHost,
+                        onRetry: coordinator.retryConnection
+                    )
                 }
             }
         } titleAccessory: {

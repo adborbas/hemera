@@ -15,9 +15,15 @@ final class AppRouter {
         case sessionExpired
     }
 
+    enum SessionSync {
+        case pending
+        case succeeded
+        case failed
+    }
+
     private(set) var destination: Destination
-    /// Whether the current login's first sync has finished.
-    private(set) var isSessionReady = false
+    /// How the current login's latest sync ended.
+    private(set) var sessionSync = SessionSync.pending
 
     init(authManager: some AuthManaging) {
         switch authManager.state {
@@ -28,7 +34,7 @@ final class AppRouter {
 
         authManager.addOnChangeHandler { [weak self] state, _ in
             guard let self else { return }
-            self.isSessionReady = false
+            self.sessionSync = .pending
             switch state {
             case .unauthenticated:
                 withAnimation(Mortar.Motion.springSnappy) {
@@ -48,14 +54,19 @@ final class AppRouter {
         }
     }
 
-    /// Called by SessionManager once the WebSocket connection is established.
-    func sessionReady() {
-        isSessionReady = true
+    /// Called by SessionManager each time a sync finishes, whether or not it succeeded.
+    func sessionReady(succeeded: Bool) {
+        sessionSync = succeeded ? .succeeded : .failed
         if destination == .connecting {
             withAnimation(Mortar.Motion.springSnappy) {
                 destination = .authenticated
             }
         }
+    }
+
+    /// A retried connection is syncing again, so an earlier failure no longer stands.
+    func syncRetried() {
+        sessionSync = .pending
     }
 
     func navigate(to newDestination: Destination) {

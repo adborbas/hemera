@@ -7,7 +7,9 @@ import TileGridEngine
 struct OnboardingHomeStep: View {
 
     let home: CuratedHomeViewModel
-    let isLoaded: Bool
+    let state: OnboardingCoordinator.HomeState
+    let serverHost: String
+    let onRetry: () -> Void
 
     @Query(sort: \HomeTile.sortOrder) private var homeTiles: [HomeTile]
 
@@ -17,7 +19,8 @@ struct OnboardingHomeStep: View {
 
     var body: some View {
         Group {
-            if isLoaded {
+            switch state {
+            case .loaded:
                 TiledGrid(
                     sections: Binding(
                         get: { [TileSection(tiles: home.displayedTiles(homeTiles: homeTiles))] },
@@ -32,22 +35,59 @@ struct OnboardingHomeStep: View {
                 ) { tile in
                     tileView(for: tile)
                 }
-            } else {
+            case .loading:
                 ProgressView()
                     .controlSize(.large)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .accessibilityLabel(Localization.loading)
+            case .failed:
+                unableToConnect
+            case .empty:
+                ContentUnavailableView {
+                    Text(Localization.emptyTitle)
+                } description: {
+                    Text(Localization.emptyMessage)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .environment(\.tilesWiggleWhileEditing, false)
         // Reseeds until the first edit, so a store write landing after the sync still shows.
-        .onChange(of: isLoaded ? homeTiles.map(\.entityId) : nil, initial: true) {
-            if isLoaded, !home.canUndo, !home.canRedo {
+        .onChange(of: state == .loaded ? homeTiles.map(\.entityId) : nil, initial: true) {
+            if state == .loaded, !home.canUndo, !home.canRedo {
                 home.enterEditMode(homeTiles: homeTiles)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboardingHomeStep")
+    }
+}
+
+// MARK: - Unable to Connect
+
+private extension OnboardingHomeStep {
+
+    /// Matches the Connecting screen's timed-out state.
+    var unableToConnect: some View {
+        VStack(spacing: Mortar.Spacing.xxl) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: Mortar.IconSize.m))
+                .foregroundStyle(.secondary)
+
+            Text(Localization.unableToConnect)
+                .font(.title2.bold())
+
+            Text(Localization.couldNotReach(serverHost))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Mortar.PanelSpacing.edge)
+
+            Button(Localization.retry, action: onRetry)
+                .buttonStyle(.mortarPrimary())
+                .accessibilityIdentifier("onboardingHomeRetry")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -123,6 +163,16 @@ struct OnboardingHomeHistory: View {
 private extension OnboardingHomeStep {
     enum Localization {
         static let loading = String(localized: "Loading your Home", comment: "Accessibility label of the spinner shown while the onboarding Home step loads")
+        static let unableToConnect = String(localized: "Unable to Connect", comment: "Title shown when the app cannot reach the Home Assistant server")
+        static let retry = String(localized: "Retry", comment: "Button to retry connecting to the server")
+        static func couldNotReach(_ host: String) -> String {
+            String(localized: "Could not reach \(host). Make sure you're on the same network as your Home Assistant server.", comment: "Error message shown when connection to the server times out, with the server hostname")
+        }
+        static let emptyTitle = String(localized: "Nothing to suggest yet", comment: "Title shown in the onboarding Home step when the server has no devices to suggest for Home")
+        static let emptyMessage = String(
+            localized: "Hemera didn't find any lights, switches or other devices to put on your Home. You can add tiles from Areas at any time.",
+            comment: "Message shown in the onboarding Home step when the server has no devices to suggest for Home"
+        )
     }
 }
 

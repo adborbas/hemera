@@ -12,6 +12,7 @@ public enum MortarButtonWidth {
 
 public struct MortarPrimaryButtonStyle: ButtonStyle {
     let width: MortarButtonWidth
+    @Environment(\.isEnabled) private var isEnabled
 
     public init(width: MortarButtonWidth = .intrinsic) {
         self.width = width
@@ -26,6 +27,8 @@ public struct MortarPrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(.white)
             .background(.tint, in: RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous))
             .opacity(configuration.isPressed ? 0.8 : 1.0)
+            // The same dimming as an unavailable entity card.
+            .opacity(isEnabled ? 1 : 0.45)
     }
 }
 

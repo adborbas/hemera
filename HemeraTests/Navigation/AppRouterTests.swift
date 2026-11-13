@@ -38,7 +38,7 @@ struct AppRouterTests {
         let router = AppRouter(authManager: MockAuthManager())
         router.navigate(to: .connecting)
 
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
 
         #expect(router.destination == .authenticated)
     }
@@ -48,7 +48,7 @@ struct AppRouterTests {
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
 
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
 
         #expect(router.destination == .authenticated)
     }
@@ -117,11 +117,11 @@ struct AppRouterTests {
 
         authManager.didAuthenticate(with: Self.testCredentials)
         #expect(router.destination == .onboarding)
-        #expect(router.isSessionReady == false)
+        #expect(router.sessionSync == .pending)
 
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
         #expect(router.destination == .onboarding)
-        #expect(router.isSessionReady)
+        #expect(router.sessionSync == .succeeded)
 
         router.navigate(to: .authenticated)
         #expect(router.destination == .authenticated)
@@ -136,7 +136,7 @@ struct AppRouterTests {
         authManager.didAuthenticate(with: Self.testCredentials)
         #expect(router.destination == .connecting)
 
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
         #expect(router.destination == .authenticated)
     }
 
@@ -167,24 +167,63 @@ struct AppRouterTests {
         let authManager = MockAuthManager()
         let router = AppRouter(authManager: authManager)
         authManager.didAuthenticate(with: Self.testCredentials)
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
 
         authManager.logout()
 
         #expect(router.destination == .onboarding)
-        #expect(router.isSessionReady == false)
+        #expect(router.sessionSync == .pending)
     }
 
     /// A new login must not inherit the previous session's finished sync.
-    @Test func didAuthenticate_resetsSessionReady() {
+    @Test func didAuthenticate_resetsSessionSync() {
         let authManager = MockAuthManager()
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
         authManager.simulateSessionExpiry()
 
         authManager.didAuthenticate(with: Self.testCredentials)
 
-        #expect(router.isSessionReady == false)
+        #expect(router.sessionSync == .pending)
+    }
+
+    // MARK: - Sync Outcome
+
+    /// Onboarding shows Unable to Connect for a failed sync instead of an empty Home.
+    @Test func sessionReady_failed_recordsTheFailureAndStillLeavesConnecting() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        authManager.simulateSessionExpiry()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        router.sessionReady(succeeded: false)
+
+        #expect(router.sessionSync == .failed)
+        #expect(router.destination == .authenticated)
+    }
+
+    @Test func sessionReady_succeededAfterAFailure_recordsTheSuccess() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+        router.sessionReady(succeeded: false)
+
+        router.sessionReady(succeeded: true)
+
+        #expect(router.sessionSync == .succeeded)
+    }
+
+    /// A retry must not keep showing the failure it is retrying.
+    @Test func syncRetried_afterAFailure_isPendingAgain() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+        router.sessionReady(succeeded: false)
+
+        router.syncRetried()
+
+        #expect(router.sessionSync == .pending)
     }
 }

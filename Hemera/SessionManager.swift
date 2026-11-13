@@ -253,7 +253,7 @@ private extension SessionManager {
             onSyncComplete: { [weak self] payload in
                 self?.isResyncing = false
                 self?.fillSuggestedHomeIfNeeded(payload)
-                self?.router?.sessionReady()
+                self?.router?.sessionReady(succeeded: payload != nil)
             }
         )
 

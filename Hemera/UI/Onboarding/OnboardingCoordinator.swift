@@ -10,10 +10,11 @@ protocol OnboardingServerConnecting: ServerAddressHandling {
 
 extension ServerSelectionViewModel: OnboardingServerConnecting {}
 
-/// How onboarding learns the first sync finished, and hands the root to the main app.
+/// How onboarding learns how the sync went, and hands the root to the main app.
 @MainActor
 protocol OnboardingRouting: AnyObject {
-    var isSessionReady: Bool { get }
+    var sessionSync: AppRouter.SessionSync { get }
+    func syncRetried()
     func navigate(to destination: AppRouter.Destination)
 }
 
@@ -44,6 +45,13 @@ final class OnboardingCoordinator {
         }
     }
 
+    enum HomeState {
+        case loading
+        case failed
+        case empty
+        case loaded
+    }
+
     struct BottomButton: Equatable {
         let title: String
         let isEnabled: Bool
@@ -51,6 +59,7 @@ final class OnboardingCoordinator {
     }
 
     static let stepCount = 3
+    static let connectionTimeout = Duration.seconds(15)
 
     // MARK: - Properties
 
@@ -61,26 +70,48 @@ final class OnboardingCoordinator {
     /// The Home step's editor, set by the login that opens the step.
     private(set) var home: CuratedHomeViewModel?
     private(set) var isConfirmingLogOut = false
+    private var hasTimedOut = false
+    private var timeoutTask: Task<Void, Never>?
 
     private let connection: any OnboardingServerConnecting
     private let authManager: any AuthManaging
     private let router: any OnboardingRouting
+    private let connectionRetrier: any ConnectionRetrying
+    private let sleep: @MainActor (Duration) async throws -> Void
 
     // MARK: - Init
 
-    init(connection: any OnboardingServerConnecting, authManager: any AuthManaging, router: any OnboardingRouting) {
+    init(
+        connection: any OnboardingServerConnecting,
+        authManager: any AuthManaging,
+        router: any OnboardingRouting,
+        connectionRetrier: any ConnectionRetrying,
+        sleep: @escaping @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) {
         self.connection = connection
         self.authManager = authManager
         self.router = router
+        self.connectionRetrier = connectionRetrier
+        self.sleep = sleep
     }
 
     // MARK: - Public Methods
 
-    var progress: Double { page.progress }
+    /// An empty Home skips the steps after it, so the bar fills.
+    var progress: Double { isHomeEmpty ? Double(Self.stepCount) : page.progress }
 
     var canGoBack: Bool { contentPage != .server }
 
-    var isHomeLoaded: Bool { router.isSessionReady }
+    var homeState: HomeState {
+        switch router.sessionSync {
+        case .succeeded: (home?.homeTileRepository.hasAnyHomeTile() ?? true) ? .loaded : .empty
+        case .failed: .failed
+        case .pending: hasTimedOut ? .failed : .loading
+        }
+    }
+
+    /// The first sync succeeded with nothing to suggest.
+    var isHomeEmpty: Bool { page == .home && homeState == .empty }
 
     var serverHost: String { authManager.credentials?.serverURL.host() ?? "" }
 
@@ -90,7 +121,7 @@ final class OnboardingCoordinator {
         case .manualAddress:
             BottomButton(title: connection.mode.actionTitle, isEnabled: connection.canSubmit, isLoading: connection.isBusy)
         case .home:
-            BottomButton(title: Localization.finish, isEnabled: isHomeLoaded, isLoading: false)
+            BottomButton(title: Localization.finish, isEnabled: homeState == .loaded || homeState == .empty, isLoading: false)
         case .server, .login:
             nil
         }
@@ -99,6 +130,7 @@ final class OnboardingCoordinator {
     func bottomButtonTapped() async {
         guard bottomButton?.isEnabled == true else { return }
         if contentPage == .home {
+            timeoutTask?.cancel()
             home?.exitEditMode(commit: true)
             router.navigate(to: .authenticated)
         } else {
@@ -127,12 +159,21 @@ final class OnboardingCoordinator {
     func loggedIn(home: CuratedHomeViewModel) {
         self.home = home
         show(.home)
+        startTimeout()
+    }
+
+    func retryConnection() {
+        router.syncRetried()
+        connectionRetrier.retryConnection()
+        startTimeout()
     }
 
     /// Logging out wipes the Home, so nothing is saved.
     func logOut() {
         isConfirmingLogOut = false
+        timeoutTask?.cancel()
         home = nil
+        connection.text = ""
         connection.cancelAuth()
         connection.abandonConnection()
         authManager.logout()
@@ -165,6 +206,16 @@ private extension OnboardingCoordinator {
         isForward = next > page
         page = next
         contentPage = next
+    }
+
+    func startTimeout() {
+        hasTimedOut = false
+        timeoutTask?.cancel()
+        timeoutTask = Task { [weak self, sleep] in
+            try? await sleep(Self.connectionTimeout)
+            guard !Task.isCancelled else { return }
+            self?.hasTimedOut = true
+        }
     }
 }
 

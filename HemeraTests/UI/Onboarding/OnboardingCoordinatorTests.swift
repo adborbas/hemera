@@ -11,6 +11,8 @@ struct OnboardingCoordinatorTests {
     private let authManager = MockAuthManager()
     private let router = SpyOnboardingRouter()
     private let tileRepository = MockHomeTileRepository()
+    private let retrier = MockConnectionRetrier()
+    private let clock = ManualSleep()
     private let home: CuratedHomeViewModel
     private let coordinator: OnboardingCoordinator
 
@@ -22,7 +24,13 @@ struct OnboardingCoordinatorTests {
             authManager: authManager,
             demoCoordinator: MockDemoCoordinator()
         )
-        coordinator = OnboardingCoordinator(connection: connection, authManager: authManager, router: router)
+        coordinator = OnboardingCoordinator(
+            connection: connection,
+            authManager: authManager,
+            router: router,
+            connectionRetrier: retrier,
+            sleep: clock.sleep
+        )
     }
 
     // MARK: - Page Order
@@ -245,7 +253,7 @@ extension OnboardingCoordinatorTests {
         loggedInFromServer()
         #expect(coordinator.bottomButton?.title == "Finish")
         #expect(coordinator.bottomButton?.isEnabled == false)
-        router.isSessionReady = true
+        router.sessionSync = .succeeded
         #expect(coordinator.bottomButton?.isEnabled == true)
     }
 
@@ -263,7 +271,7 @@ extension OnboardingCoordinatorTests {
         let tiles = seedTwoTiles()
         home.removeTile(tiles[0])
         home.resizeTile(tiles[1], to: .medium)
-        router.isSessionReady = true
+        router.sessionSync = .succeeded
 
         await coordinator.bottomButtonTapped()
 
@@ -317,6 +325,19 @@ extension OnboardingCoordinatorTests {
     }
 
     @Test
+    func logOut_forgetsTheTypedAddress() {
+        coordinator.enterAddressManually()
+        connection.text = "homeassistant.local:8123"
+        coordinator.loginOpened()
+        coordinator.loggedIn(home: home)
+        coordinator.back()
+
+        coordinator.logOut()
+
+        #expect(connection.text.isEmpty)
+    }
+
+    @Test
     func serverHost_namesTheLoggedInServer() {
         authManager.credentials = ServerCredentials(
             serverURL: URL(string: "https://ha.example.com:8123")!,
@@ -329,12 +350,155 @@ extension OnboardingCoordinatorTests {
     }
 }
 
+// MARK: - Home States
+
+extension OnboardingCoordinatorTests {
+
+    @Test
+    func homeState_beforeTheTimeout_isLoadingWithFinishDisabled() async {
+        loggedInFromServer()
+        await clock.settle()
+        #expect(coordinator.homeState == .loading)
+        #expect(coordinator.bottomButton?.isEnabled == false)
+        #expect(clock.durations == [.seconds(15)])
+    }
+
+    @Test
+    func homeState_fifteenSecondsWithoutASync_isFailedWithFinishDisabled() async {
+        loggedInFromServer()
+        await clock.elapse()
+        #expect(coordinator.homeState == .failed)
+        #expect(coordinator.bottomButton?.isEnabled == false)
+    }
+
+    /// A failed sync has nothing to show, so it must not wait out the timeout or count as loaded.
+    @Test
+    func homeState_afterAFailedSync_isFailedAtOnce() {
+        loggedInFromServer()
+        router.sessionSync = .failed
+        #expect(coordinator.homeState == .failed)
+        #expect(coordinator.bottomButton?.isEnabled == false)
+    }
+
+    @Test
+    func retryConnection_retriesAndWaitsAgainUntilASyncSucceeds() async {
+        loggedInFromServer()
+        router.sessionSync = .failed
+        await clock.elapse()
+
+        coordinator.retryConnection()
+
+        #expect(coordinator.homeState == .loading)
+        #expect(retrier.retryCallCount == 1)
+        await clock.settle()
+        #expect(clock.durations == [.seconds(15), .seconds(15)])
+        tileRepository.stubbedHasAnyHomeTile = true
+        router.sessionSync = .succeeded
+        #expect(coordinator.homeState == .loaded)
+        #expect(coordinator.bottomButton?.isEnabled == true)
+    }
+
+    @Test
+    func retryConnection_failingAgain_showsTheFailureAfterTheRestartedTimeout() async {
+        loggedInFromServer()
+        await clock.elapse()
+        coordinator.retryConnection()
+        #expect(coordinator.homeState == .loading)
+
+        await clock.elapse()
+
+        #expect(coordinator.homeState == .failed)
+    }
+
+    @Test
+    func homeState_afterASuccessfulSyncWithTiles_isLoadedWithFinishEnabled() {
+        loggedInFromServer()
+        tileRepository.stubbedHasAnyHomeTile = true
+        router.sessionSync = .succeeded
+        #expect(coordinator.homeState == .loaded)
+        #expect(coordinator.isHomeEmpty == false)
+        #expect(coordinator.bottomButton == .init(title: "Finish", isEnabled: true, isLoading: false))
+    }
+
+    /// The steps after Home are skipped when there is nothing on it, so the bar must read as done.
+    @Test
+    func homeState_afterASuccessfulSyncWithNoTiles_isEmptyAndFinishesOnboarding() async {
+        loggedInFromServer()
+        router.sessionSync = .succeeded
+
+        #expect(coordinator.homeState == .empty)
+        #expect(coordinator.isHomeEmpty)
+        #expect(coordinator.progress == Double(OnboardingCoordinator.stepCount))
+        #expect(coordinator.bottomButton == .init(title: "Finish", isEnabled: true, isLoading: false))
+
+        await coordinator.bottomButtonTapped()
+        #expect(router.navigations == [.authenticated])
+    }
+
+    @Test
+    func isHomeEmpty_beforeTheHomeStep_isFalse() {
+        router.sessionSync = .succeeded
+        #expect(coordinator.isHomeEmpty == false)
+        #expect(coordinator.progress == 1)
+    }
+
+    @Test
+    func logOut_stopsTheTimeout() async {
+        loggedInFromServer()
+        coordinator.back()
+        coordinator.logOut()
+
+        await clock.elapse()
+
+        #expect(coordinator.homeState == .loading)
+    }
+
+    @Test
+    func finish_stopsTheTimeout() async {
+        loggedInFromServer()
+        router.sessionSync = .succeeded
+        await coordinator.bottomButtonTapped()
+        router.sessionSync = .pending
+
+        await clock.elapse()
+
+        #expect(coordinator.homeState == .loading)
+    }
+}
+
 // MARK: - Spy
+
+/// Sleeps until the test says the time has passed.
+@MainActor
+private final class ManualSleep {
+    private(set) var durations: [Duration] = []
+    private var pending: [CheckedContinuation<Void, Never>] = []
+
+    func sleep(_ duration: Duration) async throws {
+        durations.append(duration)
+        await withCheckedContinuation { pending.append($0) }
+    }
+
+    /// Lets started timers reach their sleep.
+    func settle() async {
+        try? await Task.sleep(for: .milliseconds(100))
+    }
+
+    func elapse() async {
+        await settle()
+        let ending = pending
+        pending = []
+        ending.forEach { $0.resume() }
+        await settle()
+    }
+}
 
 @MainActor
 private final class SpyOnboardingRouter: OnboardingRouting {
-    var isSessionReady = false
+    var sessionSync = AppRouter.SessionSync.pending
     var navigations: [AppRouter.Destination] = []
+
+    func syncRetried() { sessionSync = .pending }
 
     func navigate(to destination: AppRouter.Destination) { navigations.append(destination) }
 }
