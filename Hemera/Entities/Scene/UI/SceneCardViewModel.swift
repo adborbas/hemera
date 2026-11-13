@@ -20,20 +20,38 @@ final class SceneCardViewModel: Identifiable {
         iconResolver.iconName(domain: SceneEntity.domain, entityIcon: scene.icon)
     }
 
+    /// True for a moment after activation, however it was triggered, so the card can confirm it.
+    private(set) var isConfirmingActivation = false
+
     private let controller: SceneControlling
     private let iconResolver: any IconResolving
+    private let confirmationDuration: Duration
+    private var confirmationTask: Task<Void, Never>?
 
-    init(scene: SceneEntity, controller: SceneControlling, iconResolver: any IconResolving = IconResolver.shared) {
+    init(
+        scene: SceneEntity,
+        controller: SceneControlling,
+        iconResolver: any IconResolving = IconResolver.shared,
+        confirmationDuration: Duration = .seconds(1)
+    ) {
         self.id = scene.entityId
         self.scene = scene
         self.controller = controller
         self.iconResolver = iconResolver
+        self.confirmationDuration = confirmationDuration
     }
 
     func activate() {
         guard scene.isAvailable else { return }
         Task {
             await controller.activateScene(id)
+        }
+        isConfirmingActivation = true
+        confirmationTask?.cancel()
+        confirmationTask = Task { [confirmationDuration] in
+            try? await Task.sleep(for: confirmationDuration)
+            guard !Task.isCancelled else { return }
+            isConfirmingActivation = false
         }
     }
 }

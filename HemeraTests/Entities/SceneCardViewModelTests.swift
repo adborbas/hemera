@@ -40,6 +40,44 @@ struct SceneCardViewModelTests {
         #expect(spy.activatedIds == ["scene.test"])
     }
 
+    // MARK: - Activation Confirmation
+
+    /// Card taps, icon taps and the welcome loop all go through activate(), so all of them must confirm.
+    @Test
+    func performPrimaryAction_confirmsActivation_thenClears() async {
+        let vm = makeViewModel(confirmationDuration: .milliseconds(50))
+
+        vm.performPrimaryAction()
+        #expect(vm.isConfirmingActivation)
+
+        for _ in 0..<40 where vm.isConfirmingActivation {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(!vm.isConfirmingActivation)
+    }
+
+    @Test
+    func activate_unavailableScene_doesNotConfirm() {
+        let vm = makeViewModel()
+        vm.scene.isAvailable = false
+
+        vm.activate()
+
+        #expect(!vm.isConfirmingActivation)
+    }
+
+    @Test
+    func activate_twice_keepsConfirmingFromTheLatestTap() async {
+        let vm = makeViewModel(confirmationDuration: .seconds(1))
+
+        vm.activate()
+        try? await Task.sleep(for: .milliseconds(700))
+        vm.activate()
+        try? await Task.sleep(for: .milliseconds(700))
+
+        #expect(vm.isConfirmingActivation)
+    }
+
     // MARK: - Has Overlay
 
     @Test
@@ -51,9 +89,18 @@ struct SceneCardViewModelTests {
 
     // MARK: - Helpers
 
-    private func makeViewModel(icon: String? = nil, controller: SceneControlling? = nil) -> SceneCardViewModel {
+    private func makeViewModel(
+        icon: String? = nil,
+        controller: SceneControlling? = nil,
+        confirmationDuration: Duration = .seconds(1)
+    ) -> SceneCardViewModel {
         let scene = SceneEntity(entityId: "scene.test", name: "Test", icon: icon)
-        return SceneCardViewModel(scene: scene, controller: controller ?? StubSceneControlling(), iconResolver: IconTranslationsFixture.resolver())
+        return SceneCardViewModel(
+            scene: scene,
+            controller: controller ?? StubSceneControlling(),
+            iconResolver: IconTranslationsFixture.resolver(),
+            confirmationDuration: confirmationDuration
+        )
     }
 }
 
