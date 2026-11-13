@@ -63,7 +63,8 @@ struct CuratedHomeView: View {
                     onReorder: { previousOrder in
                         viewModel.recordReorderUndo(previousOrder: previousOrder)
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    }
+                    },
+                    editBadges: { tile in AnyView(editBadges(for: tile)) }
                 ) { tile in
                     tileView(for: tile)
                 }
@@ -138,6 +139,24 @@ struct CuratedHomeView: View {
 
 private extension CuratedHomeView {
 
+    func editBadges(for tile: Tile) -> some View {
+        TileEditBadges(
+            tile: tile,
+            onRemove: {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    viewModel.removeTile(tile)
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            },
+            onResize: { targetSize in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    viewModel.resizeTile(tile, to: targetSize)
+                }
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            }
+        )
+    }
+
     @ViewBuilder
     func tileView(for tile: Tile) -> some View {
         if let entityId = entityIdByTileId[tile.id],
@@ -150,12 +169,6 @@ private extension CuratedHomeView {
                 .editableTile(
                     tile,
                     isEditing: viewModel.isEditing,
-                    onResize: { targetSize in
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                            viewModel.resizeTile(tile, to: targetSize)
-                        }
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    },
                     onTap: {
                         if let target = viewModel.viewModelFactory.handleCardTap(entityId: entityId) {
                             overlayItem = OverlayItem(id: target.id, viewModel: target)

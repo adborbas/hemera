@@ -16,6 +16,8 @@ struct SectionGrid<Content: View>: View {
      hidden items to fade into place as they are revealed or removed.
     */
     var animatesTileChanges: Bool = false
+    /// Drawn above every tile while editing, so corner badges can overhang the neighbours.
+    var editBadges: ((Tile) -> AnyView)?
     let content: (Tile) -> Content
 
     @State private var engine: TileGridEngine?
@@ -93,6 +95,19 @@ struct SectionGrid<Content: View>: View {
                 snapshot: snapshot,
                 metrics: metrics
             )
+        }
+        if isEditing, let editBadges, snapshot.draggingID == nil {
+            ForEach(snapshot.placements, id: \.id) { placement in
+                if let tile = engine.tilesByID[placement.id] {
+                    let origin = metrics.origin(for: placement)
+                    let size = metrics.size(for: placement)
+                    editBadges(tile)
+                        .frame(width: size.width, height: size.height)
+                        .offset(x: origin.x, y: origin.y)
+                        .animation(Mortar.Motion.springSnappy, value: CGRect(origin: origin, size: size))
+                        .transition(.opacity)
+                }
+            }
         }
     }
 

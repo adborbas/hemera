@@ -39,6 +39,7 @@ struct TiledGrid<Content: View>: View {
     @Binding var isEditing: Bool
     var onReorder: (([Tile.ID]) -> Void)?
     var sectionHeaderMenuItems: ((TileSection) -> AnyView?)?
+    var editBadges: ((Tile) -> AnyView)?
     let content: (Tile) -> Content
 
     var body: some View {
@@ -74,6 +75,7 @@ struct TiledGrid<Content: View>: View {
                             containerWidth: size.width,
                             isEditing: $isEditing,
                             onReorder: onReorder,
+                            editBadges: editBadges,
                             content: content
                         )
                     }
