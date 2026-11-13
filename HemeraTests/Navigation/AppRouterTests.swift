@@ -53,9 +53,9 @@ struct AppRouterTests {
         #expect(router.destination == .authenticated)
     }
 
-    // MARK: - Session Expired Message
+    // MARK: - Session Expiry
 
-    @Test func logout_userInitiated_doesNotSetSessionExpiredMessage() {
+    @Test func logout_userInitiated_navigatesToOnboarding() {
         let authManager = MockAuthManager()
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
@@ -63,17 +63,48 @@ struct AppRouterTests {
         authManager.logout()
 
         #expect(router.destination == .onboarding)
-        #expect(router.sessionExpiredMessage == nil)
     }
 
-    @Test func logout_sessionExpired_setsSessionExpiredMessage() {
+    /// An expiry must never land on the welcome screen, which reads as "your setup is gone".
+    @Test func sessionExpiry_navigatesToSessionExpired() {
         let authManager = MockAuthManager()
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
 
         authManager.simulateSessionExpiry()
 
+        #expect(router.destination == .sessionExpired)
+    }
+
+    @Test func init_whenSessionExpired_destinationIsSessionExpired() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        authManager.simulateSessionExpiry()
+
+        let router = AppRouter(authManager: authManager)
+
+        #expect(router.destination == .sessionExpired)
+    }
+
+    @Test func didAuthenticate_afterExpiry_navigatesToConnecting() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        let router = AppRouter(authManager: authManager)
+        authManager.simulateSessionExpiry()
+
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        #expect(router.destination == .connecting)
+    }
+
+    @Test func logout_afterExpiry_navigatesToOnboarding() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        let router = AppRouter(authManager: authManager)
+        authManager.simulateSessionExpiry()
+
+        authManager.logout()
+
         #expect(router.destination == .onboarding)
-        #expect(router.sessionExpiredMessage != nil)
     }
 }

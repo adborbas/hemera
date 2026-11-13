@@ -12,30 +12,30 @@ final class AppRouter {
         case onboarding
         case connecting
         case authenticated
+        case sessionExpired
     }
 
     private(set) var destination: Destination
-    /// Non-nil when the user was forced back to onboarding (e.g. session expired).
-    private(set) var sessionExpiredMessage: String?
 
     init(authManager: some AuthManaging) {
         switch authManager.state {
         case .unauthenticated: destination = .onboarding
         case .authenticated: destination = .authenticated
+        case .sessionExpired: destination = .sessionExpired
         }
 
-        authManager.addOnChangeHandler { [weak self] state, reason in
+        authManager.addOnChangeHandler { [weak self] state, _ in
             guard let self else { return }
             switch state {
             case .unauthenticated:
-                if reason == .sessionExpired {
-                    self.sessionExpiredMessage = Localization.sessionExpired
-                }
                 withAnimation(Mortar.Motion.springSnappy) {
                     self.destination = .onboarding
                 }
+            case .sessionExpired:
+                withAnimation(Mortar.Motion.springSnappy) {
+                    self.destination = .sessionExpired
+                }
             case .authenticated:
-                self.sessionExpiredMessage = nil
                 withAnimation(Mortar.Motion.springSnappy) {
                     self.destination = .connecting
                 }
@@ -53,15 +53,8 @@ final class AppRouter {
     }
 
     func navigate(to newDestination: Destination) {
-        sessionExpiredMessage = nil
         withAnimation(Mortar.Motion.springSnappy) {
             destination = newDestination
         }
-    }
-}
-
-private extension AppRouter {
-    enum Localization {
-        static let sessionExpired = String(localized: "Your session has expired. Please log in again.", comment: "Message shown on the welcome screen after the user's authentication session expires")
     }
 }

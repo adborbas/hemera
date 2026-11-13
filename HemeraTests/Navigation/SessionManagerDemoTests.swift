@@ -132,4 +132,29 @@ struct SessionManagerTests {
         #expect(try context.fetch(FetchDescriptor<HomeTile>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<LightEntity>()).isEmpty)
     }
+
+    /// A kiosk iPad whose token expires must come back with its Home intact after a new login.
+    @Test
+    func sessionExpiry_keepsLocalData() throws {
+        let context = persistentContainer.mainContext
+        context.insert(AreaEntity(areaId: "area.lobby", name: "Lobby"))
+        context.insert(HomeTile(entityId: "light.lobby", sortOrder: 0))
+        context.insert(LightEntity(entityId: "light.lobby", name: "Lobby", state: .on))
+        try context.save()
+
+        authManager.simulateSessionExpiry()
+
+        #expect(try context.fetch(FetchDescriptor<AreaEntity>()).count == 1)
+        #expect(try context.fetch(FetchDescriptor<HomeTile>()).count == 1)
+        #expect(try context.fetch(FetchDescriptor<LightEntity>()).count == 1)
+    }
+
+    @Test
+    func sessionExpiry_clearsSession() {
+        sessionManager.startDemoSession()
+
+        authManager.simulateSessionExpiry()
+
+        #expect(ServiceLocator.shared.session == nil)
+    }
 }

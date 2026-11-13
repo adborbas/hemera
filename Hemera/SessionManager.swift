@@ -48,6 +48,8 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
                 self.startSession()
             case .unauthenticated:
                 self.tearDownSession()
+            case .sessionExpired:
+                self.stopSession()
             }
         }
 
@@ -269,7 +271,12 @@ private extension SessionManager {
     }
 
     func tearDownSession() {
-        Log.info("Tearing down session")
+        stopSession()
+        wipeLocalData()
+    }
+
+    func stopSession() {
+        Log.info("Stopping session")
         connectionManager?.disconnect()
         connectionManager = nil
         syncService = nil
@@ -277,7 +284,6 @@ private extension SessionManager {
         isResyncing = false
         wasBackgrounded = false
         clearServiceLocator()
-        wipeLocalData()
     }
 
     func makeFeedResolver(
