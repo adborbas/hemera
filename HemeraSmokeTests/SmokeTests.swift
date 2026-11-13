@@ -33,7 +33,7 @@ final class SmokeTests: XCTestCase {
         let address = app.textFields["serverAddressField"]
         tap(address)
         address.typeText(try environment("SMOKE_HA_URL"))
-        tap(app.buttons["serverAddressSubmit"])
+        tap(app.buttons["onboardingBottomButton"])
         // A SwiftUI alert action exposes its identifier twice, on a nested pair of buttons.
         tap(app.alerts.buttons["httpWarningContinue"].firstMatch)
 
