@@ -184,7 +184,9 @@ struct SettingsView: View {
     }
 
     private var logoutSection: some View {
+        // A footer, because a row is clipped to the section's corners, which are rounder than the button's.
         Section {
+        } footer: {
             Button {
                 viewModel.logoutTapped()
             } label: {
@@ -193,7 +195,6 @@ struct SettingsView: View {
             .buttonStyle(.mortarDestructive(width: .fullWidth))
             .accessibilityIdentifier("settingsLogOut")
             .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
         }
     }
 
