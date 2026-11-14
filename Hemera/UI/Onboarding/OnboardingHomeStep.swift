@@ -12,13 +12,25 @@ struct OnboardingHomeStep: View {
     let onRetry: () -> Void
 
     @Query(sort: \HomeTile.sortOrder) private var homeTiles: [HomeTile]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// How many tiles have arrived; `.max` once the arrival is over, or when the step opens loaded.
+    @State private var arrived: Int
+
+    init(home: CuratedHomeViewModel, state: OnboardingCoordinator.HomeState, serverHost: String, onRetry: @escaping () -> Void) {
+        self.home = home
+        self.state = state
+        self.serverHost = serverHost
+        self.onRetry = onRetry
+        _arrived = State(initialValue: state == .loaded ? .max : 0)
+    }
 
     private var entityIdByTileId: [Tile.ID: String] {
         Dictionary(uniqueKeysWithValues: homeTiles.map { (UUID(stableForString: $0.entityId), $0.entityId) })
     }
 
     var body: some View {
-        Group {
+        // A ZStack, not a Group, so the state animation reaches the branches' transitions.
+        ZStack {
             switch state {
             case .loaded:
                 TiledGrid(
@@ -35,11 +47,10 @@ struct OnboardingHomeStep: View {
                 ) { tile in
                     tileView(for: tile)
                 }
+                .allowsHitTesting(reduceMotion || arrived == .max)
+                .transition(reduceMotion ? .opacity : .identity)
             case .loading:
-                ProgressView()
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .accessibilityLabel(Localization.loading)
+                placeholders
             case .failed:
                 unableToConnect
             case .empty:
@@ -51,7 +62,9 @@ struct OnboardingHomeStep: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .animation(.smooth(duration: 0.35), value: state)
         .environment(\.tilesWiggleWhileEditing, false)
+        .task(id: state) { await arrive() }
         // Reseeds until the first edit, so a store write landing after the sync still shows.
         .onChange(of: state == .loaded ? homeTiles.map(\.entityId) : nil, initial: true) {
             if state == .loaded, !home.canUndo, !home.canRedo {
@@ -60,6 +73,50 @@ struct OnboardingHomeStep: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboardingHomeStep")
+    }
+}
+
+// MARK: - Loading
+
+private extension OnboardingHomeStep {
+
+    /// A typical Suggested Home's sizes, in the order its rounds fill it.
+    static let placeholderTiles = [TileSection(tiles: (0..<SuggestedHome.target).map {
+        Tile(title: "", size: [0, 2].contains($0 % 6) ? .medium : .small)
+    })]
+
+    var placeholders: some View {
+        TiledGrid(sections: .constant(Self.placeholderTiles), isEditing: .constant(false)) { tile in
+            EntityCard {
+                Circle()
+                    .fill(Color(.systemGray4))
+                    .frame(width: Mortar.IconSize.m, height: Mortar.IconSize.m)
+            } label: {
+                CardLabel(title: "Living room", subtitle: "State")
+                    .redacted(reason: .placeholder)
+            }
+            .environment(\.isMediumTile, tile.size == .medium)
+        }
+        .allowsHitTesting(false)
+        .accessibilityElement()
+        .accessibilityLabel(Localization.loading)
+    }
+
+    func arrive() async {
+        guard state == .loaded, arrived == 0 else { return }
+        if !reduceMotion {
+            for count in home.displayedTiles(homeTiles: homeTiles).indices {
+                try? await Task.sleep(for: .seconds(0.06))
+                arrived = count + 1
+            }
+            // Editing waits for the last tile's spring to settle.
+            try? await Task.sleep(for: .seconds(0.4))
+        }
+        arrived = .max
+    }
+
+    func hasArrived(_ tile: Tile) -> Bool {
+        reduceMotion || home.displayedTiles(homeTiles: homeTiles).firstIndex { $0.id == tile.id } ?? 0 < arrived
     }
 }
 
@@ -107,6 +164,8 @@ private extension OnboardingHomeStep {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             }
         )
+        .opacity(hasArrived(tile) ? 1 : 0)
+        .animation(.easeOut(duration: 0.2), value: arrived)
     }
 
     @ViewBuilder
@@ -115,6 +174,9 @@ private extension OnboardingHomeStep {
             card.makeCardView()
                 .environment(\.isMediumTile, tile.size == .medium)
                 .editableTile(tile, isEditing: true, onTap: {})
+                .opacity(hasArrived(tile) ? 1 : 0)
+                .scaleEffect(hasArrived(tile) ? 1 : 0.8)
+                .animation(.spring(duration: 0.4, bounce: 0.3), value: arrived)
         }
     }
 }
@@ -162,7 +224,7 @@ struct OnboardingHomeHistory: View {
 
 private extension OnboardingHomeStep {
     enum Localization {
-        static let loading = String(localized: "Loading your Home", comment: "Accessibility label of the spinner shown while the onboarding Home step loads")
+        static let loading = String(localized: "Loading your Home", comment: "Accessibility label of the placeholder tiles shown while the onboarding Home step loads")
         static let unableToConnect = String(localized: "Unable to Connect", comment: "Title shown when the app cannot reach the Home Assistant server")
         static let retry = String(localized: "Retry", comment: "Button to retry connecting to the server")
         static func couldNotReach(_ host: String) -> String {
