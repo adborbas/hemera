@@ -3,8 +3,6 @@ import Mortar
 
 enum OnboardingLayout {
     static let maxContentWidth: CGFloat = 640
-    /// How far above the bottom button the content starts to blur.
-    static let bottomBlurHeight: CGFloat = 48
     static let pushDuration: Double = 0.35
 }
 
@@ -87,17 +85,8 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Mortar.Spacing.l)
             .padding(.vertical, Mortar.Spacing.s)
-            .background(alignment: .top) { progressiveBlur }
             .transition(.opacity)
         }
-    }
-
-    private var progressiveBlur: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .mask(LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom))
-            .padding(.top, -OnboardingLayout.bottomBlurHeight)
-            .ignoresSafeArea(edges: .bottom)
     }
 
     private var pageTransition: AnyTransition {
