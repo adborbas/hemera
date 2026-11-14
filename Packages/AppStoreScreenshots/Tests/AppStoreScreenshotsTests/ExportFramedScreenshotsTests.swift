@@ -28,13 +28,13 @@ func exportAllFramedScreenshots() throws {
     let hasRealBezels = bezelContents.contains(where: { $0.hasSuffix(".png") })
 
     try exportScreenshot(S01_Home.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
-    try exportScreenshot(S02_AreaDetail.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
-    try exportScreenshot(S03_Areas.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S02_Areas.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S03_Themes.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
     try exportScreenshot(S04_LightControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
-    try exportScreenshot(S05_CoverControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
-    try exportScreenshot(S06_SwitchControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
-    try exportScreenshot(S07_ClimateControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
-    try exportScreenshot(S08_ClimateHistory.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S05_ClimateControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S06_ClimateHistory.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S07_AreaDetail.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
+    try exportScreenshot(S08_CoverControl.self, hasRealBezels: hasRealBezels, bezelDir: bezelDir, to: outputDir)
 }
 
 // MARK: - Unified export

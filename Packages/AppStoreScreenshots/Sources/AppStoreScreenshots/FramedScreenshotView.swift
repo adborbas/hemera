@@ -1,23 +1,29 @@
 import SwiftUI
 import AppScreenshotKit
 
-#if canImport(AppKit)
-import AppKit
-#elseif canImport(UIKit)
-import UIKit
-#endif
-
 public struct FramedScreenshotView: View {
     let screenshotName: String
     let environment: AppScreenshotEnvironment
     let directorySuffix: String
     let headerText: String
+    /// Picks the capture in this theme and a background to match; replaces `directorySuffix`.
+    let theme: ScreenshotTheme?
+    let showsBackground: Bool
 
-    public init(screenshotName: String, environment: AppScreenshotEnvironment, directorySuffix: String = "", headerText: String = "") {
+    public init(
+        screenshotName: String,
+        environment: AppScreenshotEnvironment,
+        directorySuffix: String = "",
+        headerText: String = "",
+        theme: ScreenshotTheme? = nil,
+        showsBackground: Bool = true
+    ) {
         self.screenshotName = screenshotName
         self.environment = environment
         self.directorySuffix = directorySuffix
         self.headerText = headerText
+        self.theme = theme
+        self.showsBackground = showsBackground
     }
 
     private var isLandscape: Bool {
@@ -26,7 +32,9 @@ public struct FramedScreenshotView: View {
 
     public var body: some View {
         ZStack {
-            ScreenshotGradient.default
+            if showsBackground {
+                theme?.background ?? ScreenshotGradient.default
+            }
 
             if isLandscape {
                 landscapeLayout
@@ -43,12 +51,7 @@ public struct FramedScreenshotView: View {
     private var portraitLayout: some View {
         VStack(spacing: 0) {
             if !headerText.isEmpty {
-                Text(headerText)
-                    .font(.system(size: environment.canvasSize.height * 0.032, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, environment.canvasSize.height * 0.06)
-                    .padding(.bottom, environment.canvasSize.height * 0.02)
+                ScreenshotCaption(text: headerText, canvasHeight: environment.canvasSize.height)
             }
 
             DeviceView {
@@ -88,29 +91,10 @@ public struct FramedScreenshotView: View {
             fatalError("Unknown device: \(environment.device)")
         }
 
-        let dirName = targetDevice.directoryName + directorySuffix
-        let deviceDir = ScreenshotLocator.deviceDir(for: dirName)
-
-        guard let screenshots = try? ManifestParser.load(from: deviceDir),
-              let match = screenshots.first(where: { $0.name == screenshotName }) else {
+        let dirName = theme?.directoryName(for: targetDevice) ?? targetDevice.directoryName + directorySuffix
+        guard let image = RawScreenshot.image(named: screenshotName, in: dirName) else {
             fatalError("Raw screenshot '\(screenshotName)' not found in \(dirName). Run capture-screenshots.sh first.")
         }
-
-        return loadImage(from: match.filePath)
-    }
-
-    private func loadImage(from url: URL) -> Image {
-        #if canImport(AppKit)
-        guard let nsImage = NSImage(contentsOf: url) else {
-            return Image(systemName: "photo")
-        }
-        return Image(nsImage: nsImage)
-        #elseif canImport(UIKit)
-        guard let data = try? Data(contentsOf: url),
-              let uiImage = UIImage(data: data) else {
-            return Image(systemName: "photo")
-        }
-        return Image(uiImage: uiImage)
-        #endif
+        return image
     }
 }

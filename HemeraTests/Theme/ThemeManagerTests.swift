@@ -163,4 +163,17 @@ struct ThemeManagerTests {
         #expect(manager.theme == .none)
         #expect(store.settings.theme == .gradient(Self.storedGradient))
     }
+
+    @Test func screenshotTheme_namedHue_isThatBrightPreset() {
+        // Themed App Store captures must show exactly the preset a user can pick in the editor.
+        let theme = ThemeManager.screenshotTheme(in: ["-screenshotMode", "-screenshotTheme", "blue", "-screenshotThemeIntensity", "0.4"])
+
+        #expect(theme == .gradient(Theme.Gradient(color: ThemeFamily.bright.presets[5], intensity: 0.4, family: .bright)))
+    }
+
+    @Test func screenshotTheme_unknownOrMissingHue_isNone() {
+        #expect(ThemeManager.screenshotTheme(in: ["-screenshotMode"]) == .none)
+        #expect(ThemeManager.screenshotTheme(in: ["-screenshotTheme", "beige"]) == .none)
+        #expect(ThemeManager.screenshotTheme(in: ["-screenshotTheme"]) == .none)
+    }
 }

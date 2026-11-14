@@ -87,7 +87,7 @@ enum ThemeFamily: String, Codable, CaseIterable, Sendable {
 }
 
 /// The hues the presets are built on, named as VoiceOver speaks them.
-enum HueName: CaseIterable, Sendable {
+enum HueName: String, CaseIterable, Sendable {
     case red, orange, yellow, green, teal, blue, purple, pink
 
     var hue: Double {

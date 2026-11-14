@@ -1,9 +1,9 @@
 public enum ScreenshotText {
-    public static let home = "Your Home Assistant,\nat a Glance"
-    public static let areas = "Every Room,\nOne View"
+    public static let home = "Every room,\none tap away"
+    public static let areas = "Your rooms are\nalready here"
+    public static let themes = "Any color\nyou like"
     public static let lightControl = "Fine-Tune\nEvery Light"
     public static let coverControl = "Open, Close,\nAnywhere In Between"
-    public static let switchControl = "One Tap,\nDone"
     public static let climateControl = "Perfect Climate,\nOne Touch"
     public static let areaDetail = "One Room,\nEvery Device"
     public static let climateHistory = "Every Degree,\nOver Time"
