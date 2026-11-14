@@ -57,6 +57,9 @@ final class OnboardingCoordinator {
             case .theme: 4
             }
         }
+
+        /// Home and Theme share one grid, so moving between them is not a push.
+        var pushIdentity: Page { self == .theme ? .home : self }
     }
 
     enum HomeState {

@@ -16,6 +16,8 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
     let subtitle: String
     /// Grid steps span the screen, so they show what Home will look like.
     var fillsWidth = false
+    /// Laid out hidden under the title and subtitle, so pages sharing the frame keep one height.
+    var reservedText: (title: String, subtitle: String)?
     @ViewBuilder let content: Content
     @ViewBuilder let titleAccessory: TitleAccessory
 
@@ -27,13 +29,19 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: Mortar.Spacing.xs) {
                     HStack {
-                        Text(title)
-                            .font(.title2.bold())
+                        ZStack(alignment: .leading) {
+                            if let reservedText { Text(reservedText.title).hidden() }
+                            Text(title).id(title).transition(.opacity)
+                        }
+                        .font(.title2.bold())
                         Spacer()
                         titleAccessory
                     }
-                    Text(subtitle)
-                        .foregroundStyle(.secondary)
+                    ZStack(alignment: .topLeading) {
+                        if let reservedText { Text(reservedText.subtitle).hidden() }
+                        Text(subtitle).id(subtitle).transition(.opacity)
+                    }
+                    .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Mortar.Spacing.l)
@@ -44,7 +52,7 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
             }
             .frame(maxWidth: fillsWidth ? .infinity : OnboardingLayout.maxContentWidth)
             .frame(maxWidth: .infinity)
-            .id(coordinator.contentPage)
+            .id(coordinator.contentPage.pushIdentity)
             .transition(pageTransition)
         }
         // Outside the moving page, so the button stays put and only its label changes.

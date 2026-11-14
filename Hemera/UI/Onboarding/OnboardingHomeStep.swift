@@ -3,24 +3,35 @@ import SwiftData
 import SwiftUI
 import TileGridEngine
 
-/// The Home step's content: Home's edit mode on the Suggested Home, without the wiggle.
+/// The Home and Theme steps' content: one grid, editable on Home and inert under the Theme step's editor.
 struct OnboardingHomeStep: View {
 
     let home: CuratedHomeViewModel
     let state: OnboardingCoordinator.HomeState
     let serverHost: String
     let onRetry: () -> Void
+    let isTheming: Bool
+    let themeResetCount: Int
 
     @Query(sort: \HomeTile.sortOrder) private var homeTiles: [HomeTile]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// How many tiles have arrived; `.max` once the arrival is over, or when the step opens loaded.
     @State private var arrived: Int
 
-    init(home: CuratedHomeViewModel, state: OnboardingCoordinator.HomeState, serverHost: String, onRetry: @escaping () -> Void) {
+    init(
+        home: CuratedHomeViewModel,
+        state: OnboardingCoordinator.HomeState,
+        serverHost: String,
+        onRetry: @escaping () -> Void,
+        isTheming: Bool,
+        themeResetCount: Int
+    ) {
         self.home = home
         self.state = state
         self.serverHost = serverHost
         self.onRetry = onRetry
+        self.isTheming = isTheming
+        self.themeResetCount = themeResetCount
         _arrived = State(initialValue: state == .loaded ? .max : 0)
     }
 
@@ -38,7 +49,7 @@ struct OnboardingHomeStep: View {
                         get: { [TileSection(tiles: home.displayedTiles(homeTiles: homeTiles))] },
                         set: { home.applyReorder($0.first?.tiles ?? []) }
                     ),
-                    isEditing: .constant(true),
+                    isEditing: .constant(!isTheming),
                     onReorder: { previousOrder in
                         home.recordReorderUndo(previousOrder: previousOrder)
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -71,8 +82,9 @@ struct OnboardingHomeStep: View {
                 home.enterEditMode(homeTiles: homeTiles)
             }
         }
+        .modifier(OnboardingThemeStep(isShown: isTheming, resetCount: themeResetCount))
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("onboardingHomeStep")
+        .accessibilityIdentifier(isTheming ? "onboardingThemeStep" : "onboardingHomeStep")
     }
 }
 
@@ -185,6 +197,7 @@ private extension OnboardingHomeStep {
 struct OnboardingHomeHistory: View {
 
     let home: CuratedHomeViewModel
+    let isHomeStep: Bool
 
     var body: some View {
         HStack(spacing: Mortar.Spacing.s) {
@@ -213,10 +226,11 @@ struct OnboardingHomeHistory: View {
         // Hidden, not removed, so the title row keeps its height.
         .opacity(isShown ? 1 : 0)
         .accessibilityHidden(!isShown)
+        .allowsHitTesting(isShown)
     }
 
     private var isShown: Bool {
-        home.canUndo || home.canRedo
+        isHomeStep && (home.canUndo || home.canRedo)
     }
 }
 

@@ -46,6 +46,17 @@ struct OnboardingCoordinatorTests {
     }
 
     @Test
+    func pushIdentity_homeAndTheme_shareOneGridSoDoNotPush() {
+        #expect(OnboardingCoordinator.Page.theme.pushIdentity == OnboardingCoordinator.Page.home.pushIdentity)
+    }
+
+    @Test
+    func pushIdentity_otherPages_eachPush() {
+        let pages: [OnboardingCoordinator.Page] = [.server, .manualAddress, .login, .home]
+        #expect(Set(pages.map(\.pushIdentity)).count == pages.count)
+    }
+
+    @Test
     func progress_ofEachPage() {
         #expect(OnboardingCoordinator.Page.server.progress == 1)
         #expect(OnboardingCoordinator.Page.manualAddress.progress == 1.5)

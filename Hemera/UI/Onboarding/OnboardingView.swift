@@ -23,7 +23,8 @@ struct OnboardingView: View {
             coordinator: coordinator,
             title: title,
             subtitle: subtitle,
-            fillsWidth: coordinator.contentPage >= .home
+            fillsWidth: coordinator.contentPage >= .home,
+            reservedText: reservedText
         ) {
             switch coordinator.contentPage {
             case .server, .login:
@@ -34,23 +35,21 @@ struct OnboardingView: View {
                 )
             case .manualAddress:
                 ServerAddressView(handler: serverSelection, placement: .external)
-            case .home:
+            case .home, .theme:
                 if let home = coordinator.home {
                     OnboardingHomeStep(
                         home: home,
                         state: coordinator.homeState,
                         serverHost: coordinator.serverHost,
-                        onRetry: coordinator.retryConnection
+                        onRetry: coordinator.retryConnection,
+                        isTheming: coordinator.contentPage == .theme,
+                        themeResetCount: coordinator.themeResetCount
                     )
-                }
-            case .theme:
-                if let home = coordinator.home {
-                    OnboardingThemeStep(home: home, resetCount: coordinator.themeResetCount)
                 }
             }
         } titleAccessory: {
-            if coordinator.contentPage == .home, let home = coordinator.home {
-                OnboardingHomeHistory(home: home)
+            if coordinator.contentPage >= .home, let home = coordinator.home {
+                OnboardingHomeHistory(home: home, isHomeStep: coordinator.contentPage == .home)
             }
         }
         .themedBackground(isShown: coordinator.contentPage == .theme)
@@ -131,6 +130,14 @@ struct OnboardingView: View {
         case .manualAddress: Localization.manualAddressTitle
         case .home: Localization.homeTitle
         case .theme: Localization.themeTitle
+        }
+    }
+
+    private var reservedText: (title: String, subtitle: String)? {
+        switch coordinator.contentPage {
+        case .home: (Localization.themeTitle, Localization.themeSubtitle)
+        case .theme: (Localization.homeTitle, Localization.homeSubtitle)
+        case .server, .manualAddress, .login: nil
         }
     }
 
