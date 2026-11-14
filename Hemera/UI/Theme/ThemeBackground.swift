@@ -24,19 +24,17 @@ struct ThemeBackground: View {
 }
 
 extension View {
-    /// The theme behind a navigation screen, and frosted cards on it. `isShown` false draws no theme.
-    func themedBackground(isShown: Bool = true) -> some View {
-        modifier(ThemedBackground(isShown: isShown))
+    /// The theme behind a navigation screen, and frosted cards on it.
+    func themedBackground() -> some View {
+        modifier(ThemedBackground())
     }
 }
 
 /// Reads the theme here rather than in the screen, so a colour change doesn't rebuild the screen.
 private struct ThemedBackground: ViewModifier {
-    let isShown: Bool
-
     @Environment(ThemeManager.self) private var themeManager
 
-    private var theme: Theme { isShown ? themeManager.theme : .none }
+    private var theme: Theme { themeManager.theme }
 
     // One branch for every theme: switching kinds must not rebuild the screen and lose its scroll.
     func body(content: Content) -> some View {

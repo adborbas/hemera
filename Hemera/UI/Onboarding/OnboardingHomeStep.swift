@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 import TileGridEngine
 
-/// The Home and Theme steps' content: one grid, editable on Home and inert under the Theme step's editor.
+/// The Home and Theme steps' content: one grid, editable on Home, inert under the theme editor.
 struct OnboardingHomeStep: View {
 
     let home: CuratedHomeViewModel

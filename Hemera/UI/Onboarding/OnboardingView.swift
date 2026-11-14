@@ -1,3 +1,4 @@
+import Mortar
 import SwiftUI
 
 /// Puts each onboarding page into the frame and hands its results to the coordinator.
@@ -52,7 +53,8 @@ struct OnboardingView: View {
                 OnboardingHomeHistory(home: home, isHomeStep: coordinator.contentPage == .home)
             }
         }
-        .themedBackground(isShown: coordinator.contentPage == .theme)
+        .modifier(OnboardingThemeBackground(isShown: coordinator.contentPage == .theme))
+        .animation(.smooth(duration: OnboardingLayout.pushDuration), value: coordinator.contentPage == .theme)
         .onDisappear(perform: coordinator.disappeared)
         // Every way of connecting (a server, Connect, Return, the HTTP warning) ends here.
         .onChange(of: serverSelection.authSession != nil) { _, isOpen in
@@ -148,6 +150,23 @@ struct OnboardingView: View {
         case .home: Localization.homeSubtitle
         case .theme: Localization.themeSubtitle
         }
+    }
+}
+
+/// Drawn in the page rather than as the navigation background, so it fades with the step change.
+private struct OnboardingThemeBackground: ViewModifier {
+    let isShown: Bool
+
+    @Environment(ThemeManager.self) private var themeManager
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if isShown, case .gradient(let gradient) = themeManager.theme {
+                    ThemeBackground(gradient: gradient)
+                }
+            }
+            .environment(\.cardSurface, isShown && themeManager.theme != .none ? .frosted : .wash)
     }
 }
 
