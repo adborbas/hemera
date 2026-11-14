@@ -1,0 +1,7 @@
+Hemera is a client for Home Assistant, the open-source home automation platform, so it needs a Home Assistant server to connect to. To review it without one, use the built-in demo:
+
+1. Launch the app and tap "Get Started".
+2. On "Connect to your server", tap "Enter address manually". iOS may ask for local network access, which Hemera uses to find Home Assistant servers; either answer works for the demo.
+3. Type demo.hemera.invalid and tap "Connect".
+
+This opens a realistic sample home with lights, blinds, climate controls, switches, a robot vacuum, scenes, scripts, automations and sensors, all fully interactive. Demo mode runs the same UI code as a live connection, with no network access or account needed.

@@ -28,11 +28,22 @@ final class ThemeManager {
 
     // MARK: - Init
 
-    /// Screenshot mode shows None without touching what is stored.
+    /// Screenshot mode shows the launch-argument theme, else None, without touching what is stored.
     init(store: any SettingsStoring, isScreenshotMode: Bool = CommandLine.arguments.contains("-screenshotMode")) {
         self.store = store
-        self.theme = isScreenshotMode ? .none : store.settings.theme
+        self.theme = isScreenshotMode ? Self.screenshotTheme(in: CommandLine.arguments) : store.settings.theme
         self.screensaverShowsTheme = store.settings.screensaverShowsTheme
+    }
+
+    /// `-screenshotTheme <HueName>` picks that bright preset; `-screenshotThemeIntensity` defaults 0.6.
+    static func screenshotTheme(in arguments: [String]) -> Theme {
+        func value(after flag: String) -> String? {
+            arguments.firstIndex(of: flag).flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
+        }
+        guard let hue = value(after: "-screenshotTheme").flatMap(HueName.init(rawValue:)) else { return .none }
+        let intensity = value(after: "-screenshotThemeIntensity").flatMap(Double.init) ?? 0.6
+        let color = ThemeFamily.bright.color(hue: hue.hue, radius: 0.8)
+        return .gradient(Theme.Gradient(color: color, intensity: min(max(intensity, 0), 1), family: .bright))
     }
 
     // MARK: - Edit Session

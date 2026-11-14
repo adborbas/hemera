@@ -5,7 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCREENSHOTS_DIR="$PROJECT_DIR/Screenshots"
 OUTPUT_DIR="$SCREENSHOTS_DIR/Promo"
 
-# Step 1: Capture raw screenshots (dark mode, portrait only)
+# Step 1: Capture raw screenshots (dark mode, portrait only, in each theme the set uses)
 # SKIP_CAPTURE=1 reuses whatever is already in Screenshots/ — use when only the promo layout changed.
 if [ "${SKIP_CAPTURE:-0}" = "1" ]; then
     echo "=== Step 1: Skipped (SKIP_CAPTURE=1, reusing existing raw screenshots) ==="
@@ -19,10 +19,12 @@ fi
 
 # Verify all expected directories exist
 for dir in iPhone-6.9-Dark iPhone-6.3-Dark iPad-13-Dark; do
-    if [ ! -d "$SCREENSHOTS_DIR/$dir" ]; then
-        echo "ERROR: Missing raw screenshots directory: $SCREENSHOTS_DIR/$dir"
+  for theme in blue purple teal orange; do
+    if [ ! -d "$SCREENSHOTS_DIR/$dir-$theme" ]; then
+        echo "ERROR: Missing raw screenshots directory: $SCREENSHOTS_DIR/$dir-$theme"
         exit 1
     fi
+  done
 done
 
 # Step 2: Download and extract Apple device bezels if needed

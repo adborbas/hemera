@@ -60,7 +60,18 @@ struct HemeraApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(router: router, authManager: authManager)
+            Group {
+                // Replaces RootView: a welcome screen underneath would also drive the shared cards.
+                #if DEBUG
+                if AppStoreHeaderStage.isRequested {
+                    AppStoreHeaderStage()
+                } else {
+                    RootView(router: router, authManager: authManager)
+                }
+                #else
+                RootView(router: router, authManager: authManager)
+                #endif
+            }
                 .scrollIndicators(.hidden)
                 .modelContainer(environment.container)
                 .environment(environment.screenManager)

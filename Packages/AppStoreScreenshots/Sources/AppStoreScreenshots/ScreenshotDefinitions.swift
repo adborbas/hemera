@@ -1,33 +1,33 @@
 import SwiftUI
 import AppScreenshotKit
 
-// MARK: - Home
+// MARK: - Home (panorama 1/3)
 
 @AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
 struct S01_Home: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
-        FramedScreenshotView(screenshotName: "01_Home_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.home)
+        ThemePanorama(index: 0, environment: environment)
     }
 }
 
-// MARK: - Area Detail
+// MARK: - Areas (panorama 2/3)
 
 @AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
-struct S02_AreaDetail: View {
+struct S02_Areas: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
-        FramedScreenshotView(screenshotName: "07_AreaDetail_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.areaDetail)
+        ThemePanorama(index: 1, environment: environment)
     }
 }
 
-// MARK: - Areas
+// MARK: - Themes (panorama 3/3)
 
 @AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
-struct S03_Areas: View {
+struct S03_Themes: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
-        FramedScreenshotView(screenshotName: "02_Areas_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.areas)
+        ThemePanorama(index: 2, environment: environment)
     }
 }
 
@@ -37,46 +37,46 @@ struct S03_Areas: View {
 struct S04_LightControl: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
-        FramedScreenshotView(screenshotName: "03_LightControl_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.lightControl)
-    }
-}
-
-// MARK: - Cover Control
-
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
-struct S05_CoverControl: View {
-    @Environment(\.appScreenshotEnvironment) var environment
-    var body: some View {
-        FramedScreenshotView(screenshotName: "04_CoverControl_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.coverControl)
-    }
-}
-
-// MARK: - Switch Control
-
-@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
-struct S06_SwitchControl: View {
-    @Environment(\.appScreenshotEnvironment) var environment
-    var body: some View {
-        FramedScreenshotView(screenshotName: "05_SwitchControl_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.switchControl)
+        FramedScreenshotView(screenshotName: "03_LightControl_Portrait", environment: environment, headerText: ScreenshotText.lightControl, theme: .blue)
     }
 }
 
 // MARK: - Climate Control
 
 @AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
-struct S07_ClimateControl: View {
+struct S05_ClimateControl: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
-        FramedScreenshotView(screenshotName: "06_ClimateControl_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.climateControl)
+        FramedScreenshotView(screenshotName: "06_ClimateControl_Portrait", environment: environment, headerText: ScreenshotText.climateControl, theme: .purple)
     }
 }
 
 // MARK: - Climate History
 
 @AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
-struct S08_ClimateHistory: View {
+struct S06_ClimateHistory: View {
     @Environment(\.appScreenshotEnvironment) var environment
     var body: some View {
-        FramedScreenshotView(screenshotName: "08_ClimateHistory_Portrait", environment: environment, directorySuffix: "-Dark", headerText: ScreenshotText.climateHistory)
+        FramedScreenshotView(screenshotName: "08_ClimateHistory_Portrait", environment: environment, headerText: ScreenshotText.climateHistory, theme: .teal)
+    }
+}
+
+// MARK: - Area Detail
+
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+struct S07_AreaDetail: View {
+    @Environment(\.appScreenshotEnvironment) var environment
+    var body: some View {
+        FramedScreenshotView(screenshotName: "07_AreaDetail_Portrait", environment: environment, headerText: ScreenshotText.areaDetail, theme: .orange)
+    }
+}
+
+// MARK: - Cover Control
+
+@AppScreenshot(.iPhone69Inch(model: .iPhone16ProMax(orientation: .portrait), size: .w1320h2868), .iPhone63Inch(model: .iPhone16Pro(orientation: .portrait), size: .w1206h2622), .iPad130Inch(model: .iPadPro13M4(orientation: .portrait), size: .w2048h2732))
+struct S08_CoverControl: View {
+    @Environment(\.appScreenshotEnvironment) var environment
+    var body: some View {
+        FramedScreenshotView(screenshotName: "04_CoverControl_Portrait", environment: environment, headerText: ScreenshotText.coverControl, theme: .blue)
     }
 }

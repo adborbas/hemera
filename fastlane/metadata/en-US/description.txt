@@ -1,0 +1,24 @@
+Your Home Assistant, live on iPhone and iPad.
+
+Hemera is a dashboard for the smart home you have already built. It connects straight to your own Home Assistant server: no account to create, no cloud in between.
+
+YOUR HOME, YOUR LAYOUT
+Pin the devices you use most to a tile grid. Drag to reorder and resize tiles; your layout saves as you go. On first launch, Hemera suggests a layout from your devices to start from.
+
+EVERY ROOM, ALREADY THERE
+Your Home Assistant areas and floors show up as they are. Open a room to see its devices by category, and hide the ones you don't need.
+
+ANY COLOR YOU LIKE
+Pick a color and every screen follows.
+
+LIVE, NOT REFRESHED
+Changes appear the moment they happen on your server. No polling, no pull-to-refresh.
+
+CONTROLS THAT FIT THE DEVICE
+Set brightness and color temperature. Move blinds to any position. Adjust target temperature, fan mode and presets, and see each room's temperature and humidity over time. Start, pause or dock a robot vacuum. Toggle switches and run scenes, scripts and automations in one tap. Every device's sensors are one tap away.
+
+READY FOR THE WALL
+Kiosk Mode keeps a wall-mounted iPad awake and shows a screensaver when nobody is using it.
+
+FREE AND OPEN SOURCE
+MIT licensed. No accounts, no analytics, no tracking. Your data stays between your device and your Home Assistant server.

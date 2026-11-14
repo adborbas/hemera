@@ -29,11 +29,11 @@ if candidates:
 " "$name" "$match_mode" 2>/dev/null || echo ""
 }
 
-IPHONE_69_ID="$(find_simulator "iPhone 18 Pro Max" "exact")"
+IPHONE_69_ID="${IPHONE_69_ID:-$(find_simulator "iPhone 18 Pro Max" "exact")}"
 
-IPHONE_63_ID="$(find_simulator "iPhone 18 Pro" "exact")"
+IPHONE_63_ID="${IPHONE_63_ID:-$(find_simulator "iPhone 18 Pro" "exact")}"
 
-IPAD_13_ID="$(find_simulator "iPad Pro 13-inch (M5)" "substring")"
+IPAD_13_ID="${IPAD_13_ID:-$(find_simulator "iPad Pro 13-inch (M5)" "substring")}"
 
 capture_screenshots() {
     local device_name="$1"
@@ -61,6 +61,8 @@ capture_screenshots() {
         done
     fi
 
+    TEST_RUNNER_SCREENSHOT_THEME="${SCREENSHOT_THEME:-}" \
+    TEST_RUNNER_SCREENSHOT_THEME_INTENSITY="${SCREENSHOT_THEME_INTENSITY:-}" \
     xcodebuild test \
         -project "$PROJECT" \
         -scheme "$SCHEME" \
@@ -117,11 +119,20 @@ capture_device() {
     xcrun simctl bootstatus "$device_id" >/dev/null
     xcrun simctl status_bar "$device_id" override --time "9:41"
     xcrun simctl ui "$device_id" appearance dark
-    capture_screenshots "$device_name" "$device_id" "$dir_prefix" ${test_filters[@]+"${test_filters[@]}"}
+    # Each theme gets its own folder (iPhone-6.9-Dark-blue); "none" captures the unthemed app.
+    for theme in ${THEMES:-blue purple teal orange}; do
+        local subdir="$dir_prefix"
+        if [ "$theme" != "none" ]; then
+            subdir="$dir_prefix-$theme"
+        fi
+        SCREENSHOT_THEME="${theme/none/}" \
+            capture_screenshots "$device_name" "$device_id" "$subdir" ${test_filters[@]+"${test_filters[@]}"}
+    done
 }
 
 # Clean previous output
-rm -rf "$OUTPUT_DIR"
+# Only the capture folders: Screenshots/ also holds the framed set and the header video.
+rm -rf "$OUTPUT_DIR"/iPhone-* "$OUTPUT_DIR"/iPad-*
 mkdir -p "$OUTPUT_DIR"
 
 echo "=== App Store Screenshot Capture ==="

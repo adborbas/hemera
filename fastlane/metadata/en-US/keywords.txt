@@ -1,0 +1,1 @@
+hass,homeassistant,lovelace,light,blind,thermostat,climate,scene,sensor,local,kiosk,wall,panel

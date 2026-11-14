@@ -58,6 +58,13 @@ Run UI tests (screenshot capture):
 xcodebuild test -project Hemera.xcodeproj -scheme Hemera -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max' -only-testing:HemeraUITests/ScreenshotTests
 ```
 
+Capture App Store screenshots in app themes, frame them, and record the product page header video
+(`Screenshots/`, git-ignored; the header needs `ffmpeg` and `baguette`):
+```bash
+scripts/generate-promo-screenshots.sh   # captures every theme the set uses, then frames them
+scripts/record-app-store-header.sh
+```
+
 Run SPM package tests:
 ```bash
 swift test --package-path Packages/TileGridEngine

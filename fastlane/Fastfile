@@ -195,7 +195,7 @@ platform :ios do
   # ---------------------------------------------------------------------------
   # 4. Prepare an App Store version for review
   #    Creates/updates the App Store version, attaches the latest processed
-  #    build, sets the release notes (from fastlane/metadata), and marks it for
+  #    build, sets the listing text (from fastlane/metadata), and marks it for
   #    automatic release — everything except the final Submit, which stays a
   #    manual click in App Store Connect.
   #    Usage: bundle exec fastlane prepare_release [version:1.4.0] [build:12]
@@ -243,7 +243,7 @@ platform :ios do
       app_version: version,
       skip_binary_upload: true,   # the build is uploaded by the beta lane
       skip_screenshots: true,     # screenshots are managed manually in ASC
-      skip_metadata: false,       # push release_notes from fastlane/metadata
+      skip_metadata: false,       # push the listing text and review notes in fastlane/metadata
       automatic_release: true,    # go live automatically once approved
       submit_for_review: false,   # prepare only — submit stays a manual step
       run_precheck_before_submit: false,

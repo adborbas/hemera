@@ -9,6 +9,14 @@ extension XCUIApplication {
          Without this, a comma-decimal host produces "22,0°C" in screenshots for the English listing.
         */
         app.launchArguments += ["-screenshotMode", "-AppleLocale", "en_US", "-AppleLanguages", "(en)"]
+        // xcodebuild passes TEST_RUNNER_SCREENSHOT_THEME* from capture-screenshots.sh as these.
+        let environment = ProcessInfo.processInfo.environment
+        if let theme = environment["SCREENSHOT_THEME"] {
+            app.launchArguments += ["-screenshotTheme", theme]
+        }
+        if let intensity = environment["SCREENSHOT_THEME_INTENSITY"] {
+            app.launchArguments += ["-screenshotThemeIntensity", intensity]
+        }
         return app
     }
 }
