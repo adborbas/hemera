@@ -1,0 +1,32 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "extended-srgb:0.66240,0.90000,0.36000,1.00000",
+      "extended-srgb:0.08250,0.55000,0.21340,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "H.svg",
+          "name": "H"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.2
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "iOS"
+    ]
+  }
+}
