@@ -1,0 +1,21 @@
+Your Home Assistant, at a glance.
+
+Hemera is a fast, native dashboard for the smart home you have already built. Pin the devices you actually use, control them in a tap, and see every change the moment it happens. It talks straight to your own Home Assistant server — no account to create, no cloud service in between.
+
+CURATED HOME DASHBOARD
+Pin your most-used devices to a home screen you arrange yourself. Drag to reorder, resize tiles, and build the layout that works for you. Your layout is saved on your device as you go.
+
+ROOM-BY-ROOM CONTROL
+Browse all your Home Assistant areas in one view. Tap into any room to see every device — lights, covers, climate, switches, sensors — organized by category. Hide the entities you would rather not see.
+
+PRECISION CONTROLS
+Adjust brightness and color temperature with smooth sliders. Open or close blinds to any position. Set thermostat target temperature, fan mode and preset. Toggle switches, and trigger scenes, scripts or automations with a single tap.
+
+ALWAYS UP TO DATE
+Entity states change in Hemera the moment they change on your server. No polling, no pull-to-refresh, no waiting — what you see is what is actually happening.
+
+DESIGNED FOR iPHONE AND iPAD
+Adaptive layouts that feel at home on any screen size. Compact tile grids on iPhone, spacious multi-column layouts on iPad. Full Dark Mode support.
+
+OPEN SOURCE, NO STRINGS
+Hemera is free and open source under the MIT license. No accounts, no analytics, no tracking. Your data stays between your device and your Home Assistant server.
