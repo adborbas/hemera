@@ -4,23 +4,20 @@ import AppScreenshotKit
 public struct FramedScreenshotView: View {
     let screenshotName: String
     let environment: AppScreenshotEnvironment
-    let directorySuffix: String
     let headerText: String
-    /// Picks the capture in this theme and a background to match; replaces `directorySuffix`.
-    let theme: ScreenshotTheme?
+    /// Picks the capture in this theme and a background to match.
+    let theme: ScreenshotTheme
     let showsBackground: Bool
 
     public init(
         screenshotName: String,
         environment: AppScreenshotEnvironment,
-        directorySuffix: String = "",
         headerText: String = "",
-        theme: ScreenshotTheme? = nil,
+        theme: ScreenshotTheme,
         showsBackground: Bool = true
     ) {
         self.screenshotName = screenshotName
         self.environment = environment
-        self.directorySuffix = directorySuffix
         self.headerText = headerText
         self.theme = theme
         self.showsBackground = showsBackground
@@ -33,7 +30,7 @@ public struct FramedScreenshotView: View {
     public var body: some View {
         ZStack {
             if showsBackground {
-                theme?.background ?? ScreenshotGradient.default
+                theme.background
             }
 
             if isLandscape {
@@ -91,10 +88,6 @@ public struct FramedScreenshotView: View {
             fatalError("Unknown device: \(environment.device)")
         }
 
-        let dirName = theme?.directoryName(for: targetDevice) ?? targetDevice.directoryName + directorySuffix
-        guard let image = RawScreenshot.image(named: screenshotName, in: dirName) else {
-            fatalError("Raw screenshot '\(screenshotName)' not found in \(dirName). Run capture-screenshots.sh first.")
-        }
-        return image
+        return RawScreenshot.required(named: screenshotName, in: theme.directoryName(for: targetDevice))
     }
 }

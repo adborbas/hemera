@@ -20,9 +20,9 @@ public struct ThemePanorama: View {
             background
             HStack(spacing: 0) {
                 FramedScreenshotView(screenshotName: "01_Home_Portrait", environment: environment,
-                                     headerText: ScreenshotText.home, theme: .purple, showsBackground: false)
+                                     headerText: ScreenshotText.home, theme: Self.themes[0], showsBackground: false)
                 FramedScreenshotView(screenshotName: "02_Areas_Portrait", environment: environment,
-                                     headerText: ScreenshotText.areas, theme: .teal, showsBackground: false)
+                                     headerText: ScreenshotText.areas, theme: Self.themes[1], showsBackground: false)
                 themeTrio
                     .frame(width: size.width, height: size.height)
             }
@@ -49,7 +49,7 @@ public struct ThemePanorama: View {
             ZStack {
                 phone(.blue).scaleEffect(0.8).offset(x: -size.width * 0.2, y: size.height * 0.03)
                 phone(.purple).scaleEffect(0.8).offset(x: size.width * 0.2, y: size.height * 0.03)
-                phone(.orange).shadow(color: .black.opacity(0.5), radius: size.width * 0.04)
+                phone(Self.themes[2]).shadow(color: .black.opacity(0.5), radius: size.width * 0.04)
             }
             .padding(.horizontal, size.width * 0.15)
             .frame(maxHeight: .infinity, alignment: .top)
@@ -58,9 +58,11 @@ public struct ThemePanorama: View {
     }
 
     private func phone(_ theme: ScreenshotTheme) -> some View {
-        let device = TargetDevice.from(device: environment.device) ?? .iPhone69
+        guard let device = TargetDevice.from(device: environment.device) else {
+            fatalError("Unknown device: \(environment.device)")
+        }
         return DeviceView {
-            (RawScreenshot.image(named: "01_Home_Portrait", in: theme.directoryName(for: device)) ?? Image(systemName: "photo"))
+            RawScreenshot.required(named: "01_Home_Portrait", in: theme.directoryName(for: device))
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()

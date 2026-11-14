@@ -131,7 +131,8 @@ capture_device() {
 }
 
 # Clean previous output
-rm -rf "$OUTPUT_DIR"
+# Only the capture folders: Screenshots/ also holds the framed set and the header video.
+rm -rf "$OUTPUT_DIR"/iPhone-* "$OUTPUT_DIR"/iPad-*
 mkdir -p "$OUTPUT_DIR"
 
 echo "=== App Store Screenshot Capture ==="

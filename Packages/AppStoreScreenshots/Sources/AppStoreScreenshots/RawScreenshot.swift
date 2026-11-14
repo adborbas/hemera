@@ -21,6 +21,14 @@ public enum RawScreenshot {
         return (try? Data(contentsOf: match.filePath)).flatMap(UIImage.init(data:)).map(Image.init(uiImage:))
         #endif
     }
+
+    /// Stops the export when a capture is missing, so no frame ships with a placeholder.
+    public static func required(named name: String, in directoryName: String) -> Image {
+        guard let image = image(named: name, in: directoryName) else {
+            fatalError("Raw screenshot '\(name)' not found in \(directoryName). Run capture-screenshots.sh first.")
+        }
+        return image
+    }
 }
 
 /// A theme captured with `THEMES=...`; mirrors the app's `HueName`, which this package can't see.
