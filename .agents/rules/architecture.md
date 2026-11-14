@@ -223,10 +223,16 @@ Demo mode is a first-class feature, not an afterthought:
 - `DemoController` conforms to all controlling protocols, simulating behavior by mutating `@Model` objects directly.
 - `DemoCoordinator` manages enter/exit lifecycle. Its delegate (`AppCoordinator`) wires into `SessionManager` and `AppRouter`.
 - UI tests run in demo mode via `-screenshotMode` launch argument.
+- There is no Try Demo button. Besides `-screenshotMode`, demo mode starts only when the Server step is given
+  the demo address `demo.hemera.invalid`, for App Store review.
 
 ## Navigation
 
-- `AppRouter.Destination` enum drives root-level navigation: `.onboarding`, `.connecting`, `.authenticated`.
+- `AppRouter.Destination` enum drives root-level navigation: `.onboarding`, `.connecting`, `.authenticated`,
+  `.sessionExpired`.
+- `.onboarding` shows the Welcome screen, then the steps run by `OnboardingCoordinator`. A login doesn't leave
+  `.onboarding`; Finish on the last step does. A session that expires keeps local data and shows
+  `.sessionExpired`, which logs back in without onboarding.
 - `AppRouter` reacts to `AuthManager` state changes automatically.
 - `SessionManager` calls `router.sessionReady()` when the WebSocket sync completes.
 - Sheet/overlay presentation is handled locally in views via `@State`/bindings, not centralized.

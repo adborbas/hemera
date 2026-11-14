@@ -30,6 +30,30 @@ _Avoid_: Palette, page, category
 A ready-made colour offered in the theme editor. Choosing one is the same as picking that colour by hand.
 _Avoid_: Template, swatch
 
+### Onboarding
+
+**Onboarding**:
+The guided setup between logging in and using the app: choosing a server, logging in, arranging Home and choosing a theme. Every login that starts from the Welcome screen goes through it, a first one or a later one. Logging back in after a session expired is not onboarding.
+_Avoid_: Setup wizard, first run, tutorial
+
+**Welcome screen**:
+The screen anyone who isn't logged in sees first. It leads into onboarding and is not one of its steps.
+_Avoid_: Landing, splash, intro
+
+**Step**:
+One of onboarding's four stages: Server, Log in, Home and Theme.
+_Avoid_: Page, stage
+
+**Suggested Home**:
+The tiles Hemera puts on Home during onboarding, chosen from the server's supported devices. The user edits it in the Home step.
+_Avoid_: Prefill, pick, most-used
+
+### Demo
+
+**Demo mode**:
+The app running on made-up data with no server. It is reachable only for App Store review and the screenshot tests.
+_Avoid_: Try demo, preview
+
 ### Kiosk Mode
 
 **Screensaver**:

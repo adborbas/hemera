@@ -163,7 +163,7 @@ struct ServerSelectionViewModelTests {
     @Test
     func handleOAuthCallback_whenCallbackFails_setsErrorMessageAndDoesNotAuthenticate() async {
         let authManager = MockAuthManager()
-        let viewModel = ServerSelectionViewModel(authManager: authManager, serverProbe: MockServerProbe())
+        let viewModel = ServerSelectionViewModel(authManager: authManager, demoCoordinator: MockDemoCoordinator(), serverProbe: MockServerProbe())
         let serverURL = URL(string: "https://ha.example.com:8123")!
         let session = OAuthFlowManager.AuthSession(
             authorizeURL: serverURL,
@@ -303,6 +303,52 @@ struct ServerSelectionViewModelTests {
         #expect(viewModel.errorMessage != nil)
     }
 
+    // MARK: - Demo Address
+
+    @Test(arguments: [
+        "demo.hemera.invalid",
+        "Demo.Hemera.Invalid",
+        "http://demo.hemera.invalid",
+        "https://demo.hemera.invalid",
+        "http://demo.hemera.invalid:8123/",
+        "  demo.hemera.invalid  ",
+    ])
+    func connectManual_withDemoAddress_entersDemoWithoutContactingAnyServer(address: String) async {
+        // App Store review reaches demo mode this way, so no request may leave the device.
+        let probe = MockServerProbe(answering: ["https", "http"])
+        let demoCoordinator = MockDemoCoordinator()
+        let viewModel = makeViewModel(probe: probe, demoCoordinator: demoCoordinator)
+        viewModel.manualURL = address
+
+        let result = await viewModel.connectManual()
+
+        #expect(result == true)
+        #expect(demoCoordinator.enterCallCount == 1)
+        #expect(probe.probed.isEmpty)
+        #expect(viewModel.authSession == nil)
+        #expect(viewModel.showHTTPWarning == false)
+    }
+
+    @Test(arguments: [
+        "demo",
+        "hemera.invalid",
+        "mydemo.hemera.invalid",
+        "demo.hemera.invalid.example.com",
+    ])
+    func connectManual_withNearMissOfDemoAddress_connectsNormally(address: String) async {
+        // Only the exact reserved host may divert a real user's address into demo mode.
+        let probe = MockServerProbe(answering: ["https"])
+        let demoCoordinator = MockDemoCoordinator()
+        let viewModel = makeViewModel(probe: probe, demoCoordinator: demoCoordinator)
+        viewModel.manualURL = address
+
+        _ = await viewModel.connectManual()
+
+        #expect(demoCoordinator.enterCallCount == 0)
+        #expect(probe.probed.isEmpty == false)
+        #expect(viewModel.authSession != nil)
+    }
+
     // MARK: - Auth Cancellation
 
     @Test
@@ -323,7 +369,14 @@ struct ServerSelectionViewModelTests {
 
 private extension ServerSelectionViewModelTests {
 
-    func makeViewModel(probe: MockServerProbe = MockServerProbe()) -> ServerSelectionViewModel {
-        ServerSelectionViewModel(authManager: MockAuthManager(), serverProbe: probe)
+    func makeViewModel(
+        probe: MockServerProbe = MockServerProbe(),
+        demoCoordinator: MockDemoCoordinator? = nil
+    ) -> ServerSelectionViewModel {
+        ServerSelectionViewModel(
+            authManager: MockAuthManager(),
+            demoCoordinator: demoCoordinator ?? MockDemoCoordinator(),
+            serverProbe: probe
+        )
     }
 }

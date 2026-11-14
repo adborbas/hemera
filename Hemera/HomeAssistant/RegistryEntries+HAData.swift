@@ -53,12 +53,16 @@ struct DeviceMapping: Sendable {
     var entityName: String? = nil
 }
 
-/// The slice of the entity registry Hemera reads: device links, direct area pins, and HA-hidden entities.
+/// The slice of the entity registry Hemera reads, for syncing and for the Suggested Home.
 struct EntityRegistrySnapshot: Sendable {
     let deviceMappings: [DeviceMapping]
     let hiddenEntityIds: Set<String>
     /// `entityId → areaId` for entities Home Assistant pins to an area directly, rather than via their device.
     let entityAreaIds: [String: String]
+    /// An `entity_category` (config or diagnostic) marks a setting or a diagnostic, not a control.
+    let categorizedEntityIds: Set<String>
+    /// A null `original_name` is how Home Assistant marks the entity that represents its device.
+    let mainEntityIds: Set<String>
 
     static func decode(_ haData: HAData) -> EntityRegistrySnapshot? {
         guard case let .array(entries) = haData else { return nil }
@@ -66,6 +70,8 @@ struct EntityRegistrySnapshot: Sendable {
         var deviceMappings: [DeviceMapping] = []
         var hiddenEntityIds: Set<String> = []
         var entityAreaIds: [String: String] = [:]
+        var categorizedEntityIds: Set<String> = []
+        var mainEntityIds: Set<String> = []
         for entry in entries {
             guard case let .dictionary(dict) = entry,
                   let entityId = dict["entity_id"] as? String
@@ -81,11 +87,19 @@ struct EntityRegistrySnapshot: Sendable {
             if dict["hidden_by"] as? String != nil {
                 hiddenEntityIds.insert(entityId)
             }
+            if dict["entity_category"] as? String != nil {
+                categorizedEntityIds.insert(entityId)
+            }
+            if dict["original_name"] as? String == nil {
+                mainEntityIds.insert(entityId)
+            }
         }
         return EntityRegistrySnapshot(
             deviceMappings: deviceMappings,
             hiddenEntityIds: hiddenEntityIds,
-            entityAreaIds: entityAreaIds
+            entityAreaIds: entityAreaIds,
+            categorizedEntityIds: categorizedEntityIds,
+            mainEntityIds: mainEntityIds
         )
     }
 }

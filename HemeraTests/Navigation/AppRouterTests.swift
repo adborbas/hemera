@@ -38,7 +38,7 @@ struct AppRouterTests {
         let router = AppRouter(authManager: MockAuthManager())
         router.navigate(to: .connecting)
 
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
 
         #expect(router.destination == .authenticated)
     }
@@ -48,14 +48,14 @@ struct AppRouterTests {
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
 
-        router.sessionReady()
+        router.sessionReady(succeeded: true)
 
         #expect(router.destination == .authenticated)
     }
 
-    // MARK: - Session Expired Message
+    // MARK: - Session Expiry
 
-    @Test func logout_userInitiated_doesNotSetSessionExpiredMessage() {
+    @Test func logout_userInitiated_navigatesToOnboarding() {
         let authManager = MockAuthManager()
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
@@ -63,17 +63,167 @@ struct AppRouterTests {
         authManager.logout()
 
         #expect(router.destination == .onboarding)
-        #expect(router.sessionExpiredMessage == nil)
     }
 
-    @Test func logout_sessionExpired_setsSessionExpiredMessage() {
+    /// An expiry must never land on the welcome screen, which reads as "your setup is gone".
+    @Test func sessionExpiry_navigatesToSessionExpired() {
         let authManager = MockAuthManager()
         authManager.didAuthenticate(with: Self.testCredentials)
         let router = AppRouter(authManager: authManager)
 
         authManager.simulateSessionExpiry()
 
+        #expect(router.destination == .sessionExpired)
+    }
+
+    @Test func init_whenSessionExpired_destinationIsSessionExpired() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        authManager.simulateSessionExpiry()
+
+        let router = AppRouter(authManager: authManager)
+
+        #expect(router.destination == .sessionExpired)
+    }
+
+    @Test func didAuthenticate_afterExpiry_navigatesToConnecting() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        let router = AppRouter(authManager: authManager)
+        authManager.simulateSessionExpiry()
+
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        #expect(router.destination == .connecting)
+    }
+
+    @Test func logout_afterExpiry_navigatesToOnboarding() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        let router = AppRouter(authManager: authManager)
+        authManager.simulateSessionExpiry()
+
+        authManager.logout()
+
         #expect(router.destination == .onboarding)
-        #expect(router.sessionExpiredMessage != nil)
+    }
+
+    // MARK: - Ways Into the App
+
+    /// Onboarding's Home step needs the root until the user finishes it.
+    @Test func didAuthenticate_fromOnboarding_keepsOnboardingUntilItFinishes() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+
+        authManager.didAuthenticate(with: Self.testCredentials)
+        #expect(router.destination == .onboarding)
+        #expect(router.sessionSync == .pending)
+
+        router.sessionReady(succeeded: true)
+        #expect(router.destination == .onboarding)
+        #expect(router.sessionSync == .succeeded)
+
+        router.navigate(to: .authenticated)
+        #expect(router.destination == .authenticated)
+    }
+
+    @Test func didAuthenticate_afterExpiry_connectsThenOpensTheApp() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        authManager.simulateSessionExpiry()
+        let router = AppRouter(authManager: authManager)
+
+        authManager.didAuthenticate(with: Self.testCredentials)
+        #expect(router.destination == .connecting)
+
+        router.sessionReady(succeeded: true)
+        #expect(router.destination == .authenticated)
+    }
+
+    /// Demo mode enters through `AppCoordinator`, never through a login.
+    @Test func demoFromOnboarding_opensTheAppAndExitReturnsToOnboarding() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+
+        router.navigate(to: .authenticated)
+        #expect(router.destination == .authenticated)
+        router.navigate(to: .onboarding)
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        #expect(router.destination == .onboarding)
+    }
+
+    @Test func sessionExpiry_duringOnboarding_navigatesToSessionExpired() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        authManager.simulateSessionExpiry()
+
+        #expect(router.destination == .sessionExpired)
+    }
+
+    @Test func logout_fromOnboarding_staysOnOnboardingAndForgetsTheSync() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+        router.sessionReady(succeeded: true)
+
+        authManager.logout()
+
+        #expect(router.destination == .onboarding)
+        #expect(router.sessionSync == .pending)
+    }
+
+    /// A new login must not inherit the previous session's finished sync.
+    @Test func didAuthenticate_resetsSessionSync() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        let router = AppRouter(authManager: authManager)
+        router.sessionReady(succeeded: true)
+        authManager.simulateSessionExpiry()
+
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        #expect(router.sessionSync == .pending)
+    }
+
+    // MARK: - Sync Outcome
+
+    /// Onboarding shows Unable to Connect for a failed sync instead of an empty Home.
+    @Test func sessionReady_failed_recordsTheFailureAndStillLeavesConnecting() {
+        let authManager = MockAuthManager()
+        authManager.didAuthenticate(with: Self.testCredentials)
+        authManager.simulateSessionExpiry()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+
+        router.sessionReady(succeeded: false)
+
+        #expect(router.sessionSync == .failed)
+        #expect(router.destination == .authenticated)
+    }
+
+    @Test func sessionReady_succeededAfterAFailure_recordsTheSuccess() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+        router.sessionReady(succeeded: false)
+
+        router.sessionReady(succeeded: true)
+
+        #expect(router.sessionSync == .succeeded)
+    }
+
+    /// A retry must not keep showing the failure it is retrying.
+    @Test func syncRetried_afterAFailure_isPendingAgain() {
+        let authManager = MockAuthManager()
+        let router = AppRouter(authManager: authManager)
+        authManager.didAuthenticate(with: Self.testCredentials)
+        router.sessionReady(succeeded: false)
+
+        router.syncRetried()
+
+        #expect(router.sessionSync == .pending)
     }
 }

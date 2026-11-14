@@ -34,16 +34,18 @@ extension View {
 private struct ThemedBackground: ViewModifier {
     @Environment(ThemeManager.self) private var themeManager
 
+    private var theme: Theme { themeManager.theme }
+
     // One branch for every theme: switching kinds must not rebuild the screen and lose its scroll.
     func body(content: Content) -> some View {
         content
             .containerBackground(for: .navigation) {
-                if case .gradient(let gradient) = themeManager.theme {
+                if case .gradient(let gradient) = theme {
                     ThemeBackground(gradient: gradient)
                 } else {
                     PlatformColor.systemBackground.ignoresSafeArea()
                 }
             }
-            .environment(\.cardSurface, themeManager.theme == .none ? .wash : .frosted)
+            .environment(\.cardSurface, theme == .none ? .wash : .frosted)
     }
 }

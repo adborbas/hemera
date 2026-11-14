@@ -8,11 +8,11 @@ public struct WiggleModifier: ViewModifier {
 
     /// Peak rotation, identical for every tile so they all sweep the same
     /// distance.
-    private static let angleBase = 2.0
+    private static let angleBase = 0.9
 
     /// One full oscillation (a sweep there and back), identical for every
     /// tile so they all wiggle at the same frequency.
-    private static let cycleDuration = 0.28
+    private static let cycleDuration = 0.55
 
     /// Per-seed offset into the oscillation cycle, giving each tile a
     /// distinct, stable phase.
@@ -37,7 +37,7 @@ public struct WiggleModifier: ViewModifier {
             // failure mode of toggling a `repeatForever` from a task).
             // Start/stop transitions inherit the caller's `withAnimation`.
             // 60Hz cap: each tick re-evaluates on the main thread per tile,
-            // and a 0.28s sine cycle gains nothing from ProMotion's 120Hz.
+            // and a 0.55s sine cycle gains nothing from ProMotion's 120Hz.
             TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isWiggling)) { context in
                 content
                     .rotationEffect(.degrees(angle(at: context.date)))

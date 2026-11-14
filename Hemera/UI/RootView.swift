@@ -15,15 +15,12 @@ struct RootView: View {
         Group {
             switch router.destination {
             case .onboarding:
-                OnboardingFlow(
-                    sessionExpiredMessage: router.sessionExpiredMessage,
-                    onTryDemo: {
-                        ServiceLocator.shared.demoCoordinator.enter()
-                    }
-                )
+                OnboardingFlow()
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             case .connecting:
                 ConnectingView(viewModel: ConnectingViewModel())
+            case .sessionExpired:
+                SessionExpiredView()
             case .authenticated:
                 if let session = ServiceLocator.shared.session {
                     MainNavigationView(session: session)

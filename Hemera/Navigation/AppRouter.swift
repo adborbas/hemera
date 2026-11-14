@@ -12,30 +12,41 @@ final class AppRouter {
         case onboarding
         case connecting
         case authenticated
+        case sessionExpired
+    }
+
+    enum SessionSync {
+        case pending
+        case succeeded
+        case failed
     }
 
     private(set) var destination: Destination
-    /// Non-nil when the user was forced back to onboarding (e.g. session expired).
-    private(set) var sessionExpiredMessage: String?
+    /// How the current login's latest sync ended.
+    private(set) var sessionSync = SessionSync.pending
 
     init(authManager: some AuthManaging) {
         switch authManager.state {
         case .unauthenticated: destination = .onboarding
         case .authenticated: destination = .authenticated
+        case .sessionExpired: destination = .sessionExpired
         }
 
-        authManager.addOnChangeHandler { [weak self] state, reason in
+        authManager.addOnChangeHandler { [weak self] state, _ in
             guard let self else { return }
+            self.sessionSync = .pending
             switch state {
             case .unauthenticated:
-                if reason == .sessionExpired {
-                    self.sessionExpiredMessage = Localization.sessionExpired
-                }
                 withAnimation(Mortar.Motion.springSnappy) {
                     self.destination = .onboarding
                 }
+            case .sessionExpired:
+                withAnimation(Mortar.Motion.springSnappy) {
+                    self.destination = .sessionExpired
+                }
             case .authenticated:
-                self.sessionExpiredMessage = nil
+                // A login from onboarding keeps it on screen for the Home step.
+                guard self.destination != .onboarding else { return }
                 withAnimation(Mortar.Motion.springSnappy) {
                     self.destination = .connecting
                 }
@@ -43,8 +54,9 @@ final class AppRouter {
         }
     }
 
-    /// Called by SessionManager once the WebSocket connection is established.
-    func sessionReady() {
+    /// Called by SessionManager each time a sync finishes, whether or not it succeeded.
+    func sessionReady(succeeded: Bool) {
+        sessionSync = succeeded ? .succeeded : .failed
         if destination == .connecting {
             withAnimation(Mortar.Motion.springSnappy) {
                 destination = .authenticated
@@ -52,16 +64,14 @@ final class AppRouter {
         }
     }
 
+    /// A retried connection is syncing again, so an earlier failure no longer stands.
+    func syncRetried() {
+        sessionSync = .pending
+    }
+
     func navigate(to newDestination: Destination) {
-        sessionExpiredMessage = nil
         withAnimation(Mortar.Motion.springSnappy) {
             destination = newDestination
         }
-    }
-}
-
-private extension AppRouter {
-    enum Localization {
-        static let sessionExpired = String(localized: "Your session has expired. Please log in again.", comment: "Message shown on the welcome screen after the user's authentication session expires")
     }
 }

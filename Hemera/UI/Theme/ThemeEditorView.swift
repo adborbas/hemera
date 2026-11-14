@@ -7,6 +7,8 @@ struct ThemeEditorView: View {
     let isDrawer: Bool
     let cancel: () -> Void
     let done: () -> Void
+    /// Off when the host supplies its own back and confirm buttons, as onboarding does.
+    let showsActions: Bool
 
     @Environment(ThemeManager.self) private var themeManager
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
@@ -29,8 +31,15 @@ struct ThemeEditorView: View {
     private enum Control: CaseIterable { case dotField, slider }
 
     /// `theme` is what the editor opens on: its family's page, or the nearest one when it has none.
-    init(theme: Theme, isDrawer: Bool, cancel: @escaping () -> Void, done: @escaping () -> Void) {
+    init(
+        theme: Theme,
+        isDrawer: Bool,
+        showsActions: Bool = true,
+        cancel: @escaping () -> Void = {},
+        done: @escaping () -> Void = {}
+    ) {
         self.isDrawer = isDrawer
+        self.showsActions = showsActions
         self.cancel = cancel
         self.done = done
         if case .gradient(let gradient) = theme {
@@ -49,7 +58,7 @@ struct ThemeEditorView: View {
 
     var body: some View {
         VStack(spacing: Mortar.Spacing.m) {
-            header
+            if showsActions { header }
             controls
         }
         .padding(.top, Mortar.Spacing.l)

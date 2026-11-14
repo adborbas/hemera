@@ -3,8 +3,8 @@ import Mortar
 
 /// Where the commit action sits — a presentation choice, not a behavioural one.
 enum ServerAddressActionPlacement: Equatable {
-    /// Full-width button at the bottom: the primary action of a first-run screen.
-    case prominent
+    /// The caller draws the button, as onboarding's fixed bottom button.
+    case external
     /// Trailing header button: committing a value in a settings hierarchy.
     case toolbar
 }
@@ -38,17 +38,6 @@ struct ServerAddressView: View {
             inputSection
 
             Spacer()
-
-            if placement == .prominent {
-                MortarButton(
-                    handler.mode.actionTitle,
-                    width: .fullWidth,
-                    isLoading: handler.isBusy,
-                    action: submit
-                )
-                .disabled(!handler.canSubmit)
-                .accessibilityIdentifier("serverAddressSubmit")
-            }
         }
         .padding(Mortar.Spacing.xl)
         .navigationTitle(handler.mode.title)

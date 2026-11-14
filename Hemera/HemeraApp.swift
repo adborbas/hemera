@@ -45,7 +45,7 @@ struct HemeraApp: App {
             case .unauthenticated:
                 screen.resetToDefaults()
                 theme.resetToDefaults()
-            case .authenticated: break
+            case .authenticated, .sessionExpired: break
             }
         }
 

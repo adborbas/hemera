@@ -1,4 +1,5 @@
 import Foundation
+import HAKit
 import HemeraLog
 import SwiftData
 import SwiftUI
@@ -28,6 +29,9 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
 
     private var isResyncing = false
     private var wasBackgrounded = false
+    private var authState: AuthState
+    /// Set by a login from the Welcome screen, and spent by that session's first successful sync.
+    private var suggestsHome = false
 
     private let authManager: any AuthManaging
     private weak var router: AppRouter?
@@ -39,15 +43,21 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
         self.router = router
         self.container = container
         self.storage = storage
+        self.authState = authManager.state
 
         // Register onChange handler (SessionManager registers FIRST for ordering guarantee)
         authManager.addOnChangeHandler { [weak self] state, _ in
             guard let self else { return }
+            let previousState = self.authState
+            self.authState = state
             switch state {
             case .authenticated:
+                self.suggestsHome = previousState == .unauthenticated
                 self.startSession()
             case .unauthenticated:
                 self.tearDownSession()
+            case .sessionExpired:
+                self.stopSession()
             }
         }
 
@@ -160,6 +170,23 @@ final class SessionManager: ConnectionRetrying, ServerURLChanging {
         clearServiceLocator()
         demoContainer = nil
     }
+
+    /// Runs once per session, and only after a login from the Welcome screen onto an empty Home.
+    func fillSuggestedHomeIfNeeded(_ payload: HADataSyncService.SyncPayload?) {
+        // A failed sync, or one without the registry, leaves the suggestion for the retry.
+        guard suggestsHome, let payload, let registry = payload.entityRegistry else { return }
+        suggestsHome = false
+        let homeTileRepository = SwiftDataHomeTileRepository(storage: storage)
+        guard !homeTileRepository.hasAnyHomeTile() else { return }
+
+        let states = Dictionary(payload.entities.map { ($0.entityId, $0.state) }, uniquingKeysWith: { _, new in new })
+        let tiles = SuggestedHome.tiles(areas: storage.areas(), states: states, registry: registry)
+        for tile in tiles {
+            homeTileRepository.addToHome(entityId: tile.entityId)
+        }
+        homeTileRepository.commitHomeTileLayout(tiles.enumerated().map { ($1.entityId, $0, $1.size) })
+        Log.info("Filled Home with a Suggested Home of \(tiles.count) tiles")
+    }
 }
 
 // MARK: - Resync
@@ -223,9 +250,10 @@ private extension SessionManager {
             entityRegistry: .shared,
             errorNotifier: errorNotifier,
             iconResolver: .shared,
-            onSyncComplete: { [weak self] in
+            onSyncComplete: { [weak self] payload in
                 self?.isResyncing = false
-                self?.router?.sessionReady()
+                self?.fillSuggestedHomeIfNeeded(payload)
+                self?.router?.sessionReady(succeeded: payload != nil)
             }
         )
 
@@ -269,15 +297,20 @@ private extension SessionManager {
     }
 
     func tearDownSession() {
-        Log.info("Tearing down session")
+        stopSession()
+        wipeLocalData()
+    }
+
+    func stopSession() {
+        Log.info("Stopping session")
         connectionManager?.disconnect()
         connectionManager = nil
         syncService = nil
         serverURLHolder = nil
         isResyncing = false
         wasBackgrounded = false
+        suggestsHome = false
         clearServiceLocator()
-        wipeLocalData()
     }
 
     func makeFeedResolver(

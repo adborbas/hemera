@@ -31,17 +31,23 @@ final class ServerSelectionViewModel {
     private let oauthManager = OAuthFlowManager()
     private let authManager: any AuthManaging
     private let serverProbe: any ServerProbing
+    private let demoCoordinator: any DemoCoordinating
 
     /// Nothing cancels a resolve, so a result must prove it's still wanted before presenting.
     private var attempt = 0
 
-    init(authManager: any AuthManaging, serverProbe: any ServerProbing = ServerProbe()) {
+    init(
+        authManager: any AuthManaging,
+        demoCoordinator: any DemoCoordinating,
+        serverProbe: any ServerProbing = ServerProbe()
+    ) {
         self.authManager = authManager
+        self.demoCoordinator = demoCoordinator
         self.serverProbe = serverProbe
     }
 
     convenience init() {
-        self.init(authManager: ServiceLocator.shared.authManager)
+        self.init(authManager: ServiceLocator.shared.authManager, demoCoordinator: ServiceLocator.shared.demoCoordinator)
     }
 
     func prepareManualEntry() {
@@ -66,6 +72,12 @@ final class ServerSelectionViewModel {
         guard !candidates.isEmpty else {
             errorMessage = Localization.invalidURLWithExample
             return false
+        }
+
+        // Every candidate shares the typed host, and `.invalid` can never resolve to a real server.
+        if candidates[0].host?.lowercased() == "demo.hemera.invalid" {
+            demoCoordinator.enter()
+            return true
         }
 
         await connect(candidates: candidates)
@@ -178,7 +190,7 @@ final class ServerSelectionViewModel {
 
     #if DEBUG
     static var previewWithServers: ServerSelectionViewModel {
-        let vm = ServerSelectionViewModel(authManager: PreviewAuthManager())
+        let vm = ServerSelectionViewModel(authManager: PreviewAuthManager(), demoCoordinator: DemoCoordinator())
         vm.discovery = .preview(servers: [
             DiscoveredServer(name: "Home", host: "192.168.68.54", port: 8123),
             DiscoveredServer(name: "Office", host: "192.168.68.120", port: 8123),
@@ -187,13 +199,13 @@ final class ServerSelectionViewModel {
     }
 
     static var previewScanning: ServerSelectionViewModel {
-        let vm = ServerSelectionViewModel(authManager: PreviewAuthManager())
+        let vm = ServerSelectionViewModel(authManager: PreviewAuthManager(), demoCoordinator: DemoCoordinator())
         vm.discovery = .preview(servers: [], isScanning: true)
         return vm
     }
 
     static var previewEmpty: ServerSelectionViewModel {
-        ServerSelectionViewModel(authManager: PreviewAuthManager())
+        ServerSelectionViewModel(authManager: PreviewAuthManager(), demoCoordinator: DemoCoordinator())
     }
 
     private final class PreviewAuthManager: AuthManaging {
