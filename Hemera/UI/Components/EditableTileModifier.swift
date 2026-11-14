@@ -26,7 +26,7 @@ struct EditableTileModifier: ViewModifier {
     }
 }
 
-/// The remove and resize badges, centred on a tile's top-leading and bottom-trailing corners.
+/// The remove badge on a tile's top-leading corner curve, the resize badge inside the opposite corner.
 struct TileEditBadges: View {
     let tile: Tile
     let onRemove: () -> Void
@@ -35,6 +35,11 @@ struct TileEditBadges: View {
     @Environment(\.tilesWiggleWhileEditing) private var wiggles
 
     private static let cornerOffset = Mortar.TapTarget.minimum / 2
+    /// Puts the remove badge's centre on the curve of a tile's rounded corner.
+    private static let removeInset: CGFloat = 7
+    /// The gap between the resize badge and the tile's edges.
+    private static let resizeInset: CGFloat = 6
+    private static let resizeOffset = (Mortar.TapTarget.minimum - Mortar.IconSize.s) / 2 - resizeInset
 
     private var nextSize: TileSize {
         tile.size == .small ? .medium : .small
@@ -49,17 +54,18 @@ struct TileEditBadges: View {
     var body: some View {
         Color.clear
             .overlay(alignment: .topLeading) {
-                EditBadgeButton(Localization.remove, systemImage: "minus", action: onRemove)
-                    .offset(x: -Self.cornerOffset, y: -Self.cornerOffset)
+                EditBadgeButton(Localization.remove, systemImage: "minus", hitDiameter: 32, action: onRemove)
+                    .offset(x: -Self.cornerOffset + Self.removeInset, y: -Self.cornerOffset + Self.removeInset)
             }
             .overlay(alignment: .bottomTrailing) {
                 EditBadgeButton(
                     tile.size == .small ? Localization.makeLarger : Localization.makeSmaller,
-                    systemImage: resizeIcon
+                    systemImage: resizeIcon,
+                    hitDiameter: 36
                 ) {
                     onResize(nextSize)
                 }
-                .offset(x: Self.cornerOffset, y: Self.cornerOffset)
+                .offset(x: Self.resizeOffset, y: Self.resizeOffset)
             }
             // Same seed as the tile's own wiggle, so the badges stay on its corners.
             .wiggle(isWiggling: wiggles, seed: tile.id.hashValue)

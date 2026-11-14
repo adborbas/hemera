@@ -4,11 +4,19 @@ import SwiftUI
 public struct EditBadgeButton: View {
     private let title: String
     private let systemImage: String
+    private let hitDiameter: CGFloat
     private let action: () -> Void
 
-    public init(_ title: String, systemImage: String, action: @escaping () -> Void) {
+    /// Under the minimum, `hitDiameter` makes the tap target a circle, so close badges don't overlap.
+    public init(
+        _ title: String,
+        systemImage: String,
+        hitDiameter: CGFloat = Mortar.TapTarget.minimum,
+        action: @escaping () -> Void
+    ) {
         self.title = title
         self.systemImage = systemImage
+        self.hitDiameter = hitDiameter
         self.action = action
     }
 
@@ -25,7 +33,9 @@ public struct EditBadgeButton: View {
                         .environment(\.colorScheme, .dark)
                 )
                 .frame(width: Mortar.TapTarget.minimum, height: Mortar.TapTarget.minimum)
-                .contentShape(Rectangle())
+                .contentShape(hitDiameter < Mortar.TapTarget.minimum
+                    ? AnyShape(Circle().inset(by: (Mortar.TapTarget.minimum - hitDiameter) / 2))
+                    : AnyShape(Rectangle()))
         }
         .buttonStyle(.plain)
         .transition(.scale.combined(with: .opacity))
