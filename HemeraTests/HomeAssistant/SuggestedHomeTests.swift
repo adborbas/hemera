@@ -30,7 +30,7 @@ struct SuggestedHomeTests {
         ])
     }
 
-    /// A kind spans the house before it repeats an area, in area order rather than the order areas were stored.
+    /// A kind spans the house before it repeats an area, in area order, not the order areas were stored.
     @Test func tiles_interleaveAreasWithinAKind() {
         let kitchen = home.area("kitchen", order: 1)
         let bedroom = home.area("bedroom", order: 0)
@@ -256,7 +256,7 @@ struct SuggestedHomeTests {
 
 // MARK: - Test Home
 
-/// A Home Assistant setup in an in-memory store, with the states and registry entries a sync would fetch.
+/// A Home Assistant setup in memory, with the states and registry entries a sync would fetch.
 @MainActor
 private final class TestHome {
     private let container: ModelContainer
@@ -285,7 +285,7 @@ private final class TestHome {
         return area
     }
 
-    /// Registry entries carry an `original_name` unless `registry` overrides it, so no entity is a main one by default.
+    /// Entries have an `original_name` unless `registry` overrides it, so none is a main one.
     func add(
         _ entity: some StoredEntity,
         in area: AreaEntity?,

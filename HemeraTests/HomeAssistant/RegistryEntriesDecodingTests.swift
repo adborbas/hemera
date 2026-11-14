@@ -138,7 +138,7 @@ struct RegistryEntriesDecodingTests {
         #expect(snapshot.entityAreaIds == ["light.lamp": "kitchen"])
     }
 
-    /// The Suggested Home leaves out settings, diagnostics and disabled entities, and spots a device's main one.
+    /// Settings, diagnostics and disabled entities are skipped, and a device's main one is spotted.
     @Test func entitySnapshot_decodesSuggestedHomeFacts() throws {
         let snapshot = try #require(EntityRegistrySnapshot.decode(HAData(value: [
             ["entity_id": "switch.led", "entity_category": "config", "original_name": "LED"],

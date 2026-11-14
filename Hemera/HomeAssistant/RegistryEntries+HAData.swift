@@ -59,7 +59,7 @@ struct EntityRegistrySnapshot: Sendable {
     let hiddenEntityIds: Set<String>
     /// `entityId → areaId` for entities Home Assistant pins to an area directly, rather than via their device.
     let entityAreaIds: [String: String]
-    /// Entities with an `entity_category` (config or diagnostic): settings and diagnostics, not controls.
+    /// An `entity_category` (config or diagnostic) marks a setting or a diagnostic, not a control.
     let categorizedEntityIds: Set<String>
     let disabledEntityIds: Set<String>
     /// A null `original_name` is how Home Assistant marks the entity that represents its device.

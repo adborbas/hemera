@@ -184,7 +184,7 @@ struct SettingsView: View {
     }
 
     private var logoutSection: some View {
-        // A footer, because a row is clipped to the section's corners, which are rounder than the button's.
+        // A footer: a row is clipped to the section's corners, which are rounder than the button's.
         Section {
         } footer: {
             Button {

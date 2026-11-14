@@ -20,7 +20,7 @@ final class SmokeTests: XCTestCase {
             "sensor.smoke_temperature", "switch.smoke_fan",
         ]),
     ]
-    // The Suggested Home of that fixture: the template lamp and switches start unknown, so they are left out.
+    // The fixture's Suggested Home. The template lamp and switches start unknown, so they are left out.
     private let suggestedHome: Set<String> = [
         "button.smoke_doorbell", "climate.smoke_thermostat", "cover.smoke_blind", "scene.smoke_evening",
         "script.smoke_routine",

@@ -14,7 +14,7 @@
 
 **Display** — Stay-awake mode with a screensaver after configurable inactivity. Full-screen clock for wall-mounted or bedside use. Configurable 12/24-hour time format.
 
-**Try before you connect** — Built-in demo mode with realistic entities across multiple rooms. No Home Assistant server required.
+**Guided setup** — Pick your server, log in, start from a suggested Home built from your devices, and choose a theme.
 
 ## Local Development Setup
 
