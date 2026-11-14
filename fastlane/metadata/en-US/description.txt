@@ -1,21 +1,24 @@
-Your Home Assistant, at a glance.
+Your Home Assistant, live on iPhone and iPad.
 
-Hemera is a fast, native dashboard for the smart home you have already built. Pin the devices you actually use, control them in a tap, and see every change the moment it happens. It talks straight to your own Home Assistant server — no account to create, no cloud service in between.
+Hemera is a dashboard for the smart home you have already built. It connects straight to your own Home Assistant server: no account to create, no cloud in between.
 
-CURATED HOME DASHBOARD
-Pin your most-used devices to a home screen you arrange yourself. Drag to reorder, resize tiles, and build the layout that works for you. Your layout is saved on your device as you go.
+YOUR HOME, YOUR LAYOUT
+Pin the devices you use most to a tile grid. Drag to reorder and resize tiles; your layout saves as you go. On first launch, Hemera suggests a layout from your devices to start from.
 
-ROOM-BY-ROOM CONTROL
-Browse all your Home Assistant areas in one view. Tap into any room to see every device — lights, covers, climate, switches, sensors — organized by category. Hide the entities you would rather not see.
+EVERY ROOM, ALREADY THERE
+Your Home Assistant areas and floors show up as they are. Open a room to see its devices by category, and hide the ones you don't need.
 
-PRECISION CONTROLS
-Adjust brightness and color temperature with smooth sliders. Open or close blinds to any position. Set thermostat target temperature, fan mode and preset. Toggle switches, and trigger scenes, scripts or automations with a single tap.
+ANY COLOR YOU LIKE
+Pick a color and every screen follows.
 
-ALWAYS UP TO DATE
-Entity states change in Hemera the moment they change on your server. No polling, no pull-to-refresh, no waiting — what you see is what is actually happening.
+LIVE, NOT REFRESHED
+Changes appear the moment they happen on your server. No polling, no pull-to-refresh.
 
-DESIGNED FOR iPHONE AND iPAD
-Adaptive layouts that feel at home on any screen size. Compact tile grids on iPhone, spacious multi-column layouts on iPad. Full Dark Mode support.
+CONTROLS THAT FIT THE DEVICE
+Set brightness and color temperature. Move blinds to any position. Adjust target temperature, fan mode and presets, and see each room's temperature and humidity over time. Start, pause or dock a robot vacuum. Toggle switches and run scenes, scripts and automations in one tap. Every device's sensors are one tap away.
 
-OPEN SOURCE, NO STRINGS
-Hemera is free and open source under the MIT license. No accounts, no analytics, no tracking. Your data stays between your device and your Home Assistant server.
+READY FOR THE WALL
+Kiosk Mode keeps a wall-mounted iPad awake and shows a screensaver when nobody is using it.
+
+FREE AND OPEN SOURCE
+MIT licensed. No accounts, no analytics, no tracking. Your data stays between your device and your Home Assistant server.
