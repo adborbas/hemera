@@ -19,18 +19,20 @@ struct OnboardingCoordinatorTests {
 
     init() throws {
         let container = try ModelContainer(for: HomeTile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        home = CuratedHomeViewModel(
+        let home = CuratedHomeViewModel(
             homeTileRepository: tileRepository,
             viewModelFactory: ViewModelFactory(context: container.mainContext, container: container),
             authManager: authManager,
             demoCoordinator: MockDemoCoordinator()
         )
+        self.home = home
         coordinator = OnboardingCoordinator(
             connection: connection,
             authManager: authManager,
             router: router,
             connectionRetrier: retrier,
             theme: theme,
+            makeHome: { home },
             sleep: clock.sleep
         )
     }
@@ -217,6 +219,43 @@ struct OnboardingCoordinatorTests {
         #expect(connection.cancelAuthCallCount == 1)
         #expect(connection.abandonConnectionCallCount == 0)
     }
+
+    @Test
+    func loginCallback_accepted_opensTheHomeStepWithTheSessionsHome() async {
+        coordinator.loginOpened()
+        await coordinator.loginCallback(url: Self.callbackURL, session: Self.authSession)
+        #expect(connection.handledCallbackURLs == [Self.callbackURL])
+        #expect(coordinator.page == .home)
+        #expect(coordinator.home === home)
+    }
+
+    @Test
+    func loginCallback_rejected_returnsToThePageBehindTheSheet() async {
+        connection.callbackError = "Login failed"
+        coordinator.enterAddressManually()
+        coordinator.loginOpened()
+        await coordinator.loginCallback(url: Self.callbackURL, session: Self.authSession)
+        #expect(coordinator.page == .manualAddress)
+        #expect(coordinator.home == nil)
+        #expect(connection.cancelAuthCallCount == 1)
+    }
+
+    @Test
+    func loginFailed_reportsItAndReturnsToThePageBehindTheSheet() {
+        coordinator.loginOpened()
+        coordinator.loginFailed()
+        #expect(connection.authSessionFailedCallCount == 1)
+        #expect(coordinator.page == .server)
+    }
+
+    private static let callbackURL = URL(string: "https://ha.example.com/hemera_callback?code=abc")!
+    private static let authSession = OAuthFlowManager.AuthSession(
+        authorizeURL: URL(string: "https://ha.example.com/auth/authorize")!,
+        redirectURI: "https://ha.example.com/hemera_callback",
+        state: "state",
+        clientId: "https://ha.example.com",
+        serverURL: URL(string: "https://ha.example.com")!
+    )
 
     @Test
     func loginOpened_twice_keepsThePageBehindTheSheet() {
@@ -674,6 +713,10 @@ private final class SpyServerConnection: OnboardingServerConnecting {
     var prepareManualEntryCallCount = 0
     var abandonConnectionCallCount = 0
     var cancelAuthCallCount = 0
+    var authSessionFailedCallCount = 0
+    var handledCallbackURLs: [URL] = []
+    /// What a rejected login leaves in `errorMessage`; `nil` accepts it.
+    var callbackError: String?
 
     func submit() async -> Bool {
         submitCallCount += 1
@@ -683,4 +726,10 @@ private final class SpyServerConnection: OnboardingServerConnecting {
     func prepareManualEntry() { prepareManualEntryCallCount += 1 }
     func abandonConnection() { abandonConnectionCallCount += 1 }
     func cancelAuth() { cancelAuthCallCount += 1 }
+    func authSessionFailed() { authSessionFailedCallCount += 1 }
+
+    func handleOAuthCallback(url: URL, session: OAuthFlowManager.AuthSession) async {
+        handledCallbackURLs.append(url)
+        errorMessage = callbackError
+    }
 }

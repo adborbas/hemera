@@ -6,6 +6,9 @@ protocol OnboardingServerConnecting: ServerAddressHandling {
     func prepareManualEntry()
     func abandonConnection()
     func cancelAuth()
+    /// Finishes the login; a rejected one sets `errorMessage`.
+    func handleOAuthCallback(url: URL, session: OAuthFlowManager.AuthSession) async
+    func authSessionFailed()
 }
 
 extension ServerSelectionViewModel: OnboardingServerConnecting {}
@@ -97,6 +100,8 @@ final class OnboardingCoordinator {
     private let router: any OnboardingRouting
     private let connectionRetrier: any ConnectionRetrying
     private let theme: any OnboardingTheming
+    /// The Home step's editor for the session a login just started; `nil` before there is one.
+    private let makeHome: @MainActor () -> CuratedHomeViewModel?
     private let sleep: @MainActor (Duration) async throws -> Void
 
     // MARK: - Init
@@ -107,6 +112,7 @@ final class OnboardingCoordinator {
         router: any OnboardingRouting,
         connectionRetrier: any ConnectionRetrying,
         theme: any OnboardingTheming,
+        makeHome: @escaping @MainActor () -> CuratedHomeViewModel?,
         sleep: @escaping @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.connection = connection
@@ -114,6 +120,7 @@ final class OnboardingCoordinator {
         self.router = router
         self.connectionRetrier = connectionRetrier
         self.theme = theme
+        self.makeHome = makeHome
         self.sleep = sleep
     }
 
@@ -207,6 +214,22 @@ final class OnboardingCoordinator {
         connection.cancelAuth()
         isForward = false
         page = contentPage
+    }
+
+    /// The login page redirected back: a rejected login returns to the page behind the sheet.
+    func loginCallback(url: URL, session: OAuthFlowManager.AuthSession) async {
+        await connection.handleOAuthCallback(url: url, session: session)
+        if connection.errorMessage != nil {
+            loginCancelled()
+        } else if let home = makeHome() {
+            loggedIn(home: home)
+        }
+    }
+
+    /// The login page never loaded.
+    func loginFailed() {
+        connection.authSessionFailed()
+        loginCancelled()
     }
 
     func loggedIn(home: CuratedHomeViewModel) {

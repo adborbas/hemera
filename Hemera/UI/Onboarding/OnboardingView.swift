@@ -15,7 +15,16 @@ struct OnboardingView: View {
             authManager: ServiceLocator.shared.authManager,
             router: ServiceLocator.shared.router,
             connectionRetrier: ServiceLocator.shared.sessionManager,
-            theme: theme
+            theme: theme,
+            makeHome: {
+                guard let session = ServiceLocator.shared.session else { return nil }
+                return CuratedHomeViewModel(
+                    homeTileRepository: session.homeTileRepository,
+                    viewModelFactory: session.viewModelFactory,
+                    authManager: ServiceLocator.shared.authManager,
+                    demoCoordinator: ServiceLocator.shared.demoCoordinator
+                )
+            }
         ))
     }
 
@@ -67,23 +76,8 @@ struct OnboardingView: View {
             if let session = serverSelection.authSession {
                 OnboardingLoginSheet(
                     session: session,
-                    onCallback: { callbackURL in
-                        await serverSelection.handleOAuthCallback(url: callbackURL, session: session)
-                        if serverSelection.errorMessage != nil {
-                            coordinator.loginCancelled()
-                        } else if let session = ServiceLocator.shared.session {
-                            coordinator.loggedIn(home: CuratedHomeViewModel(
-                                homeTileRepository: session.homeTileRepository,
-                                viewModelFactory: session.viewModelFactory,
-                                authManager: ServiceLocator.shared.authManager,
-                                demoCoordinator: ServiceLocator.shared.demoCoordinator
-                            ))
-                        }
-                    },
-                    onFailure: {
-                        serverSelection.authSessionFailed()
-                        coordinator.loginCancelled()
-                    },
+                    onCallback: { await coordinator.loginCallback(url: $0, session: session) },
+                    onFailure: coordinator.loginFailed,
                     onCancel: coordinator.loginCancelled
                 )
             }
