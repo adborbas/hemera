@@ -61,7 +61,6 @@ struct EntityRegistrySnapshot: Sendable {
     let entityAreaIds: [String: String]
     /// An `entity_category` (config or diagnostic) marks a setting or a diagnostic, not a control.
     let categorizedEntityIds: Set<String>
-    let disabledEntityIds: Set<String>
     /// A null `original_name` is how Home Assistant marks the entity that represents its device.
     let mainEntityIds: Set<String>
 
@@ -72,7 +71,6 @@ struct EntityRegistrySnapshot: Sendable {
         var hiddenEntityIds: Set<String> = []
         var entityAreaIds: [String: String] = [:]
         var categorizedEntityIds: Set<String> = []
-        var disabledEntityIds: Set<String> = []
         var mainEntityIds: Set<String> = []
         for entry in entries {
             guard case let .dictionary(dict) = entry,
@@ -92,9 +90,6 @@ struct EntityRegistrySnapshot: Sendable {
             if dict["entity_category"] as? String != nil {
                 categorizedEntityIds.insert(entityId)
             }
-            if dict["disabled_by"] as? String != nil {
-                disabledEntityIds.insert(entityId)
-            }
             if dict["original_name"] as? String == nil {
                 mainEntityIds.insert(entityId)
             }
@@ -104,7 +99,6 @@ struct EntityRegistrySnapshot: Sendable {
             hiddenEntityIds: hiddenEntityIds,
             entityAreaIds: entityAreaIds,
             categorizedEntityIds: categorizedEntityIds,
-            disabledEntityIds: disabledEntityIds,
             mainEntityIds: mainEntityIds
         )
     }

@@ -194,7 +194,6 @@ struct SettingsView: View {
             }
             .buttonStyle(.mortarDestructive(width: .fullWidth))
             .accessibilityIdentifier("settingsLogOut")
-            .listRowInsets(EdgeInsets())
         }
     }
 

@@ -34,16 +34,18 @@ enum SuggestedHome {
         // Scene and button state is the last press, so unknown only means never pressed.
         func isSuggestable(_ entityId: String, unknownIsNormal: Bool = false) -> Bool {
             guard !registry.hiddenEntityIds.contains(entityId),
-                  !registry.disabledEntityIds.contains(entityId),
                   !registry.categorizedEntityIds.contains(entityId),
                   let state = states[entityId]
             else { return false }
             return state != "unavailable" && (unknownIsNormal || state != "unknown")
         }
 
+        // From the registry, not the areas, so a device's switches without an area count too.
         let switchesPerDevice = Dictionary(
-            grouping: areas.flatMap(\.switches).filter { isSuggestable($0.entityId) },
-            by: { $0.deviceId ?? $0.entityId }
+            grouping: registry.deviceMappings.filter {
+                $0.entityId.hasPrefix("switch.") && isSuggestable($0.entityId)
+            },
+            by: \.deviceId
         ).mapValues(\.count)
 
         // One list per kind, in kind order: light, climate, cover, switch, vacuum, action.
@@ -59,7 +61,7 @@ enum SuggestedHome {
             let switches = area.switches.filter {
                 isSuggestable($0.entityId) && ($0.deviceClass == .outlet
                     || registry.mainEntityIds.contains($0.entityId)
-                    || switchesPerDevice[$0.deviceId ?? $0.entityId] == 1)
+                    || $0.deviceId.map { switchesPerDevice[$0] == 1 } ?? true)
             }.map { Candidate($0) }
             let vacuums = area.vacuums.filter { isSuggestable($0.entityId) }.map { Candidate($0) }
             let scenes = area.scenes.filter { isSuggestable($0.entityId, unknownIsNormal: true) }.map { Candidate($0) }

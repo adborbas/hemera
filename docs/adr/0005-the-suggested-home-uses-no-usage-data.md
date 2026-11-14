@@ -33,7 +33,7 @@ The Suggested Home is the same whenever it is computed, and needs no extra reque
 it works for a non-admin user.
 
 It can't tell a lamp used daily from one never touched. Area order is the registry's order, a light
-group ranks below a single lamp, and a group with no area is never chosen. The user fixes these in the
+group is treated like a single lamp, and a group with no area is never chosen. The user fixes these in the
 Home step, which exists for that reason.
 
 Usage data can still be added as a tie-breaker inside the same rules.

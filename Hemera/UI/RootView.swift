@@ -20,7 +20,7 @@ struct RootView: View {
             case .connecting:
                 ConnectingView(viewModel: ConnectingViewModel())
             case .sessionExpired:
-                SessionExpiredView(viewModel: SessionExpiredViewModel())
+                SessionExpiredView()
             case .authenticated:
                 if let session = ServiceLocator.shared.session {
                     MainNavigationView(session: session)

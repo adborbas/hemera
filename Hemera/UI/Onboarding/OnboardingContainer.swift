@@ -21,6 +21,8 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var width: CGFloat = 0
+    /// While a page slides in, so a double tap can't also tap the next page's button.
+    @State private var isSettling = false
 
     var body: some View {
         ZStack {
@@ -61,6 +63,11 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
         // The first page keeps the system Back, which returns to the Welcome screen.
         .navigationBarBackButtonHidden(coordinator.canGoBack)
         .toolbar { header }
+        .task(id: coordinator.contentPage) {
+            isSettling = true
+            do { try await Task.sleep(for: .seconds(OnboardingLayout.pushDuration)) } catch { return }
+            isSettling = false
+        }
     }
 
     private var header: OnboardingHeader {
@@ -80,6 +87,7 @@ struct OnboardingContainer<Content: View, TitleAccessory: View>: View {
                 Task { await coordinator.bottomButtonTapped() }
             }
             .disabled(!button.isEnabled)
+            .allowsHitTesting(!isSettling)
             .accessibilityIdentifier("onboardingBottomButton")
             .frame(maxWidth: horizontalSizeClass == .regular ? Mortar.ContentWidth.narrow : .infinity)
             .frame(maxWidth: .infinity)

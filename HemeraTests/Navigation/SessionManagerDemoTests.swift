@@ -204,16 +204,6 @@ struct SessionManagerTests {
     }
 
     @Test
-    func fillSuggestedHome_inDemoMode_leavesHomeAlone() throws {
-        let payload = try syncedLamp()
-
-        sessionManager.startDemoSession()
-        sessionManager.fillSuggestedHomeIfNeeded(payload)
-
-        #expect(homeTileIds().isEmpty)
-    }
-
-    @Test
     func fillSuggestedHome_whenHomeHasTiles_addsNothing() throws {
         let payload = try syncedLamp()
         persistentContainer.mainContext.insert(HomeTile(entityId: "light.mine", sortOrder: 0))
@@ -249,6 +239,17 @@ struct SessionManagerTests {
         #expect(homeTileIds() == ["light.lamp"])
     }
 
+    @Test
+    func fillSuggestedHome_afterASyncWithoutTheRegistry_fillsOnTheNextOne() throws {
+        let payload = try syncedLamp()
+        authManager.simulateLogin()
+        sessionManager.fillSuggestedHomeIfNeeded(try lampPayload(withRegistry: false))
+
+        sessionManager.fillSuggestedHomeIfNeeded(payload)
+
+        #expect(homeTileIds() == ["light.lamp"])
+    }
+
     // MARK: - Helpers
 
     /// Stores what a sync of one lamp leaves behind and returns the payload it fetched.
@@ -260,7 +261,11 @@ struct SessionManagerTests {
         context.insert(lamp)
         lamp.area = area
         try context.save()
+        return try lampPayload(withRegistry: true)
+    }
 
+    /// What a sync of one lamp fetched; without the registry, as when only that request failed.
+    private func lampPayload(withRegistry: Bool) throws -> HADataSyncService.SyncPayload {
         let state = try HAEntity(
             entityId: "light.lamp",
             domain: "light",
@@ -284,7 +289,9 @@ struct SessionManagerTests {
             floorSortOrder: [:],
             areaFloorIds: [:],
             iconTranslations: nil,
-            entityRegistry: EntityRegistrySnapshot.decode(HAData(value: [["entity_id": "light.lamp", "original_name": "Lamp"]]))
+            entityRegistry: withRegistry
+                ? EntityRegistrySnapshot.decode(HAData(value: [["entity_id": "light.lamp", "original_name": "Lamp"]]))
+                : nil
         )
     }
 

@@ -138,17 +138,16 @@ struct RegistryEntriesDecodingTests {
         #expect(snapshot.entityAreaIds == ["light.lamp": "kitchen"])
     }
 
-    /// Settings, diagnostics and disabled entities are skipped, and a device's main one is spotted.
+    /// Settings and diagnostics are marked, and a device's main entity is spotted.
     @Test func entitySnapshot_decodesSuggestedHomeFacts() throws {
         let snapshot = try #require(EntityRegistrySnapshot.decode(HAData(value: [
             ["entity_id": "switch.led", "entity_category": "config", "original_name": "LED"],
             ["entity_id": "sensor.rssi", "entity_category": "diagnostic", "original_name": "RSSI"],
-            ["entity_id": "light.old", "disabled_by": "user", "original_name": "Old", "entity_category": NSNull()],
-            ["entity_id": "switch.plug", "original_name": NSNull(), "disabled_by": NSNull()]
+            ["entity_id": "light.old", "original_name": "Old", "entity_category": NSNull()],
+            ["entity_id": "switch.plug", "original_name": NSNull()]
         ])))
 
         #expect(snapshot.categorizedEntityIds == ["switch.led", "sensor.rssi"])
-        #expect(snapshot.disabledEntityIds == ["light.old"])
         #expect(snapshot.mainEntityIds == ["switch.plug"])
     }
 

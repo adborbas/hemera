@@ -3,7 +3,7 @@ import Mortar
 
 struct SessionExpiredView: View {
 
-    @Bindable var viewModel: SessionExpiredViewModel
+    @State var viewModel = SessionExpiredViewModel()
     @State private var isExchangingToken = false
 
     var body: some View {

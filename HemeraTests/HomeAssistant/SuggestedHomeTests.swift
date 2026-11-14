@@ -94,6 +94,14 @@ struct SuggestedHomeTests {
         #expect(home.suggestedIds == ["switch.heater"])
     }
 
+    @Test func switch_secondaryWhoseSiblingHasNoArea_isLeftOut() {
+        let area = home.area("living", order: 0)
+        home.add(SwitchEntity(entityId: "switch.relay_1"), in: area, device: "relay")
+        home.add(SwitchEntity(entityId: "switch.relay_2"), in: nil, device: "relay")
+
+        #expect(home.suggestedIds.isEmpty)
+    }
+
     // MARK: - Buttons
 
     @Test func button_withoutDevice_isKept() {
@@ -140,7 +148,6 @@ struct SuggestedHomeTests {
 
     @Test(arguments: [
         ["hidden_by": "user"],
-        ["disabled_by": "integration"],
         ["entity_category": "config"],
         ["entity_category": "diagnostic"]
     ] as [[String: String]])
@@ -298,6 +305,7 @@ private final class TestHome {
         entity.deviceId = device
         states[entity.entityId] = state
         var entry: [String: Any] = ["entity_id": entity.entityId, "original_name": "Own name"]
+        entry["device_id"] = device
         entry.merge(registry) { $1 }
         registryEntries.append(entry)
     }

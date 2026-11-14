@@ -68,12 +68,13 @@ struct SceneCardViewModelTests {
 
     @Test
     func activate_twice_keepsConfirmingFromTheLatestTap() async {
-        let vm = makeViewModel(confirmationDuration: .seconds(1))
+        // The first tick ends at 2 s, the second's at 3.2 s; the 2.4 s check has slack both ways.
+        let vm = makeViewModel(confirmationDuration: .seconds(2))
 
         vm.activate()
-        try? await Task.sleep(for: .milliseconds(700))
+        try? await Task.sleep(for: .milliseconds(1200))
         vm.activate()
-        try? await Task.sleep(for: .milliseconds(700))
+        try? await Task.sleep(for: .milliseconds(1200))
 
         #expect(vm.isConfirmingActivation)
     }

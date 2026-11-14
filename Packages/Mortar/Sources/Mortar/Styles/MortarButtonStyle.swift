@@ -13,6 +13,7 @@ public enum MortarButtonWidth {
 public struct MortarPrimaryButtonStyle: ButtonStyle {
     let width: MortarButtonWidth
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.mortarButtonIsLoading) private var isLoading
 
     public init(width: MortarButtonWidth = .intrinsic) {
         self.width = width
@@ -28,7 +29,7 @@ public struct MortarPrimaryButtonStyle: ButtonStyle {
             .background(.tint, in: RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous))
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             // The same dimming as an unavailable entity card.
-            .opacity(isEnabled ? 1 : 0.45)
+            .opacity(isEnabled || isLoading ? 1 : 0.45)
     }
 }
 
@@ -68,6 +69,11 @@ public struct MortarDestructiveButtonStyle: ButtonStyle {
             .background(Color.red.opacity(0.15), in: RoundedRectangle(cornerRadius: Mortar.Radii.s, style: .continuous))
             .opacity(configuration.isPressed ? 0.8 : 1.0)
     }
+}
+
+extension EnvironmentValues {
+    /// Set by `MortarButton`, which disables itself while busy but must not look unavailable.
+    @Entry var mortarButtonIsLoading = false
 }
 
 // MARK: - Width Modifier

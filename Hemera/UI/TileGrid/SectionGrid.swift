@@ -25,6 +25,8 @@ struct SectionGrid<Content: View>: View {
     @State private var dragStartCenter: CGPoint?
     @State private var hitTestPlacements: [TileGridEngine.Placement]?
     @State private var lastHoverTargetID: Tile.ID?
+    @State private var tilesAtLift: [Tile]?
+    @Environment(\.tilesWiggleWhileEditing) private var wigglesWhileEditing
 
     var body: some View {
         let currentEngine = engine ?? TileGridEngine(columns: columns, tiles: tiles)
@@ -118,6 +120,8 @@ struct SectionGrid<Content: View>: View {
 
             content(tile)
                 .frame(width: size.width, height: size.height)
+                // Under the badges, so pressing one never lifts the tile.
+                .gesture(dragGesture(for: placement.id, metrics: metrics))
                 .overlay {
                     if isEditing, let editBadges {
                         // Hidden while dragging, never removed: inserted mid-move, they'd fly in.
@@ -129,6 +133,11 @@ struct SectionGrid<Content: View>: View {
                             .transition(.opacity)
                     }
                 }
+                // Around the tile and its badges together, so they wiggle as one.
+                .wiggle(
+                    isWiggling: isEditing && editBadges != nil && wigglesWhileEditing,
+                    seed: tile.id.hashValue
+                )
                 .offset(x: visualOrigin.x, y: visualOrigin.y)
                 .animation(
                     isDragging || (!isEditing && !animatesTileChanges) ? nil : Mortar.Motion.springSnappy,
@@ -137,7 +146,6 @@ struct SectionGrid<Content: View>: View {
                 .scaleEffect(isDragging ? 1.03 : 1.0)
                 .shadow(radius: isDragging ? 8 : 0)
                 .zIndex(isDragging ? 1 : 0)
-                .gesture(dragGesture(for: placement.id, metrics: metrics))
                 .allowsHitTesting(snapshot.draggingID == nil || isDragging)
                 .transition(animatesTileChanges ? .opacity : .identity)
         }
@@ -164,6 +172,7 @@ struct SectionGrid<Content: View>: View {
             // Begin drag - capture original placements for hit-testing
             let snapshot = engine?.snapshot()
             hitTestPlacements = snapshot?.placements
+            tilesAtLift = tiles
             engine?.beginDrag(tileID: tileID)
 
             // Compute initial center for the dragged tile
@@ -204,6 +213,19 @@ struct SectionGrid<Content: View>: View {
             }
         } onDrop: {
             guard engine?.draggingID != nil else { return }
+            defer {
+                dragOffset = .zero
+                dragStartCenter = nil
+                hitTestPlacements = nil
+                lastHoverTargetID = nil
+                tilesAtLift = nil
+            }
+            // Undo, redo or Done during the hold changed the tiles, so the engine's copy is stale.
+            guard isEditing, tiles == tilesAtLift else {
+                engine?.endDrag(commit: false)
+                engine = TileGridEngine(columns: columns, tiles: tiles)
+                return
+            }
 
             // Capture pre-reorder order for undo
             let previousOrder = tiles.map(\.id)
@@ -221,11 +243,6 @@ struct SectionGrid<Content: View>: View {
                     }
                 }
             }
-
-            dragOffset = .zero
-            dragStartCenter = nil
-            hitTestPlacements = nil
-            lastHoverTargetID = nil
         }
     }
 

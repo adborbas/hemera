@@ -57,6 +57,7 @@ public struct MortarButton: View {
             }
         )
         .disabled(isLoading)
+        .environment(\.mortarButtonIsLoading, isLoading)
     }
 
     @ViewBuilder

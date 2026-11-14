@@ -2,19 +2,16 @@ import SwiftUI
 import Mortar
 import TileGridEngine
 
-/// Makes a tile inert and wiggling in edit mode; its badges are drawn by `TileEditBadges`.
+/// Makes a tile inert in edit mode; its badges are drawn by `TileEditBadges`.
 struct EditableTileModifier: ViewModifier {
     let tile: Tile
     let isEditing: Bool
     let onTap: () -> Void
 
-    @Environment(\.tilesWiggleWhileEditing) private var wiggles
-
     func body(content: Content) -> some View {
         content
             .allowsHitTesting(!isEditing)
             .environment(\.cardIconsActive, !isEditing)
-            .wiggle(isWiggling: isEditing && wiggles, seed: tile.id.hashValue)
             .contentShape(Rectangle())
             .onTapGesture {
                 // In edit mode the gesture deliberately swallows the tap so it
@@ -31,8 +28,6 @@ struct TileEditBadges: View {
     let tile: Tile
     let onRemove: () -> Void
     let onResize: (TileSize) -> Void
-
-    @Environment(\.tilesWiggleWhileEditing) private var wiggles
 
     private static let cornerOffset = Mortar.TapTarget.minimum / 2
     /// Puts the remove badge's centre on the curve of a tile's rounded corner.
@@ -67,8 +62,6 @@ struct TileEditBadges: View {
                 }
                 .offset(x: Self.resizeOffset, y: Self.resizeOffset)
             }
-            // Same seed as the tile's own wiggle, so the badges stay on its corners.
-            .wiggle(isWiggling: wiggles, seed: tile.id.hashValue)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(tile.title)
     }
