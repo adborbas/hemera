@@ -16,7 +16,7 @@ struct SectionGrid<Content: View>: View {
      hidden items to fade into place as they are revealed or removed.
     */
     var animatesTileChanges: Bool = false
-    /// Drawn above every tile while editing, so corner badges can overhang the neighbours.
+    /// Drawn on each tile while editing, so they move with it.
     var editBadges: ((Tile) -> AnyView)?
     let content: (Tile) -> Content
 
@@ -97,19 +97,6 @@ struct SectionGrid<Content: View>: View {
                 metrics: metrics
             )
         }
-        if isEditing, let editBadges, snapshot.draggingID == nil {
-            ForEach(snapshot.placements, id: \.id) { placement in
-                if let tile = engine.tilesByID[placement.id] {
-                    let origin = metrics.origin(for: placement)
-                    let size = metrics.size(for: placement)
-                    editBadges(tile)
-                        .frame(width: size.width, height: size.height)
-                        .offset(x: origin.x, y: origin.y)
-                        .animation(Mortar.Motion.springSnappy, value: CGRect(origin: origin, size: size))
-                        .transition(.opacity)
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -131,6 +118,17 @@ struct SectionGrid<Content: View>: View {
 
             content(tile)
                 .frame(width: size.width, height: size.height)
+                .overlay {
+                    if isEditing, let editBadges {
+                        // Hidden while dragging, never removed: inserted mid-move, they'd fly in.
+                        let isShown = snapshot.draggingID == nil
+                        editBadges(tile)
+                            .opacity(isShown ? 1 : 0)
+                            .animation(.easeInOut(duration: Mortar.Motion.fast), value: isShown)
+                            .allowsHitTesting(isShown)
+                            .transition(.opacity)
+                    }
+                }
                 .offset(x: visualOrigin.x, y: visualOrigin.y)
                 .animation(
                     isDragging || (!isEditing && !animatesTileChanges) ? nil : Mortar.Motion.springSnappy,
