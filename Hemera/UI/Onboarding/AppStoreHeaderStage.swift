@@ -27,14 +27,13 @@ struct AppStoreHeaderStage: View {
         static let drift = 6.0
         static let bandAspect = 3840.0 / 1646.0
         static let tileRotation = 3.0
-        static let columnOffset = 40.0
         static let tileSpacing = 14.0
         static let mediumHeight = 168.0
         static let smallHeight = 80.0
         static let clusterWidth = 380.0
-        static let clusterScale = 1.2
-        static let leftColumn = [0, 2, 4]
-        static let rightColumn = [3, 5, 1]
+        static let clusterScale = 1.0
+        static let leftColumn = [0, 2]
+        static let rightColumn = [5, 1]
     }
 
     var body: some View {
@@ -73,15 +72,13 @@ struct AppStoreHeaderStage: View {
         HStack(spacing: 56) {
             if !Self.caption.isEmpty {
                 Text(Self.caption)
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
             }
             HStack(alignment: .center, spacing: Mortar.Spacing.s) {
                 column(Layout.leftColumn, rotation: -Layout.tileRotation, time: time)
-                    .offset(y: -Layout.columnOffset / 2)
                 column(Layout.rightColumn, rotation: Layout.tileRotation, time: time)
-                    .offset(y: Layout.columnOffset / 2)
             }
             .frame(width: Layout.clusterWidth)
             .scaleEffect(Layout.clusterScale)
@@ -110,8 +107,8 @@ struct AppStoreHeaderStage: View {
 */
 private final class LoopSchedule {
 
-    /// Changes per tile in `WelcomeViewModel.tiles` order; the scene (4) is momentary, so any count.
-    private static let changesPerTile = [4, 4, 2, 2, 3, 2]
+    /// Changes per tile in `WelcomeViewModel.tiles` order; coffee (3) and the scene (4) are not shown.
+    private static let changesPerTile = [4, 4, 4, 0, 0, 4]
 
     let anchor = Date.now.addingTimeInterval(1)
     private let loop: TimeInterval
