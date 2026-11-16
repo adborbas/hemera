@@ -167,7 +167,8 @@ platform :ios do
       merge_branch = "merge-release-#{version}"
       sh("git", "checkout", "-B", merge_branch, "origin/main")
       sh("git", "merge", "--no-ff", "--no-commit", "origin/#{branch}") { |status| }
-      sh("git", "checkout", "origin/main", "--", XCCONFIG)
+      # `sh` runs in fastlane/, so a repo-relative path would miss.
+      sh("git", "checkout", "origin/main", "--", File.expand_path("../#{XCCONFIG}", __dir__))
       sh("git", "commit", "--no-edit")
       push_to_git_remote(local_branch: merge_branch, remote_branch: merge_branch, force: true)
       sh(
